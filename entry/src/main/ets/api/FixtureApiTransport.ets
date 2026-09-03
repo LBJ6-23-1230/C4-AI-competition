@@ -1,0 +1,75 @@
+import { DemoResetResponse, Evidence, ExerciseSetResponse, ExerciseSubmissionResult, KnowledgeMastery, LearningPlan, PlanDiff, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowStatusResponse } from './ApiModels';
+import { ApiResult, apiFailure, apiSuccess } from './ApiResult';
+
+/** Success payloads mirror contracts/fixtures/*.json api-contract-v0.2. */
+export class FixtureApiTransport {
+  private static exerciseSubmitted: boolean = false;
+
+  static async request<T>(method: string, path: string, body?: Object): Promise<ApiResult<T>> {
+    if (method === 'POST' && path === '/api/v1/workflows') return apiSuccess<WorkflowResponse>(FixtureApiTransport.workflow(body as WorkflowCreateRequest), 'fixture') as ApiResult<T>;
+    if (method === 'GET' && path.indexOf('/api/v1/workflows/') === 0) return apiSuccess<WorkflowStatusResponse>(FixtureApiTransport.workflowStatus(), 'fixture') as ApiResult<T>;
+    if (method === 'GET' && path.indexOf('/api/v1/profile/') === 0) return apiSuccess<ProfileResponse>(FixtureApiTransport.profile(), 'fixture') as ApiResult<T>;
+    if (method === 'GET' && path === '/api/v1/plans/current') return apiSuccess<LearningPlan>(FixtureApiTransport.plan(), 'fixture') as ApiResult<T>;
+    if (method === 'GET' && path.indexOf('/api/v1/exercises/') === 0 && !path.endsWith('/submit')) return apiSuccess<ExerciseSetResponse>(FixtureApiTransport.exerciseSet(), 'fixture') as ApiResult<T>;
+    if (method === 'POST' && path.indexOf('/api/v1/exercises/') === 0 && path.endsWith('/submit')) {
+      FixtureApiTransport.exerciseSubmitted = true;
+      return apiSuccess<ExerciseSubmissionResult>(FixtureApiTransport.assessment(), 'fixture') as ApiResult<T>;
+    }
+    if (method === 'GET' && path.indexOf('/api/v1/plans/') === 0 && path.endsWith('/diff')) return apiSuccess<PlanDiff>(FixtureApiTransport.planDiff(), 'fixture') as ApiResult<T>;
+    if (method === 'GET' && path.indexOf('/api/v1/traces/') === 0) return apiSuccess<TraceResponse>(FixtureApiTransport.trace(), 'fixture') as ApiResult<T>;
+    if (method === 'POST' && path === '/api/v1/demo/reset') {
+      FixtureApiTransport.exerciseSubmitted = false;
+      return apiSuccess<DemoResetResponse>(FixtureApiTransport.reset(), 'fixture') as ApiResult<T>;
+    }
+    return apiFailure('FIXTURE_ROUTE_NOT_FOUND', `未找到 fixture 路由：${method} ${path}`, false, 'fixture') as ApiResult<T>;
+  }
+
+  private static evidence(): Evidence {
+    return { id: 'evidence-demo-001', sourceType: 'exercise', sourceId: 'set-demo-binary-tree-001', knowledgePointId: 'binary-tree-postorder', metric: 'perKnowledgeAccuracy', value: 67, timestamp: '2026-09-02T09:30:00Z', reliability: 1 };
+  }
+
+  private static profile(): ProfileResponse {
+    const masteryScore: number = FixtureApiTransport.exerciseSubmitted ? 58 : 42;
+    const mastery: KnowledgeMastery[] = [{ knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', masteryScore: masteryScore, confidence: 0.7, lastUpdated: '2026-09-02T09:00:00Z' }];
+    return { profileVersion: FixtureApiTransport.exerciseSubmitted ? 2 : 1, profile: { userId: 'demo-user', goal: '数据结构考试80+', examDate: '2026-09-30', freeTimeSlots: ['20:00-22:00'], profileVersion: FixtureApiTransport.exerciseSubmitted ? 2 : 1, mastery: mastery }, mastery: mastery, history: FixtureApiTransport.exerciseSubmitted ? [{ oldScore: 42, newScore: 58, evidenceIds: ['evidence-demo-001'], source: 'assessment', timestamp: '2026-09-02T09:30:00Z' }] : [], evidence: FixtureApiTransport.exerciseSubmitted ? [FixtureApiTransport.evidence()] : [] };
+  }
+
+  private static plan(): LearningPlan {
+    const replanned: boolean = FixtureApiTransport.exerciseSubmitted;
+    return { planId: 'plan-demo-001', version: replanned ? 2 : 1, generatedFromProfileVersion: replanned ? 2 : 1, reason: replanned ? '掌握度仍低于巩固阈值，已自动重规划。' : '巩固二叉树后序遍历', tasks: [{ taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', durationMinutes: replanned ? 45 : 30, status: 'pending', priority: 'high' }] };
+  }
+
+  private static workflow(request?: WorkflowCreateRequest): WorkflowResponse {
+    return { sessionId: request?.sessionId ?? 'session-demo-001', traceId: 'trace-demo-001', status: 'running', currentStep: 'diagnosis', nextAction: 'diagnose' };
+  }
+
+  private static workflowStatus(): WorkflowStatusResponse {
+    return { status: FixtureApiTransport.exerciseSubmitted ? 'completed' : 'running', currentAgent: FixtureApiTransport.exerciseSubmitted ? 'planner' : 'diagnosis', stateVersion: FixtureApiTransport.exerciseSubmitted ? 4 : 2, finalAction: FixtureApiTransport.exerciseSubmitted ? '查看 Plan V2' : null };
+  }
+
+  private static exerciseSet(): ExerciseSetResponse {
+    return { setId: 'set-demo-binary-tree-001', exercises: [
+      { exerciseId: 'exercise-preorder-001', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', difficulty: 'easy', stem: '以下哪项是给定二叉树的前序遍历结果？', options: ['A. 根-左-右', 'B. 左-右-根', 'C. 左-根-右', 'D. 根-右-左'], source: 'demo' },
+      { exerciseId: 'exercise-inorder-001', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', difficulty: 'easy', stem: '二叉树中序遍历访问节点的顺序是什么？', options: ['A. 根-左-右', 'B. 左-根-右', 'C. 左-右-根', 'D. 根-右-左'], source: 'demo' },
+      { exerciseId: 'exercise-postorder-001', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', difficulty: 'medium', stem: '二叉树后序遍历访问节点的顺序是什么？', options: ['A. 根-左-右', 'B. 左-根-右', 'C. 左-右-根', 'D. 根-右-左'], source: 'demo' }
+    ] };
+  }
+
+  private static assessment(): ExerciseSubmissionResult {
+    return { assessment: { score: 67, perKnowledgeAccuracy: { 'binary-tree-postorder': 67 }, errorTypes: ['后序遍历顺序混淆'], oldMastery: 42, suggestedNewMastery: 58 }, masteryUpdate: { knowledgePointId: 'binary-tree-postorder', oldScore: 42, newScore: 58 }, needReplan: true, plan: FixtureApiTransport.plan(), planDiff: FixtureApiTransport.planDiff() };
+  }
+
+  private static planDiff(): PlanDiff {
+    return { planId: 'plan-demo-001', oldVersion: 1, newVersion: 2, changedTasks: [{ taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', durationMinutes: 45, change: '+15' }, { taskId: 'task-graph', knowledgePointId: 'graph-traversal', durationMinutes: 15, change: '-15' }], adjustmentReason: '二叉树后序遍历 mastery=58，低于巩固阈值60', triggerEvidence: ['evidence-demo-001'] };
+  }
+
+  private static trace(): TraceResponse {
+    return { traceId: 'trace-demo-001', events: [{ agent: 'secretary', toolCalls: ['get_learner_profile'], inputSummary: '读取 demo-user 学习状态', outputSummary: '发现 mastery=42 且需要练习', evidenceIds: [], stateVersion: 1, timestamp: '2026-09-02T09:00:00Z', status: 'success' }] };
+  }
+
+  private static reset(): DemoResetResponse {
+    FixtureApiTransport.exerciseSubmitted = false;
+    const profile: ProfileResponse = FixtureApiTransport.profile();
+    return { status: 'reset', userId: 'demo-user', profile: profile.profile ?? null, plan: FixtureApiTransport.plan(), traceId: 'trace-demo-reset-001' };
+  }
+}

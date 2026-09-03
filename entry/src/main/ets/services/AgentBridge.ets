@@ -142,9 +142,9 @@ export class AgentBridge {
 
     if (image !== undefined && image.length > 0) {
       return {
-        reply: 'uploaded image. LLM ready, wait a moment for analysis.',
+        reply: '图片已收到。你可以进入错题分析页，查看识别出的知识点、错误类型和补强建议。',
         intent: 'analyze_wrong',
-        card: { type: 'wrong', title: 'wrong analysis', summary: 'image uploaded', targetPage: 'pages/StudyTags', data: new Map() }
+        card: AgentBridge.createLocalCard('wrong', '错题分析', '基于题目内容识别知识点和错误原因。', 'pages/WrongQuestion')
       };
     }
 
@@ -163,7 +163,29 @@ export class AgentBridge {
     return {
       reply: foundReply !== undefined ? foundReply : defaultReply,
       intent: intent,
-      card: undefined
+      card: AgentBridge.createLocalCardForIntent(intent)
     };
+  }
+
+  /** Local fallback uses the same navigation cards as the real Agent response. */
+  static createLocalCardForIntent(intent: ChatIntent): ChatCard | undefined {
+    if (intent === 'analyze_weakness') {
+      return AgentBridge.createLocalCard('weakness', '知识画像', '查看当前薄弱知识点、掌握度和学习证据。', 'pages/StudyTags');
+    }
+    if (intent === 'analyze_wrong') {
+      return AgentBridge.createLocalCard('wrong', '错题分析', '上传或选择一道错题，获取错误原因和补强建议。', 'pages/WrongQuestion');
+    }
+    if (intent === 'query_tasks' || intent === 'get_suggestion') {
+      return AgentBridge.createLocalCard('tasks', '学习计划', '查看近期学习任务和优先级安排。', 'pages/StudyPlan');
+    }
+    if (intent === 'match_partner') {
+      return AgentBridge.createLocalCard('partner', '学习搭子', '查看基于课程、目标和时间的匹配结果。', 'pages/PartnerMatch');
+    }
+    return undefined;
+  }
+
+  static createLocalCard(type: ChatCardType, title: string, summary: string, targetPage: string): ChatCard {
+    const action: ChatAction = { label: AgentBridge.getActionLabel(type), targetPage: targetPage };
+    return { type: type, title: title, summary: summary, targetPage: targetPage, data: new Map<string, string>(), actions: [action] };
   }
 }

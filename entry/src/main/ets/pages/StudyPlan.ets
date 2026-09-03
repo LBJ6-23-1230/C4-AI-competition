@@ -5,13 +5,19 @@ import { LocalAgentService } from '../services/LocalAgentService';
 import { DateHelper, WeekDay } from '../utils/DateHelper';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AIFloatButton } from '../components/AIFloatButton';
+import { LearningPlan, PlanTask } from '../api/ApiModels';
+import { PlanViewModel } from '../viewmodels/PlanViewModel';
 
 @Entry
 @Component
 struct StudyPlan {
   @State activeDay: string = DateHelper.getTodayLabel();
   @State refreshKey: number = 0;
+  @State isApiPlanLoading: boolean = true;
+  @State apiPlan: LearningPlan | null = null;
+  @State apiPlanMessage: string = '';
   private weekDays: WeekDay[] = DateHelper.getWeekDays();
+  private planViewModel: PlanViewModel = new PlanViewModel();
 
   aboutToAppear(): void {
     // 更新周日期（每次进入页面重新计算）
@@ -43,6 +49,15 @@ struct StudyPlan {
     }
 
     this.refreshKey++;
+    this.loadCurrentPlan();
+  }
+
+  private async loadCurrentPlan(forceRefresh: boolean = false): Promise<void> {
+    this.isApiPlanLoading = true;
+    const state = await this.planViewModel.load(forceRefresh);
+    this.apiPlan = state.plan;
+    this.apiPlanMessage = state.errorMessage;
+    this.isApiPlanLoading = false;
   }
 
   private plan(): WeeklyLearningPlan {
@@ -102,6 +117,48 @@ struct StudyPlan {
   private isActiveDayToday(): boolean {
     const todayLabel: string = DateHelper.getTodayLabel();
     return this.activeDay.indexOf(todayLabel) !== -1;
+  }
+
+  @Builder
+  ApiPlanCard() {
+    Column({ space: 10 }) {
+      Row() {
+        Text('当前学习计划').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#1F2937')
+        Blank()
+        if (this.apiPlan !== null) {
+          Text(`V${this.apiPlan.version}`).fontSize(11).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+            .backgroundColor('#EFF6FF').borderRadius(8).padding({ left: 7, right: 7, top: 3, bottom: 3 })
+        }
+      }.width('100%')
+
+      if (this.isApiPlanLoading) {
+        Row({ space: 8 }) {
+          LoadingProgress().width(18).height(18).color('#2563EB')
+          Text('正在读取当前计划…').fontSize(13).fontColor('#667085')
+        }.width('100%')
+      } else if (this.apiPlan !== null) {
+        if (this.apiPlan.reason !== undefined) {
+          Text(this.apiPlan.reason).fontSize(13).fontColor('#475467').lineHeight(19).width('100%')
+        }
+        Text(`基于画像版本 ${this.apiPlan.generatedFromProfileVersion} 生成`)
+          .fontSize(12).fontColor('#667085').width('100%')
+        ForEach(this.apiPlan.tasks, (task: PlanTask) => {
+          Row({ space: 8 }) {
+            Text(task.priority === 'high' ? '优先' : '计划')
+              .fontSize(10).fontColor('#2563EB').backgroundColor('#EFF6FF').borderRadius(7).padding({ left: 6, right: 6, top: 3, bottom: 3 })
+            Text(`${task.knowledgePointName} · ${task.durationMinutes} 分钟`)
+              .fontSize(13).fontColor('#1F2937').layoutWeight(1)
+            Text(task.status).fontSize(11).fontColor('#667085')
+          }.width('100%').padding(10).backgroundColor('#F8FAFC').borderRadius(10)
+        }, (task: PlanTask) => task.taskId)
+      } else {
+        Text(this.apiPlanMessage).fontSize(13).fontColor('#B45309').lineHeight(19).width('100%')
+      }
+
+      Button('刷新当前计划')
+        .width('100%').height(38).fontSize(13).fontColor('#2563EB').backgroundColor('#FFFFFF')
+        .border({ width: 1, color: '#BFDBFE' }).borderRadius(10).onClick(() => this.loadCurrentPlan(true))
+    }.width('100%').padding(15).backgroundColor('#FFFFFF').border({ width: 1, color: '#BFDBFE' }).borderRadius(16)
   }
 
   @Builder
@@ -181,6 +238,8 @@ struct StudyPlan {
 
           Text(appState.getChatTaskContext()).fontSize(12).fontColor('#2563EB')
             .width('100%').padding(10).backgroundColor('#EFF6FF').borderRadius(10)
+
+          this.ApiPlanCard()
 
           // ===== 本周概览 =====
           Row({ space: 10 }) {

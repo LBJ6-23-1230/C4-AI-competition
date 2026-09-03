@@ -6,6 +6,8 @@
     "pages/StudySuggestion",
     "pages/WrongQuestion",
     "pages/StudyTags",
+    "pages/ExercisePractice",
+    "pages/AgentTrace",
     "pages/PartnerMatch",
     "pages/StudyPlan",
     "pages/ReviewSummary",
