@@ -223,7 +223,7 @@ struct StudyTags {
                 })
             }
           }
-          .width('100%').padding(16)
+          .width('100%').padding({ left: 16, right: 16, top: 16, bottom: 96 })
         }
         .layoutWeight(1).backgroundColor('#F3F6FA')
       }

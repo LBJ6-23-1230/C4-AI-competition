@@ -240,7 +240,7 @@ struct ExercisePractice {
                 .enabled(!this.isSubmitting && this.answeredCount() === this.exercises.length)
                 .onClick(() => this.submit())
             }
-          }.width('100%').padding(16)
+          }.width('100%').padding({ left: 16, right: 16, top: 16, bottom: 96 })
         }.layoutWeight(1).backgroundColor('#F3F6FA')
       }.width('100%').height('100%')
       AIFloatButton()

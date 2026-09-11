@@ -229,7 +229,7 @@ struct StudyPlan {
       Scroll() {
         Column({ space: 16 }) {
           // ===== 标题区 =====
-          Text('Agent 为你安排的一周')
+          Text('我的学习计划')
             .fontSize(25).fontWeight(FontWeight.Bold).fontColor('#1F2937').width('100%')
 
           // ===== 描述文本 =====
@@ -241,10 +241,16 @@ struct StudyPlan {
 
           this.ApiPlanCard()
 
+          Column({ space: 4 }) {
+            Text('课程与 DDL 日程').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#1F2937').width('100%')
+            Text('以下日程根据已导入课程、DDL 和可用时间生成，用于安排当前学习计划的执行时间。')
+              .fontSize(12).fontColor('#667085').lineHeight(18).width('100%')
+          }.width('100%')
+
           // ===== 本周概览 =====
           Row({ space: 10 }) {
-            this.Summary(`${this.plan().tasks.length}`, '本周任务')
-            this.Summary(`${appState.getPlanProgress()}%`, '完成进度')
+            this.Summary(`${this.plan().tasks.length}`, '日程任务')
+            this.Summary(`${appState.getPlanProgress()}%`, '日程进度')
             this.Summary(`${appState.getUrgentDDLs().length}`, '临近 DDL')
           }.width('100%')
 
@@ -261,8 +267,8 @@ struct StudyPlan {
           // ===== Agent 决策依据 =====
           Column({ space: 8 }) {
             Row({ space: 8 }) {
-              Text('Agent 决策依据').fontSize(14).fontWeight(FontWeight.Bold).fontColor('#1F2937')
-              Text('实时更新').fontSize(10).fontColor('#2563EB').backgroundColor('#EFF6FF').borderRadius(8).padding({ left: 6, right: 6, top: 3, bottom: 3 })
+              Text('日程排序依据').fontSize(14).fontWeight(FontWeight.Bold).fontColor('#1F2937')
+              Text('本地日程').fontSize(10).fontColor('#2563EB').backgroundColor('#EFF6FF').borderRadius(8).padding({ left: 6, right: 6, top: 3, bottom: 3 })
             }.width('100%')
             Text(this.plan().decisionTrace.urgencyReason).fontSize(12).fontColor('#475467').lineHeight(18)
             Text(this.plan().decisionTrace.weaknessReason).fontSize(12).fontColor('#475467').lineHeight(18)
@@ -312,7 +318,7 @@ struct StudyPlan {
           Button('确认计划').width('100%').height(48).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
             .backgroundColor('#2563EB').borderRadius(14).margin({ top: 6, bottom: 20 })
             .onClick(() => this.completePlan())
-        }.width('100%').padding(20)
+        }.width('100%').padding({ left: 20, right: 20, top: 20, bottom: 96 })
       }.layoutWeight(1)
     }.width('100%').height('100%').backgroundColor('#F7F8FA')
     AIFloatButton()

@@ -102,7 +102,7 @@ struct AgentTrace {
                 .width('100%').height(44).fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
                 .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => router.pushUrl({ url: 'pages/StudyTags' }))
             }
-          }.width('100%').padding(16)
+          }.width('100%').padding({ left: 16, right: 16, top: 16, bottom: 96 })
         }.layoutWeight(1).backgroundColor('#F3F6FA')
       }.width('100%').height('100%')
       AIFloatButton()
