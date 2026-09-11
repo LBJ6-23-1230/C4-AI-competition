@@ -4,6 +4,7 @@ import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
 import { ApiEnvironmentStore } from '../api/ApiEnvironmentStore';
 import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
+import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
 
 @Entry
 @Component
@@ -24,9 +25,10 @@ struct ApiEnvironment {
   private applyConfig(baseUrl: string, useFixture: boolean, message: string): void {
     const current: ApiClientConfig = AgentApiClient.getConfig();
     AgentApiClient.configure({ baseUrl: baseUrl, useFixture: useFixture, timeoutMs: current.timeoutMs });
-    ClientCache.clearDemoData();
-    this.syncConfig();
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    ClientCache.clearDemoData();
+    WorkflowSessionStore.clear(context);
+    this.syncConfig();
     if (ApiEnvironmentStore.save(context, AgentApiClient.getConfig())) {
       this.message = `${message} 此选择会在下次启动时保留。`;
     } else {

@@ -8,14 +8,25 @@ import { AIFloatButton } from '../components/AIFloatButton';
 import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
 import { WorkflowResponse, WorkflowStatusResponse } from '../api/ApiModels';
 import { ClientCache } from '../cache/ClientCache';
+import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 
 @Entry
 @Component
 struct Index {
   @State refreshKey: number = 0;
+  private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
 
   aboutToAppear(): void {
     this.ensurePlan();
+    this.refreshKey++;
+    this.refreshWorkflowStatus();
+  }
+
+  private async refreshWorkflowStatus(): Promise<void> {
+    if (ClientCache.getWorkflow() === null) {
+      return;
+    }
+    await this.workflowViewModel.refreshStatus(true);
     this.refreshKey++;
   }
 

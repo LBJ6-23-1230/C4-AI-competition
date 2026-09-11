@@ -1,8 +1,10 @@
 import router from '@ohos.router';
+import { common } from '@kit.AbilityKit';
 import { AIFloatButton } from '../components/AIFloatButton';
 import { TraceEvent, TraceResponse, WorkflowResponse } from '../api/ApiModels';
 import { TraceViewModel } from '../viewmodels/TraceViewModel';
 import { ClientCache } from '../cache/ClientCache';
+import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
 
 @Entry
 @Component
@@ -53,6 +55,8 @@ struct AgentTrace {
       this.message = '重置失败，请稍后重试。';
       return;
     }
+    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    WorkflowSessionStore.clear(context);
     this.traceId = resetResult.traceId;
     await this.loadTrace(true);
     this.isResetting = false;

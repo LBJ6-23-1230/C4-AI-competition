@@ -1,4 +1,5 @@
 import router from '@ohos.router';
+import { common } from '@kit.AbilityKit';
 import { appState } from '../data/AppState';
 import { AIFloatButton } from '../components/AIFloatButton';
 import { RadarChart } from '../components/RadarChart';
@@ -6,6 +7,7 @@ import { Evidence, KnowledgeMastery, MasteryHistory } from '../api/ApiModels';
 import { DemoSnapshot } from '../cache/DemoSnapshot';
 import { ProfileViewModel } from '../viewmodels/ProfileViewModel';
 import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
+import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
 
 @Entry
 @Component
@@ -58,6 +60,8 @@ struct StudyTags {
       this.workflowErrorMessage = this.workflowViewModel.getErrorMessage() || 'Agent 会话启动失败，请稍后重试。';
       return;
     }
+    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    WorkflowSessionStore.save(context, workflow);
     router.pushUrl({ url: 'pages/ExercisePractice' });
   }
 

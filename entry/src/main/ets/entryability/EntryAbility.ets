@@ -2,6 +2,7 @@ import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { ApiEnvironmentStore } from '../api/ApiEnvironmentStore';
+import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
 
 const DOMAIN = 0x0000;
 
@@ -20,6 +21,9 @@ export default class EntryAbility extends UIAbility {
 
     if (!ApiEnvironmentStore.restore(this.context)) {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore API environment, using defaults.');
+    }
+    if (!WorkflowSessionStore.restore(this.context)) {
+      hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore workflow session.');
     }
 
     windowStage.loadContent('pages/ChatMain', (err) => {
