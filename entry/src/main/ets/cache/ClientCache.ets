@@ -36,9 +36,14 @@ export class ClientCache {
 
   static cacheWorkflow(value: WorkflowResponse): void { ClientCache.workflow = value; }
   static getWorkflow(): WorkflowResponse | null { return ClientCache.workflow; }
+  static invalidateWorkflow(): void {
+    ClientCache.workflow = null;
+    ClientCache.workflowStatus = null;
+  }
 
   static cacheWorkflowStatus(value: WorkflowStatusResponse): void { ClientCache.workflowStatus = value; }
   static getWorkflowStatus(): WorkflowStatusResponse | null { return ClientCache.workflowStatus; }
+  static invalidateWorkflowStatus(): void { ClientCache.workflowStatus = null; }
 
   static cacheExerciseSet(value: ExerciseSetResponse): void { ClientCache.exerciseSet = value; }
   static getExerciseSet(): ExerciseSetResponse | null { return ClientCache.exerciseSet; }

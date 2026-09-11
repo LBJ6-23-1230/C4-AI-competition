@@ -5,12 +5,16 @@ import { RadarChart } from '../components/RadarChart';
 import { Evidence, KnowledgeMastery, MasteryHistory } from '../api/ApiModels';
 import { DemoSnapshot } from '../cache/DemoSnapshot';
 import { ProfileViewModel } from '../viewmodels/ProfileViewModel';
+import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 
 @Entry
 @Component
 struct StudyTags {
   @State isLoading: boolean = true;
   @State errorMessage: string = '';
+  @State workflowErrorMessage: string = '';
+  @State isStartingWorkflow: boolean = false;
+  @State userId: string = '';
   @State goal: string = '';
   @State profileVersion: number = 0;
   @State mastery: KnowledgeMastery[] = [];
@@ -22,6 +26,7 @@ struct StudyTags {
   @State chartWeak: number[] = [];
   @State chartStrong: number[] = [];
   private viewModel: ProfileViewModel = new ProfileViewModel();
+  private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
 
   aboutToAppear(): void {
     this.loadProfile();
@@ -30,6 +35,7 @@ struct StudyTags {
   private async loadProfile(forceRefresh: boolean = false): Promise<void> {
     this.isLoading = true;
     const state = await this.viewModel.load(DemoSnapshot.USER_ID, forceRefresh);
+    this.userId = state.userId;
     this.goal = state.goal;
     this.profileVersion = state.profileVersion;
     this.mastery = state.mastery;
@@ -38,6 +44,21 @@ struct StudyTags {
     this.errorMessage = state.errorMessage;
     this.buildChartData();
     this.isLoading = false;
+  }
+
+  private async startDiagnosis(): Promise<void> {
+    if (this.isStartingWorkflow) {
+      return;
+    }
+    this.isStartingWorkflow = true;
+    this.workflowErrorMessage = '';
+    const workflow = await this.workflowViewModel.start(this.goal, this.userId);
+    this.isStartingWorkflow = false;
+    if (workflow === null) {
+      this.workflowErrorMessage = this.workflowViewModel.getErrorMessage() || 'Agent 会话启动失败，请稍后重试。';
+      return;
+    }
+    router.pushUrl({ url: 'pages/ExercisePractice' });
   }
 
   private buildChartData(): void {
@@ -208,10 +229,15 @@ struct StudyTags {
                 .border({ width: 1, color: '#BFDBFE' }).height(44).borderRadius(12).width('100%')
                 .onClick(() => { this.loadProfile(true); })
 
-              Button('开始诊断练习')
+              if (this.workflowErrorMessage.length > 0) {
+                Text(this.workflowErrorMessage).fontSize(13).fontColor('#B45309').lineHeight(19)
+                  .width('100%').padding(12).backgroundColor('#FFFBEB').borderRadius(10)
+              }
+
+              Button(this.isStartingWorkflow ? '正在启动 Agent 会话…' : '开始诊断练习')
                 .fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF').backgroundColor('#2563EB')
-                .height(46).borderRadius(12).width('100%')
-                .onClick(() => router.pushUrl({ url: 'pages/ExercisePractice' }))
+                .height(46).borderRadius(12).width('100%').enabled(!this.isStartingWorkflow)
+                .onClick(() => this.startDiagnosis())
 
               Button('💬 问知学搭子')
                 .fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')

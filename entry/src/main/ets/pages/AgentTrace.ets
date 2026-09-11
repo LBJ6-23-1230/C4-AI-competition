@@ -1,7 +1,8 @@
 import router from '@ohos.router';
 import { AIFloatButton } from '../components/AIFloatButton';
-import { TraceEvent } from '../api/ApiModels';
+import { TraceEvent, TraceResponse, WorkflowResponse } from '../api/ApiModels';
 import { TraceViewModel } from '../viewmodels/TraceViewModel';
+import { ClientCache } from '../cache/ClientCache';
 
 @Entry
 @Component
@@ -10,14 +11,27 @@ struct AgentTrace {
   @State isResetting: boolean = false;
   @State message: string = '';
   @State events: TraceEvent[] = [];
-  private traceId: string = 'trace-demo-001';
+  @State traceId: string = '';
   private viewModel: TraceViewModel = new TraceViewModel();
 
   aboutToAppear(): void {
+    const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
+    const cachedTrace: TraceResponse | null = ClientCache.getTrace();
+    if (workflow !== null) {
+      this.traceId = workflow.traceId;
+    } else if (cachedTrace !== null) {
+      this.traceId = cachedTrace.traceId;
+    }
     this.loadTrace();
   }
 
   private async loadTrace(forceRefresh: boolean = false): Promise<void> {
+    if (this.traceId.length === 0) {
+      this.isLoading = false;
+      this.events = [];
+      this.message = '当前还没有可查看的 Agent 轨迹，请先从知识画像开始一次诊断。';
+      return;
+    }
     this.isLoading = true;
     this.message = '';
     const trace = await this.viewModel.load(this.traceId, forceRefresh);
@@ -39,6 +53,7 @@ struct AgentTrace {
       this.message = '重置失败，请稍后重试。';
       return;
     }
+    this.traceId = resetResult.traceId;
     await this.loadTrace(true);
     this.isResetting = false;
     this.message = '演示已重置：再次进入知识画像时将从掌握度 42 开始。';

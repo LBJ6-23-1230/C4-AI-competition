@@ -44,7 +44,7 @@ export class FixtureApiTransport {
   }
 
   private static workflowStatus(): WorkflowStatusResponse {
-    return { status: FixtureApiTransport.exerciseSubmitted ? 'completed' : 'running', currentAgent: FixtureApiTransport.exerciseSubmitted ? 'planner' : 'diagnosis', stateVersion: FixtureApiTransport.exerciseSubmitted ? 4 : 2, finalAction: FixtureApiTransport.exerciseSubmitted ? '查看 Plan V2' : null };
+    return { status: FixtureApiTransport.exerciseSubmitted ? 'completed' : 'running', currentAgent: FixtureApiTransport.exerciseSubmitted ? 'planner' : 'diagnosis', stateVersion: FixtureApiTransport.exerciseSubmitted ? 5 : 2, finalAction: FixtureApiTransport.exerciseSubmitted ? '查看 Plan V2' : null };
   }
 
   private static exerciseSet(): ExerciseSetResponse {
@@ -82,6 +82,6 @@ export class FixtureApiTransport {
   private static reset(): DemoResetResponse {
     FixtureApiTransport.exerciseSubmitted = false;
     const profile: ProfileResponse = FixtureApiTransport.profile();
-    return { status: 'reset', userId: 'demo-user', profile: profile.profile ?? null, plan: FixtureApiTransport.plan(), traceId: 'trace-demo-reset-001' };
+    return { status: 'reset', userId: 'demo-user', profile: profile.profile ?? null, plan: FixtureApiTransport.plan(), traceId: 'trace-demo-001' };
   }
 }

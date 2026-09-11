@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@ohos/hypium';
 import { AgentApiClient, ApiClientConfig } from '../main/ets/api/AgentApiClient';
-import { ExerciseSetResponse } from '../main/ets/api/ApiModels';
+import { ExerciseSetResponse, WorkflowResponse } from '../main/ets/api/ApiModels';
 import { ClientCache } from '../main/ets/cache/ClientCache';
 
 export default function exerciseFlowTest() {
@@ -42,6 +42,28 @@ export default function exerciseFlowTest() {
 
       ClientCache.invalidateTrace();
       expect(ClientCache.getTrace()).assertNull();
+    });
+
+    it('keeps one workflow identity and clears its derived status together', 0, () => {
+      const workflow: WorkflowResponse = {
+        sessionId: 'session-test',
+        traceId: 'trace-test',
+        status: 'running',
+        currentStep: 'diagnosis',
+        nextAction: 'diagnose'
+      };
+      ClientCache.cacheWorkflow(workflow);
+      ClientCache.cacheWorkflowStatus({
+        status: 'running',
+        currentAgent: 'diagnosis',
+        stateVersion: 2,
+        finalAction: null
+      });
+      expect(ClientCache.getWorkflow()?.traceId).assertEqual('trace-test');
+
+      ClientCache.invalidateWorkflow();
+      expect(ClientCache.getWorkflow()).assertNull();
+      expect(ClientCache.getWorkflowStatus()).assertNull();
     });
   });
 }

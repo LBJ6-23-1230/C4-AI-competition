@@ -6,6 +6,8 @@ import { DateHelper } from '../utils/DateHelper';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AIFloatButton } from '../components/AIFloatButton';
 import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
+import { WorkflowResponse, WorkflowStatusResponse } from '../api/ApiModels';
+import { ClientCache } from '../cache/ClientCache';
 
 @Entry
 @Component
@@ -78,6 +80,24 @@ struct Index {
     return config.baseUrl === 'http://10.0.2.2:5000' ? '模拟器后端' : '真机后端';
   }
 
+  private agentStatusTitle(): string {
+    const status: WorkflowStatusResponse | null = ClientCache.getWorkflowStatus();
+    if (status !== null && status.currentAgent !== null) {
+      return `${status.currentAgent} Agent · ${status.status}`;
+    }
+    const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
+    return workflow === null ? '计划 Agent 已就绪' : `Agent 会话 · ${workflow.status}`;
+  }
+
+  private agentStatusDetail(): string {
+    const status: WorkflowStatusResponse | null = ClientCache.getWorkflowStatus();
+    if (status !== null && status.finalAction !== null) {
+      return status.finalAction;
+    }
+    const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
+    return workflow === null ? this.plan().decisionTrace.inputSummary : `下一步：${workflow.nextAction}`;
+  }
+
   private returnToChat(): void {
     appState.leaveChatTask();
     ChatNavigation.returnToChat();
@@ -101,8 +121,8 @@ struct Index {
         Text('AI').fontSize(12).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
       }.width(30).height(30).borderRadius(15).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).backgroundColor('#2563EB')
       Column({ space: 2 }) {
-        Text('计划 Agent 已就绪').fontSize(13).fontWeight(FontWeight.Bold).fontColor('#1F2937')
-        Text(this.plan().decisionTrace.inputSummary).fontSize(11).fontColor('#667085').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(this.agentStatusTitle()).fontSize(13).fontWeight(FontWeight.Bold).fontColor('#1F2937')
+        Text(this.agentStatusDetail()).fontSize(11).fontColor('#667085').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
       }.alignItems(HorizontalAlign.Start).layoutWeight(1)
       Text(this.apiEnvironmentLabel()).fontSize(11).fontWeight(FontWeight.Bold).fontColor('#2563EB')
         .backgroundColor('#FFFFFF').borderRadius(9).padding({ left: 8, right: 8, top: 4, bottom: 4 })

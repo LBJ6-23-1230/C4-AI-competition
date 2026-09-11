@@ -1,8 +1,9 @@
 import router from '@ohos.router';
 import { AIFloatButton } from '../components/AIFloatButton';
-import { Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmissionResult, PlanTaskChange } from '../api/ApiModels';
+import { Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmissionResult, PlanTaskChange, WorkflowStatusResponse } from '../api/ApiModels';
 import { DemoSnapshot } from '../cache/DemoSnapshot';
 import { ExerciseViewModel } from '../viewmodels/ExerciseViewModel';
+import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 
 @Entry
 @Component
@@ -15,7 +16,10 @@ struct ExercisePractice {
   @State exercises: Exercise[] = [];
   @State answers: string[] = [];
   @State result: ExerciseSubmissionResult | null = null;
+  @State workflowStatus: WorkflowStatusResponse | null = null;
+  @State workflowMessage: string = '';
   private viewModel: ExerciseViewModel = new ExerciseViewModel();
+  private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
   private submissionKey: string = '';
   private requestVersion: number = 0;
   private isPageActive: boolean = false;
@@ -120,6 +124,16 @@ struct ExercisePractice {
     }
     this.warningMessage = this.viewModel.getWarningMessage();
     this.result = submissionResult;
+    this.refreshWorkflowStatus();
+  }
+
+  private async refreshWorkflowStatus(): Promise<void> {
+    const status: WorkflowStatusResponse | null = await this.workflowViewModel.refreshStatus(true);
+    if (!this.isPageActive) {
+      return;
+    }
+    this.workflowStatus = status;
+    this.workflowMessage = status === null ? this.workflowViewModel.getErrorMessage() : '';
   }
 
   @Builder
@@ -158,6 +172,18 @@ struct ExercisePractice {
         Text(this.warningMessage)
           .fontSize(13).fontColor('#B45309').lineHeight(19).width('100%')
           .padding(12).backgroundColor('#FFFBEB').borderRadius(10)
+      }
+
+      if (this.workflowStatus !== null) {
+        Column({ space: 5 }) {
+          Text(`Agent 状态：${this.workflowStatus!.status}`).fontSize(14).fontWeight(FontWeight.Bold).fontColor('#1F2937')
+          Text(this.workflowStatus!.finalAction !== null ? this.workflowStatus!.finalAction! : `当前执行：${this.workflowStatus!.currentAgent ?? '等待调度'}`)
+            .fontSize(12).fontColor('#475467')
+          Text(`状态版本 ${this.workflowStatus!.stateVersion}`).fontSize(11).fontColor('#98A2B3')
+        }.width('100%').padding(12).backgroundColor('#EFF6FF').borderRadius(10)
+      } else if (this.workflowMessage.length > 0) {
+        Text(`诊断结果已保存；Agent 状态暂未同步：${this.workflowMessage}`)
+          .fontSize(12).fontColor('#B45309').lineHeight(18).width('100%').padding(12).backgroundColor('#FFFBEB').borderRadius(10)
       }
 
       Row({ space: 12 }) {
