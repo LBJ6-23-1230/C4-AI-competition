@@ -10,22 +10,41 @@ struct ExercisePractice {
   @State isLoading: boolean = true;
   @State isSubmitting: boolean = false;
   @State errorMessage: string = '';
+  @State warningMessage: string = '';
   @State setId: string = DemoSnapshot.EXERCISE_SET_ID;
   @State exercises: Exercise[] = [];
   @State answers: string[] = [];
   @State result: ExerciseSubmissionResult | null = null;
   private viewModel: ExerciseViewModel = new ExerciseViewModel();
+  private submissionKey: string = '';
+  private requestVersion: number = 0;
+  private isPageActive: boolean = false;
 
   aboutToAppear(): void {
+    this.isPageActive = true;
     this.loadExercises();
   }
 
-  private async loadExercises(): Promise<void> {
+  aboutToDisappear(): void {
+    this.isPageActive = false;
+    this.requestVersion++;
+  }
+
+  private async loadExercises(forceRefresh: boolean = false): Promise<void> {
+    const currentRequestVersion: number = ++this.requestVersion;
     this.isLoading = true;
     this.errorMessage = '';
-    const data: ExerciseSetResponse | null = await this.viewModel.load(DemoSnapshot.EXERCISE_SET_ID);
+    this.warningMessage = '';
+    const data: ExerciseSetResponse | null =
+      await this.viewModel.load(DemoSnapshot.EXERCISE_SET_ID, forceRefresh, {
+        knowledgePointId: DemoSnapshot.EXERCISE_KNOWLEDGE_POINT_ID,
+        count: DemoSnapshot.EXERCISE_COUNT
+      });
+    if (!this.isPageActive || currentRequestVersion !== this.requestVersion) {
+      return;
+    }
     if (data === null) {
-      this.errorMessage = '练习题暂时加载失败，请点击重试。';
+      this.errorMessage = this.viewModel.getErrorMessage() || '练习题暂时加载失败，请点击重试。';
       this.isLoading = false;
       return;
     }
@@ -35,10 +54,14 @@ struct ExercisePractice {
     for (let index: number = 0; index < data.exercises.length; index++) {
       this.answers.push('');
     }
+    this.submissionKey = `practice-${data.setId}-${Date.now()}`;
     this.isLoading = false;
   }
 
   private selectAnswer(questionIndex: number, option: string): void {
+    if (this.isSubmitting || this.result !== null) {
+      return;
+    }
     const nextAnswers: string[] = this.answers.slice();
     nextAnswers[questionIndex] = option.substring(0, 1);
     this.answers = nextAnswers;
@@ -58,9 +81,23 @@ struct ExercisePractice {
     return this.answers[questionIndex] === option.substring(0, 1);
   }
 
+  private practiceTitle(): string {
+    if (this.exercises.length > 0 && this.exercises[0].knowledgePointName.trim().length > 0) {
+      return this.exercises[0].knowledgePointName;
+    }
+    return '智能诊断练习';
+  }
+
   private async submit(): Promise<void> {
+    if (this.isSubmitting) {
+      return;
+    }
+    if (this.exercises.length === 0) {
+      this.errorMessage = '当前暂无可用练习题，请重试。';
+      return;
+    }
     if (this.answeredCount() !== this.exercises.length) {
-      this.errorMessage = '请先完成全部 3 道题，再提交。';
+      this.errorMessage = `请先完成全部 ${this.exercises.length} 道题，再提交。`;
       return;
     }
     const exerciseAnswers: ExerciseAnswer[] = [];
@@ -70,14 +107,18 @@ struct ExercisePractice {
     this.isSubmitting = true;
     this.errorMessage = '';
     const submissionResult: ExerciseSubmissionResult | null = await this.viewModel.submit(this.setId, {
-      idempotencyKey: `demo-${Date.now()}`,
+      idempotencyKey: this.submissionKey,
       answers: exerciseAnswers
     });
-    this.isSubmitting = false;
-    if (submissionResult === null) {
-      this.errorMessage = '提交失败，请稍后重试。';
+    if (!this.isPageActive) {
       return;
     }
+    this.isSubmitting = false;
+    if (submissionResult === null) {
+      this.errorMessage = this.viewModel.getErrorMessage() || '提交失败，请稍后重试。';
+      return;
+    }
+    this.warningMessage = this.viewModel.getWarningMessage();
     this.result = submissionResult;
   }
 
@@ -88,13 +129,14 @@ struct ExercisePractice {
       .backgroundColor(this.isSelected(questionIndex, option) ? '#2563EB' : '#F8FAFC')
       .border({ width: 1, color: this.isSelected(questionIndex, option) ? '#2563EB' : '#D0D5DD' })
       .borderRadius(10).width('100%').height(42)
+      .enabled(!this.isSubmitting)
       .onClick(() => this.selectAnswer(questionIndex, option))
   }
 
   @Builder
   QuestionCard(item: Exercise, index: number) {
     Column({ space: 12 }) {
-      Text(`第 ${index + 1} 题 · ${item.difficulty ?? '练习'}`)
+      Text(`第 ${index + 1} 题 · ${item.knowledgePointName} · ${item.difficulty ?? '练习'}`)
         .fontSize(12).fontColor('#2563EB').fontWeight(FontWeight.Bold)
       Text(item.stem).fontSize(16).fontColor('#1F2937').fontWeight(FontWeight.Medium).lineHeight(23)
       ForEach(item.options, (option: string) => {
@@ -112,6 +154,12 @@ struct ExercisePractice {
       Text('评分、掌握度和重规划结果均来自接口返回，前端只负责展示。')
         .fontSize(13).fontColor('#667085').lineHeight(19).width('100%')
 
+      if (this.warningMessage.length > 0) {
+        Text(this.warningMessage)
+          .fontSize(13).fontColor('#B45309').lineHeight(19).width('100%')
+          .padding(12).backgroundColor('#FFFBEB').borderRadius(10)
+      }
+
       Row({ space: 12 }) {
         Column({ space: 4 }) {
           Text(`${value.assessment.score}%`).fontSize(30).fontWeight(FontWeight.Bold).fontColor('#2563EB')
@@ -120,13 +168,14 @@ struct ExercisePractice {
         Column({ space: 4 }) {
           Text(`${value.assessment.oldMastery} → ${value.assessment.suggestedNewMastery}`)
             .fontSize(22).fontWeight(FontWeight.Bold).fontColor('#0F766E')
-          Text('二叉树后序遍历掌握度').fontSize(12).fontColor('#667085').textAlign(TextAlign.Center)
+          Text(`${this.practiceTitle()}掌握度`).fontSize(12).fontColor('#667085').textAlign(TextAlign.Center)
         }.layoutWeight(1).alignItems(HorizontalAlign.Center).padding(14).backgroundColor('#ECFDF5').borderRadius(14)
       }.width('100%')
 
       Column({ space: 6 }) {
         Text('需要巩固').fontSize(13).fontWeight(FontWeight.Bold).fontColor('#B45309')
-        Text(value.assessment.errorTypes.join('、')).fontSize(14).fontColor('#475467')
+        Text(value.assessment.errorTypes.length > 0 ? value.assessment.errorTypes.join('、') : '暂无明显薄弱点')
+          .fontSize(14).fontColor('#475467')
       }.width('100%').padding(13).backgroundColor('#FFFBEB').borderRadius(12)
 
       if (value.needReplan && value.planDiff !== undefined) {
@@ -158,7 +207,7 @@ struct ExercisePractice {
         Row() {
           Text('← 返回').fontSize(14).fontColor('#64748B').onClick(() => router.back())
           Blank()
-          Text('二叉树诊断练习').fontSize(14).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+          Text(this.practiceTitle()).fontSize(14).fontWeight(FontWeight.Bold).fontColor('#2563EB')
         }.width('100%').padding({ left: 16, right: 16, top: 14, bottom: 14 }).backgroundColor('#FFFFFF')
 
         Scroll() {
@@ -167,8 +216,17 @@ struct ExercisePractice {
               LoadingProgress().width(36).height(36).margin({ top: 40 })
             } else if (this.result !== null) {
               this.ResultPanel(this.result)
+            } else if (this.exercises.length === 0) {
+              Column({ space: 14 }) {
+                Text('暂无可用练习题').fontSize(20).fontWeight(FontWeight.Bold).fontColor('#111827')
+                Text(this.errorMessage || '题库可能正在更新，请稍后重试。')
+                  .fontSize(14).fontColor('#667085').lineHeight(21).textAlign(TextAlign.Center)
+                Button('重新加载')
+                  .height(44).fontSize(15).fontColor('#FFFFFF').backgroundColor('#2563EB').borderRadius(12)
+                  .onClick(() => this.loadExercises(true))
+              }.width('100%').margin({ top: 56 }).alignItems(HorizontalAlign.Center)
             } else {
-              Text('二叉树后序遍历 · 3 题快速诊断').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
+              Text(`${this.practiceTitle()} · ${this.exercises.length} 题快速诊断`).fontSize(22).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
               Text(`已完成 ${this.answeredCount()} / ${this.exercises.length} 题`).fontSize(13).fontColor('#667085').width('100%')
               ForEach(this.exercises, (item: Exercise, index: number) => {
                 this.QuestionCard(item, index)
@@ -178,7 +236,8 @@ struct ExercisePractice {
               }
               Button(this.isSubmitting ? '正在提交…' : '提交诊断')
                 .width('100%').height(48).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
-                .backgroundColor('#2563EB').borderRadius(14).enabled(!this.isSubmitting)
+                .backgroundColor('#2563EB').borderRadius(14)
+                .enabled(!this.isSubmitting && this.answeredCount() === this.exercises.length)
                 .onClick(() => this.submit())
             }
           }.width('100%').padding(16)

@@ -1,9 +1,7 @@
 import { AgentHistoryItem, AgentRequest, AgentResponse, ChatAction, ChatCard, ChatCardType, ChatIntent, ChatMessage } from '../models/ChatModels';
 import { http } from '@kit.NetworkKit';
 import { appState } from '../data/AppState';
-
-// ===== 配置: 后端地址 =====
-const AGENT_API_BASE: string = 'http://10.0.2.2:5000';
+import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
 
 interface IntentRule {
   intent: ChatIntent;
@@ -74,7 +72,14 @@ export class AgentBridge {
   ): Promise<AgentResponse> {
     const request: AgentRequest = AgentBridge.buildRequest(message, image, history);
     const imageStr: string = image ?? '';
+    const apiConfig: ApiClientConfig = AgentApiClient.getConfig();
 
+    // Fixture 是完整的离线演示模式，不应先等待真实后端连接超时。
+    if (apiConfig.useFixture) {
+      return AgentBridge.createDemoResponse(message, image);
+    }
+
+    const httpRequestInstance: http.HttpRequest = http.createHttp();
     try {
       const requestBody: string = AgentBridge.buildRequestBody(request.message, imageStr, request.history);
 
@@ -82,11 +87,11 @@ export class AgentBridge {
         method: http.RequestMethod.POST,
         header: { 'Content-Type': 'application/json' },
         extraData: requestBody,
-        connectTimeout: 30000,
+        connectTimeout: apiConfig.timeoutMs,
         readTimeout: 60000
       };
       const httpResponse: http.HttpResponse =
-        await http.createHttp().request(AGENT_API_BASE + '/api/agent/chat', httpRequest);
+        await httpRequestInstance.request(apiConfig.baseUrl + '/api/agent/chat', httpRequest);
 
       if (httpResponse.responseCode === 200) {
         const resultStr: string = httpResponse.result as string;
@@ -98,6 +103,8 @@ export class AgentBridge {
     } catch (err) {
       console.warn('[AgentBridge] Network error, using local demo');
       return AgentBridge.createDemoResponse(message, image);
+    } finally {
+      httpRequestInstance.destroy();
     }
   }
 

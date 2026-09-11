@@ -5,6 +5,7 @@ import { LocalAgentService } from '../services/LocalAgentService';
 import { DateHelper } from '../utils/DateHelper';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AIFloatButton } from '../components/AIFloatButton';
+import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
 
 @Entry
 @Component
@@ -67,6 +68,16 @@ struct Index {
     router.pushUrl({ url: 'pages/LearningHistory' });
   }
 
+  private openApiEnvironment(): void {
+    router.pushUrl({ url: 'pages/ApiEnvironment' });
+  }
+
+  private apiEnvironmentLabel(): string {
+    const config: ApiClientConfig = AgentApiClient.getConfig();
+    if (config.useFixture) return 'Fixture';
+    return config.baseUrl === 'http://10.0.2.2:5000' ? '模拟器后端' : '真机后端';
+  }
+
   private returnToChat(): void {
     appState.leaveChatTask();
     ChatNavigation.returnToChat();
@@ -93,7 +104,9 @@ struct Index {
         Text('计划 Agent 已就绪').fontSize(13).fontWeight(FontWeight.Bold).fontColor('#1F2937')
         Text(this.plan().decisionTrace.inputSummary).fontSize(11).fontColor('#667085').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
       }.alignItems(HorizontalAlign.Start).layoutWeight(1)
-      Text('查看计划').fontSize(12).fontWeight(FontWeight.Medium).fontColor('#2563EB').onClick(() => this.openPlan())
+      Text(this.apiEnvironmentLabel()).fontSize(11).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+        .backgroundColor('#FFFFFF').borderRadius(9).padding({ left: 8, right: 8, top: 4, bottom: 4 })
+        .onClick(() => this.openApiEnvironment())
     }
     .width('100%').padding(14).backgroundColor('#EFF6FF').borderRadius(16)
   }
@@ -153,6 +166,15 @@ struct Index {
       Scroll() {
         Column({ space: 16 }) {
           this.AgentStatus()
+          Row() {
+            Column({ space: 2 }) {
+              Text('开发调试：数据源设置').fontSize(13).fontColor('#475467')
+              Text('仅供前端测试和接口联调使用').fontSize(10).fontColor('#98A2B3')
+            }.alignItems(HorizontalAlign.Start)
+            Blank()
+            Text('配置 →').fontSize(13).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+          }.width('100%').padding(13).backgroundColor('#FFFFFF').borderRadius(12)
+          .border({ width: 1, color: '#E2E8F0' }).onClick(() => this.openApiEnvironment())
           Text('今天，先完成最重要的一件事').fontSize(24).fontWeight(FontWeight.Bold).fontColor('#1F2937').width('100%')
           if (this.primaryTask() !== null) {
             this.PrimaryTaskCard(this.primaryTask()!)

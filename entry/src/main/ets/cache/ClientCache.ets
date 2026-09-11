@@ -32,6 +32,7 @@ export class ClientCache {
 
   static cacheCurrentPlan(value: LearningPlan): void { ClientCache.currentPlan = value; }
   static getCurrentPlan(): LearningPlan | null { return ClientCache.currentPlan; }
+  static invalidateCurrentPlan(): void { ClientCache.currentPlan = null; }
 
   static cacheWorkflow(value: WorkflowResponse): void { ClientCache.workflow = value; }
   static getWorkflow(): WorkflowResponse | null { return ClientCache.workflow; }
@@ -41,6 +42,7 @@ export class ClientCache {
 
   static cacheExerciseSet(value: ExerciseSetResponse): void { ClientCache.exerciseSet = value; }
   static getExerciseSet(): ExerciseSetResponse | null { return ClientCache.exerciseSet; }
+  static invalidateExerciseSet(): void { ClientCache.exerciseSet = null; }
 
   static cacheAssessment(value: ExerciseSubmissionResult): void { ClientCache.latestAssessment = value; }
   static getAssessment(): ExerciseSubmissionResult | null { return ClientCache.latestAssessment; }
@@ -50,6 +52,7 @@ export class ClientCache {
 
   static cacheTrace(value: TraceResponse): void { ClientCache.trace = value; }
   static getTrace(): TraceResponse | null { return ClientCache.trace; }
+  static invalidateTrace(): void { ClientCache.trace = null; }
 
   /** Call after POST /api/v1/demo/reset succeeds, then re-fetch fresh DTOs. */
   static clearDemoData(): void {

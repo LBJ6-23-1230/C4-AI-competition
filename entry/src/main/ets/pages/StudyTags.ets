@@ -208,8 +208,14 @@ struct StudyTags {
                 .border({ width: 1, color: '#BFDBFE' }).height(44).borderRadius(12).width('100%')
                 .onClick(() => { this.loadProfile(true); })
 
+              Button('开始诊断练习')
+                .fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF').backgroundColor('#2563EB')
+                .height(46).borderRadius(12).width('100%')
+                .onClick(() => router.pushUrl({ url: 'pages/ExercisePractice' }))
+
               Button('💬 问知学搭子')
-                .fontSize(14).fontColor('#FFFFFF').backgroundColor('#2563EB')
+                .fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
+                .border({ width: 1, color: '#BFDBFE' })
                 .height(44).borderRadius(12).width('100%')
                 .onClick(() => {
                   appState.setChatPrompt('帮我分析知识画像中的掌握度和学习证据');

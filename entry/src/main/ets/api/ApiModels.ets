@@ -102,6 +102,13 @@ export interface ExerciseSetResponse {
   exercises: Exercise[];
 }
 
+export interface ExerciseQuery {
+  knowledgePointId?: string;
+  difficulty?: string;
+  count?: number;
+  excludeExerciseIds?: string[];
+}
+
 export interface ExerciseAnswer {
   exerciseId: string;
   answer: string;

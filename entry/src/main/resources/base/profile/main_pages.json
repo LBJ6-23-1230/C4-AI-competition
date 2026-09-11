@@ -7,6 +7,7 @@
     "pages/WrongQuestion",
     "pages/StudyTags",
     "pages/ExercisePractice",
+    "pages/ApiEnvironment",
     "pages/AgentTrace",
     "pages/PartnerMatch",
     "pages/StudyPlan",

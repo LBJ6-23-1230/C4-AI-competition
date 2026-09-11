@@ -1,5 +1,5 @@
 import { http } from '@kit.NetworkKit';
-import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowStatusResponse } from './ApiModels';
+import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { FixtureApiTransport } from './FixtureApiTransport';
 
@@ -11,7 +11,7 @@ export interface ApiClientConfig {
 
 /** The single API entry point. Pages must use ViewModels instead of calling HTTP directly. */
 export class AgentApiClient {
-  private static config: ApiClientConfig = { baseUrl: 'http://10.0.2.2:5000', useFixture: true, timeoutMs: 8000 };
+  private static config: ApiClientConfig = { baseUrl: 'http://10.0.2.2:5000', useFixture: false, timeoutMs: 8000 };
 
   static getConfig(): ApiClientConfig {
     return { baseUrl: AgentApiClient.config.baseUrl, useFixture: AgentApiClient.config.useFixture, timeoutMs: AgentApiClient.config.timeoutMs };
@@ -40,8 +40,29 @@ export class AgentApiClient {
     return AgentApiClient.request<LearningPlan>(http.RequestMethod.GET, '/api/v1/plans/current');
   }
 
-  static async getExerciseSet(setId: string): Promise<ApiResult<ExerciseSetResponse>> {
-    return AgentApiClient.request<ExerciseSetResponse>(http.RequestMethod.GET, `/api/v1/exercises/${encodeURIComponent(setId)}`);
+  static async getExerciseSet(setId: string, query?: ExerciseQuery): Promise<ApiResult<ExerciseSetResponse>> {
+    let path: string = `/api/v1/exercises/${encodeURIComponent(setId)}`;
+    if (query !== undefined) {
+      const parameters: string[] = [];
+      if (query.knowledgePointId !== undefined && query.knowledgePointId.trim().length > 0) {
+        parameters.push(`knowledgePointId=${encodeURIComponent(query.knowledgePointId)}`);
+      }
+      if (query.difficulty !== undefined && query.difficulty.trim().length > 0) {
+        parameters.push(`difficulty=${encodeURIComponent(query.difficulty)}`);
+      }
+      if (query.count !== undefined) {
+        parameters.push(`count=${query.count}`);
+      }
+      if (query.excludeExerciseIds !== undefined) {
+        for (let index: number = 0; index < query.excludeExerciseIds.length; index++) {
+          parameters.push(`excludeExerciseId=${encodeURIComponent(query.excludeExerciseIds[index])}`);
+        }
+      }
+      if (parameters.length > 0) {
+        path = `${path}?${parameters.join('&')}`;
+      }
+    }
+    return AgentApiClient.request<ExerciseSetResponse>(http.RequestMethod.GET, path);
   }
 
   static async submitExercise(setId: string, submission: ExerciseSubmission): Promise<ApiResult<ExerciseSubmissionResult>> {
@@ -64,11 +85,13 @@ export class AgentApiClient {
     const methodName: string = method === http.RequestMethod.GET ? 'GET' : 'POST';
     if (AgentApiClient.config.useFixture) return FixtureApiTransport.request<T>(methodName, path, body);
 
+    const httpRequest: http.HttpRequest = http.createHttp();
     try {
       const requestOptions: http.HttpRequestOptions = body === undefined
         ? { method: method, header: { 'Accept': 'application/json', 'X-API-Contract-Version': API_CONTRACT_VERSION }, connectTimeout: AgentApiClient.config.timeoutMs, readTimeout: AgentApiClient.config.timeoutMs }
         : { method: method, header: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-API-Contract-Version': API_CONTRACT_VERSION }, extraData: JSON.stringify(body), connectTimeout: AgentApiClient.config.timeoutMs, readTimeout: AgentApiClient.config.timeoutMs };
-      const response: http.HttpResponse = await http.createHttp().request(`${AgentApiClient.config.baseUrl}${path}`, requestOptions);
+      const response: http.HttpResponse =
+        await httpRequest.request(`${AgentApiClient.config.baseUrl}${path}`, requestOptions);
       if (response.responseCode < 200 || response.responseCode >= 300) {
         return apiFailure('HTTP_ERROR', `服务返回 HTTP ${response.responseCode}`, response.responseCode >= 500, 'network', response.responseCode);
       }
@@ -77,6 +100,8 @@ export class AgentApiClient {
       return apiSuccess<T>(JSON.parse(payload) as T, 'network');
     } catch (err) {
       return apiFailure('NETWORK_ERROR', '网络连接失败，请检查服务地址后重试。', true, 'network');
+    } finally {
+      httpRequest.destroy();
     }
   }
 

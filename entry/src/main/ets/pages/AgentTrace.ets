@@ -17,11 +17,14 @@ struct AgentTrace {
     this.loadTrace();
   }
 
-  private async loadTrace(): Promise<void> {
+  private async loadTrace(forceRefresh: boolean = false): Promise<void> {
     this.isLoading = true;
-    const trace = await this.viewModel.load(this.traceId);
+    this.message = '';
+    const trace = await this.viewModel.load(this.traceId, forceRefresh);
     if (trace === null) {
-      this.message = '暂时无法读取 Agent 决策过程。';
+      this.events = [];
+      const detail: string = this.viewModel.getErrorMessage();
+      this.message = detail.length > 0 ? `暂时无法读取 Agent 决策过程：${detail}` : '暂时无法读取 Agent 决策过程。';
     } else {
       this.events = trace.events;
     }
@@ -31,11 +34,13 @@ struct AgentTrace {
   private async resetDemo(): Promise<void> {
     this.isResetting = true;
     const resetResult = await this.viewModel.reset();
-    this.isResetting = false;
     if (resetResult === null) {
+      this.isResetting = false;
       this.message = '重置失败，请稍后重试。';
       return;
     }
+    await this.loadTrace(true);
+    this.isResetting = false;
     this.message = '演示已重置：再次进入知识画像时将从掌握度 42 开始。';
   }
 
@@ -69,6 +74,11 @@ struct AgentTrace {
             Text('Agent 的决策过程').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
             Text('这里展示后端返回的决策记录，用于说明 Agent 为什么给出当前学习动作。')
               .fontSize(13).fontColor('#667085').lineHeight(19).width('100%')
+            Row() {
+              Text(`Trace ID：${this.traceId}`).fontSize(12).fontColor('#64748B')
+              Blank()
+              Text('刷新').fontSize(13).fontColor('#2563EB').onClick(() => this.loadTrace(true))
+            }.width('100%').padding(12).backgroundColor('#FFFFFF').borderRadius(10)
             if (this.isLoading) {
               LoadingProgress().width(36).height(36).margin({ top: 30 })
             } else {
@@ -77,6 +87,11 @@ struct AgentTrace {
               }, (event: TraceEvent) => `${event.agent}-${event.stateVersion}`)
               if (this.message.length > 0) {
                 Text(this.message).fontSize(13).fontColor('#0F766E').width('100%').padding(12).backgroundColor('#ECFDF5').borderRadius(10)
+              }
+              if (this.events.length === 0) {
+                Button('重新加载轨迹')
+                  .width('100%').height(44).fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
+                  .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => this.loadTrace(true))
               }
               Button(this.isResetting ? '正在重置…' : '重置演示数据')
                 .width('100%').height(46).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
