@@ -8,6 +8,7 @@ import { DemoSnapshot } from '../cache/DemoSnapshot';
 import { ProfileViewModel } from '../viewmodels/ProfileViewModel';
 import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
+import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
 
 @Entry
 @Component
@@ -175,7 +176,7 @@ struct StudyTags {
                       Row() {
                         Column({ space: 4 }) {
                           Text(item.knowledgePointName).fontSize(15).fontWeight(FontWeight.Medium).fontColor('#1F2937')
-                          Text(`置信度 ${item.confidence} · 最近更新 ${item.lastUpdated}`)
+                          Text(`置信度 ${item.confidence} · 最近更新 ${ApiDisplayFormatter.timestamp(item.lastUpdated)}`)
                             .fontSize(11).fontColor('#9CA3AF').maxLines(1)
                         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
                         Text(`${item.masteryScore}`)
@@ -203,7 +204,7 @@ struct StudyTags {
                 Column({ space: 10 }) {
                   Text('掌握度变化').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
                   ForEach(this.history, (item: MasteryHistory) => {
-                    Text(`${item.oldScore} → ${item.newScore} · 来源：${item.source}`)
+                    Text(`${item.oldScore} → ${item.newScore} · 来源：${ApiDisplayFormatter.evidenceSource(item.source)}`)
                       .fontSize(14).fontColor('#1F2937').width('100%').padding(12)
                       .backgroundColor('#EFF6FF').borderRadius(10)
                   }, (item: MasteryHistory) => item.timestamp)
@@ -216,10 +217,10 @@ struct StudyTags {
                   Text('Evidence 学习证据').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
                   ForEach(this.evidence, (item: Evidence) => {
                     Column({ space: 5 }) {
-                      Text(`${item.sourceType} · ${item.metric}`).fontSize(14).fontWeight(FontWeight.Medium).fontColor('#1F2937')
-                      Text(`知识点：${item.knowledgePointId} · 数值：${this.evidenceValue(item)}`)
+                      Text(`${ApiDisplayFormatter.evidenceSource(item.sourceType)} · ${ApiDisplayFormatter.metric(item.metric)}`).fontSize(14).fontWeight(FontWeight.Medium).fontColor('#1F2937')
+                      Text(`知识点：${ApiDisplayFormatter.knowledgePoint(item.knowledgePointId)} · 数值：${this.evidenceValue(item)}`)
                         .fontSize(12).fontColor('#475467')
-                      Text(item.timestamp).fontSize(11).fontColor('#98A2B3')
+                      Text(ApiDisplayFormatter.timestamp(item.timestamp)).fontSize(11).fontColor('#98A2B3')
                     }
                     .width('100%').padding(13).backgroundColor('#F8FAFC')
                     .border({ width: 1, color: '#E2E8F0' }).borderRadius(12)

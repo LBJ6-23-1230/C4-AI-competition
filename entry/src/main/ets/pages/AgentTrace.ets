@@ -5,6 +5,7 @@ import { TraceEvent, TraceResponse, WorkflowResponse } from '../api/ApiModels';
 import { TraceViewModel } from '../viewmodels/TraceViewModel';
 import { ClientCache } from '../cache/ClientCache';
 import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
+import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
 
 @Entry
 @Component
@@ -69,13 +70,13 @@ struct AgentTrace {
       Row({ space: 8 }) {
         Text(`${index + 1}`).fontSize(12).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
           .width(24).height(24).textAlign(TextAlign.Center).backgroundColor('#2563EB').borderRadius(12)
-        Text(event.agent).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#111827')
-        Text(event.status).fontSize(11).fontColor('#0F766E').backgroundColor('#ECFDF5').borderRadius(8).padding({ left: 7, right: 7, top: 3, bottom: 3 })
+        Text(ApiDisplayFormatter.agent(event.agent)).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#111827')
+        Text(ApiDisplayFormatter.workflowStatus(event.status)).fontSize(11).fontColor('#0F766E').backgroundColor('#ECFDF5').borderRadius(8).padding({ left: 7, right: 7, top: 3, bottom: 3 })
       }.width('100%')
-      Text(`调用工具：${event.toolCalls.join('、')}`).fontSize(13).fontColor('#2563EB')
+      Text(`执行动作：${ApiDisplayFormatter.tools(event.toolCalls)}`).fontSize(13).fontColor('#2563EB')
       Text(`输入：${event.inputSummary}`).fontSize(13).fontColor('#475467').lineHeight(19)
       Text(`结论：${event.outputSummary}`).fontSize(13).fontColor('#475467').lineHeight(19)
-      Text(`状态版本 ${event.stateVersion} · ${event.timestamp}`).fontSize(11).fontColor('#98A2B3')
+      Text(`状态版本 ${event.stateVersion} · ${ApiDisplayFormatter.timestamp(event.timestamp)}`).fontSize(11).fontColor('#98A2B3')
     }.width('100%').padding(15).backgroundColor('#FFFFFF').border({ width: 1, color: '#E2E8F0' }).borderRadius(14)
   }
 

@@ -9,6 +9,7 @@ import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
 import { WorkflowResponse, WorkflowStatusResponse } from '../api/ApiModels';
 import { ClientCache } from '../cache/ClientCache';
 import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
+import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
 
 @Entry
 @Component
@@ -94,10 +95,10 @@ struct Index {
   private agentStatusTitle(): string {
     const status: WorkflowStatusResponse | null = ClientCache.getWorkflowStatus();
     if (status !== null && status.currentAgent !== null) {
-      return `${status.currentAgent} Agent · ${status.status}`;
+      return `${ApiDisplayFormatter.agent(status.currentAgent)} · ${ApiDisplayFormatter.workflowStatus(status.status)}`;
     }
     const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
-    return workflow === null ? '计划 Agent 已就绪' : `Agent 会话 · ${workflow.status}`;
+    return workflow === null ? '计划 Agent 已就绪' : `Agent 会话 · ${ApiDisplayFormatter.workflowStatus(workflow.status)}`;
   }
 
   private agentStatusDetail(): string {

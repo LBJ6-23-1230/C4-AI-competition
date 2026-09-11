@@ -4,6 +4,7 @@ import { Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmissionResult
 import { DemoSnapshot } from '../cache/DemoSnapshot';
 import { ExerciseViewModel } from '../viewmodels/ExerciseViewModel';
 import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
+import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
 
 @Entry
 @Component
@@ -176,8 +177,8 @@ struct ExercisePractice {
 
       if (this.workflowStatus !== null) {
         Column({ space: 5 }) {
-          Text(`Agent 状态：${this.workflowStatus!.status}`).fontSize(14).fontWeight(FontWeight.Bold).fontColor('#1F2937')
-          Text(this.workflowStatus!.finalAction !== null ? this.workflowStatus!.finalAction! : `当前执行：${this.workflowStatus!.currentAgent ?? '等待调度'}`)
+          Text(`Agent 状态：${ApiDisplayFormatter.workflowStatus(this.workflowStatus!.status)}`).fontSize(14).fontWeight(FontWeight.Bold).fontColor('#1F2937')
+          Text(this.workflowStatus!.finalAction !== null ? this.workflowStatus!.finalAction! : `当前执行：${ApiDisplayFormatter.agent(this.workflowStatus!.currentAgent)}`)
             .fontSize(12).fontColor('#475467')
           Text(`状态版本 ${this.workflowStatus!.stateVersion}`).fontSize(11).fontColor('#98A2B3')
         }.width('100%').padding(12).backgroundColor('#EFF6FF').borderRadius(10)
@@ -209,7 +210,7 @@ struct ExercisePractice {
           Text(`Plan V${value.planDiff.newVersion} 已自动生成`).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#111827')
           Text(value.planDiff.adjustmentReason).fontSize(13).fontColor('#475467').lineHeight(19)
           ForEach(value.planDiff.changedTasks, (change: PlanTaskChange) => {
-            Text(`${change.taskId}：${change.change ?? '已调整'} · ${change.durationMinutes ?? 0} 分钟`)
+            Text(`${ApiDisplayFormatter.knowledgePoint(change.knowledgePointId ?? change.taskId)}：${change.change ?? '已调整'} · ${change.durationMinutes ?? 0} 分钟`)
               .fontSize(13).fontColor('#1F2937').width('100%').padding(10).backgroundColor('#F8FAFC').borderRadius(9)
           }, (change: PlanTaskChange) => change.taskId)
         }.width('100%').padding(14).backgroundColor('#FFFFFF').border({ width: 1, color: '#BFDBFE' }).borderRadius(14)
