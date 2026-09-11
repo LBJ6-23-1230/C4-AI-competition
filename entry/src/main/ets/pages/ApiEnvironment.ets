@@ -1,5 +1,7 @@
 import router from '@ohos.router';
+import { common } from '@kit.AbilityKit';
 import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
+import { ApiEnvironmentStore } from '../api/ApiEnvironmentStore';
 import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
 
@@ -24,7 +26,12 @@ struct ApiEnvironment {
     AgentApiClient.configure({ baseUrl: baseUrl, useFixture: useFixture, timeoutMs: current.timeoutMs });
     ClientCache.clearDemoData();
     this.syncConfig();
-    this.message = message;
+    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    if (ApiEnvironmentStore.save(context, AgentApiClient.getConfig())) {
+      this.message = `${message} 此选择会在下次启动时保留。`;
+    } else {
+      this.message = `${message} 当前已生效，但暂时无法保存到下次启动。`;
+    }
   }
 
   private useOfflineDemo(): void {
