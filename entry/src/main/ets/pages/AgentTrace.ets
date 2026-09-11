@@ -6,6 +6,7 @@ import { TraceViewModel } from '../viewmodels/TraceViewModel';
 import { ClientCache } from '../cache/ClientCache';
 import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
 import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
+import { AgentApiClient } from '../api/AgentApiClient';
 
 @Entry
 @Component
@@ -16,8 +17,12 @@ struct AgentTrace {
   @State events: TraceEvent[] = [];
   @State traceId: string = '';
   private viewModel: TraceViewModel = new TraceViewModel();
+  private traceRequestVersion: number = 0;
+  private resetRequestVersion: number = 0;
+  private isPageActive: boolean = false;
 
   aboutToAppear(): void {
+    this.isPageActive = true;
     const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
     const cachedTrace: TraceResponse | null = ClientCache.getTrace();
     if (workflow !== null) {
@@ -28,7 +33,20 @@ struct AgentTrace {
     this.loadTrace();
   }
 
+  aboutToDisappear(): void {
+    this.isPageActive = false;
+    this.traceRequestVersion++;
+    this.resetRequestVersion++;
+  }
+
+  private isFixture(): boolean {
+    return AgentApiClient.getConfig().useFixture;
+  }
+
   private async loadTrace(forceRefresh: boolean = false): Promise<void> {
+    if (this.isLoading && forceRefresh) {
+      return;
+    }
     if (this.traceId.length === 0) {
       this.isLoading = false;
       this.events = [];
@@ -37,7 +55,11 @@ struct AgentTrace {
     }
     this.isLoading = true;
     this.message = '';
+    const requestVersion: number = ++this.traceRequestVersion;
     const trace = await this.viewModel.load(this.traceId, forceRefresh);
+    if (!this.isPageActive || requestVersion !== this.traceRequestVersion) {
+      return;
+    }
     if (trace === null) {
       this.events = [];
       const detail: string = this.viewModel.getErrorMessage();
@@ -49,8 +71,15 @@ struct AgentTrace {
   }
 
   private async resetDemo(): Promise<void> {
+    if (this.isResetting || !this.isFixture()) {
+      return;
+    }
     this.isResetting = true;
+    const requestVersion: number = ++this.resetRequestVersion;
     const resetResult = await this.viewModel.reset();
+    if (!this.isPageActive || requestVersion !== this.resetRequestVersion) {
+      return;
+    }
     if (resetResult === null) {
       this.isResetting = false;
       this.message = '重置失败，请稍后重试。';
@@ -97,7 +126,9 @@ struct AgentTrace {
             Row() {
               Text(`Trace ID：${this.traceId}`).fontSize(12).fontColor('#64748B')
               Blank()
-              Text('刷新').fontSize(13).fontColor('#2563EB').onClick(() => this.loadTrace(true))
+              Text(this.isLoading ? '刷新中…' : '刷新').fontSize(13)
+                .fontColor(this.isLoading ? '#98A2B3' : '#2563EB')
+                .onClick(() => this.loadTrace(true))
             }.width('100%').padding(12).backgroundColor('#FFFFFF').borderRadius(10)
             if (this.isLoading) {
               LoadingProgress().width(36).height(36).margin({ top: 30 })
@@ -113,14 +144,16 @@ struct AgentTrace {
                   .width('100%').height(44).fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
                   .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => this.loadTrace(true))
               }
-              Button(this.isResetting ? '正在重置…' : '重置演示数据')
-                .width('100%').height(46).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
-                .backgroundColor('#2563EB').borderRadius(12).enabled(!this.isResetting).onClick(() => this.resetDemo())
-              Text('重置只清除本次演示的临时数据，不会删除项目代码。')
-                .fontSize(12).fontColor('#667085').textAlign(TextAlign.Center).width('100%')
-              Button('查看重置后的知识画像')
-                .width('100%').height(44).fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
-                .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => router.pushUrl({ url: 'pages/StudyTags' }))
+              if (this.isFixture()) {
+                Button(this.isResetting ? '正在重置…' : '重置演示数据')
+                  .width('100%').height(46).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+                  .backgroundColor('#2563EB').borderRadius(12).enabled(!this.isResetting && !this.isLoading).onClick(() => this.resetDemo())
+                Text('重置只清除本次演示的临时数据，不会删除项目代码。')
+                  .fontSize(12).fontColor('#667085').textAlign(TextAlign.Center).width('100%')
+                Button('查看重置后的知识画像')
+                  .width('100%').height(44).fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
+                  .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => router.pushUrl({ url: 'pages/StudyTags' }))
+              }
             }
           }.width('100%').padding({ left: 16, right: 16, top: 16, bottom: 96 })
         }.layoutWeight(1).backgroundColor('#F3F6FA')

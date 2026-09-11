@@ -18,8 +18,11 @@ struct StudyPlan {
   @State apiPlanMessage: string = '';
   private weekDays: WeekDay[] = DateHelper.getWeekDays();
   private planViewModel: PlanViewModel = new PlanViewModel();
+  private planRequestVersion: number = 0;
+  private isPageActive: boolean = false;
 
   aboutToAppear(): void {
+    this.isPageActive = true;
     // 更新周日期（每次进入页面重新计算）
     this.weekDays = DateHelper.getWeekDays();
     const todayLabel: string = DateHelper.getTodayLabel();
@@ -52,9 +55,21 @@ struct StudyPlan {
     this.loadCurrentPlan();
   }
 
+  aboutToDisappear(): void {
+    this.isPageActive = false;
+    this.planRequestVersion++;
+  }
+
   private async loadCurrentPlan(forceRefresh: boolean = false): Promise<void> {
+    if (this.isApiPlanLoading && forceRefresh) {
+      return;
+    }
+    const requestVersion: number = ++this.planRequestVersion;
     this.isApiPlanLoading = true;
     const state = await this.planViewModel.load(forceRefresh);
+    if (!this.isPageActive || requestVersion !== this.planRequestVersion) {
+      return;
+    }
     this.apiPlan = state.plan;
     this.apiPlanMessage = state.errorMessage;
     this.isApiPlanLoading = false;
@@ -157,7 +172,8 @@ struct StudyPlan {
 
       Button('刷新当前计划')
         .width('100%').height(38).fontSize(13).fontColor('#2563EB').backgroundColor('#FFFFFF')
-        .border({ width: 1, color: '#BFDBFE' }).borderRadius(10).onClick(() => this.loadCurrentPlan(true))
+        .border({ width: 1, color: '#BFDBFE' }).borderRadius(10).enabled(!this.isApiPlanLoading)
+        .onClick(() => this.loadCurrentPlan(true))
     }.width('100%').padding(15).backgroundColor('#FFFFFF').border({ width: 1, color: '#BFDBFE' }).borderRadius(16)
   }
 

@@ -13,8 +13,18 @@ struct ApiEnvironment {
   @State useFixture: boolean = false;
   @State isChecking: boolean = false;
   @State message: string = '';
+  private checkRequestVersion: number = 0;
+  private isPageActive: boolean = false;
 
-  aboutToAppear(): void { this.syncConfig(); }
+  aboutToAppear(): void {
+    this.isPageActive = true;
+    this.syncConfig();
+  }
+
+  aboutToDisappear(): void {
+    this.isPageActive = false;
+    this.checkRequestVersion++;
+  }
 
   private syncConfig(): void {
     const config: ApiClientConfig = AgentApiClient.getConfig();
@@ -23,6 +33,8 @@ struct ApiEnvironment {
   }
 
   private applyConfig(baseUrl: string, useFixture: boolean, message: string): void {
+    this.checkRequestVersion++;
+    this.isChecking = false;
     const current: ApiClientConfig = AgentApiClient.getConfig();
     AgentApiClient.configure({ baseUrl: baseUrl, useFixture: useFixture, timeoutMs: current.timeoutMs });
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
@@ -54,9 +66,16 @@ struct ApiEnvironment {
   }
 
   private async checkCurrentPlan(): Promise<void> {
+    if (this.isChecking) {
+      return;
+    }
     this.isChecking = true;
     this.message = '';
+    const requestVersion: number = ++this.checkRequestVersion;
     const result = await AgentApiClient.getCurrentPlan();
+    if (!this.isPageActive || requestVersion !== this.checkRequestVersion) {
+      return;
+    }
     this.isChecking = false;
     if (result.ok) {
       this.message = `连接成功：${result.source === 'fixture' ? 'Fixture' : '真实后端'}返回 Plan V${result.data.version}。`;

@@ -97,9 +97,13 @@ export class AgentApiClient {
       }
       const payload: string = response.result as string;
       if (payload.length === 0) return apiFailure('EMPTY_RESPONSE', '服务未返回可解析的数据。', true, 'network');
-      return apiSuccess<T>(JSON.parse(payload) as T, 'network');
+      try {
+        return apiSuccess<T>(JSON.parse(payload) as T, 'network');
+      } catch (parseError) {
+        return apiFailure('INVALID_RESPONSE', '服务返回的数据格式不正确，请联系联调同学检查接口响应。', false, 'network');
+      }
     } catch (err) {
-      return apiFailure('NETWORK_ERROR', '网络连接失败，请检查服务地址后重试。', true, 'network');
+      return apiFailure('NETWORK_ERROR', '连接超时或网络不可用，请检查服务地址后重试。', true, 'network');
     } finally {
       httpRequest.destroy();
     }

@@ -30,14 +30,31 @@ struct StudyTags {
   @State chartStrong: number[] = [];
   private viewModel: ProfileViewModel = new ProfileViewModel();
   private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
+  private profileRequestVersion: number = 0;
+  private workflowRequestVersion: number = 0;
+  private isPageActive: boolean = false;
 
   aboutToAppear(): void {
+    this.isPageActive = true;
     this.loadProfile();
   }
 
+  aboutToDisappear(): void {
+    this.isPageActive = false;
+    this.profileRequestVersion++;
+    this.workflowRequestVersion++;
+  }
+
   private async loadProfile(forceRefresh: boolean = false): Promise<void> {
+    if (this.isLoading && forceRefresh) {
+      return;
+    }
+    const requestVersion: number = ++this.profileRequestVersion;
     this.isLoading = true;
     const state = await this.viewModel.load(DemoSnapshot.USER_ID, forceRefresh);
+    if (!this.isPageActive || requestVersion !== this.profileRequestVersion) {
+      return;
+    }
     this.userId = state.userId;
     this.goal = state.goal;
     this.profileVersion = state.profileVersion;
@@ -55,7 +72,11 @@ struct StudyTags {
     }
     this.isStartingWorkflow = true;
     this.workflowErrorMessage = '';
+    const requestVersion: number = ++this.workflowRequestVersion;
     const workflow = await this.workflowViewModel.start(this.goal, this.userId);
+    if (!this.isPageActive || requestVersion !== this.workflowRequestVersion) {
+      return;
+    }
     this.isStartingWorkflow = false;
     if (workflow === null) {
       this.workflowErrorMessage = this.workflowViewModel.getErrorMessage() || 'Agent 会话启动失败，请稍后重试。';
@@ -232,6 +253,7 @@ struct StudyTags {
               Button('刷新画像')
                 .fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
                 .border({ width: 1, color: '#BFDBFE' }).height(44).borderRadius(12).width('100%')
+                .enabled(!this.isLoading && !this.isStartingWorkflow)
                 .onClick(() => { this.loadProfile(true); })
 
               if (this.workflowErrorMessage.length > 0) {
