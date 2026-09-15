@@ -1,5 +1,6 @@
 import { AgentApiClient } from '../api/AgentApiClient';
 import { LearningPlan } from '../api/ApiModels';
+import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
 
 export interface PlanViewState {
@@ -22,9 +23,10 @@ export class PlanViewModel {
       return { plan: result.data, errorMessage: '', isCached: false };
     }
 
+    const detail: string = (result as ApiFailure).error.message;
     if (cached !== null) {
-      return { plan: cached, errorMessage: '计划暂时无法刷新，正在显示刚才获取的数据。', isCached: true };
+      return { plan: cached, errorMessage: `${detail} 正在显示刚才获取的数据。`, isCached: true };
     }
-    return { plan: null, errorMessage: '当前学习计划暂时无法加载。', isCached: false };
+    return { plan: null, errorMessage: detail, isCached: false };
   }
 }

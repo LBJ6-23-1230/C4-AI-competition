@@ -2,6 +2,7 @@ import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { ApiEnvironmentStore } from '../api/ApiEnvironmentStore';
+import { FixtureDemoStateStore } from '../api/FixtureDemoStateStore';
 import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
 
 const DOMAIN = 0x0000;
@@ -21,6 +22,9 @@ export default class EntryAbility extends UIAbility {
 
     if (!ApiEnvironmentStore.restore(this.context)) {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore API environment, using defaults.');
+    }
+    if (!FixtureDemoStateStore.initialize(this.context)) {
+      hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore fixture demo state.');
     }
     if (!WorkflowSessionStore.restore(this.context)) {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore workflow session.');

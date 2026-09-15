@@ -306,6 +306,7 @@ export interface FocusTask {
 
 export interface FocusSession {
   taskId: string;
+  planTaskId?: string;
   course: string;
   task: string;
   plannedMinutes: number;
@@ -353,7 +354,7 @@ export interface LearningPlanTask {
   completionCriteria: string;
   steps: string[];
   status: PlanTaskStatus;
-  source: 'agent' | 'ddl' | 'wrong_question' | 'focus_feedback';
+  source: 'agent' | 'ddl' | 'wrong_question' | 'focus_feedback' | 'partner_match';
   canCollaborate: boolean;
 }
 

@@ -2,6 +2,7 @@ import router from '@ohos.router';
 import { common } from '@kit.AbilityKit';
 import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
 import { ApiEnvironmentStore } from '../api/ApiEnvironmentStore';
+import { FixtureDemoStateStore } from '../api/FixtureDemoStateStore';
 import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
 import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
@@ -36,10 +37,14 @@ struct ApiEnvironment {
     this.checkRequestVersion++;
     this.isChecking = false;
     const current: ApiClientConfig = AgentApiClient.getConfig();
+    const enteringFixture: boolean = useFixture && !current.useFixture;
     AgentApiClient.configure({ baseUrl: baseUrl, useFixture: useFixture, timeoutMs: current.timeoutMs });
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     ClientCache.clearDemoData();
     WorkflowSessionStore.clear(context);
+    if (enteringFixture) {
+      FixtureDemoStateStore.reset();
+    }
     this.syncConfig();
     if (ApiEnvironmentStore.save(context, AgentApiClient.getConfig())) {
       this.message = `${message} 此选择会在下次启动时保留。`;

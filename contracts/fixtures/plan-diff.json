@@ -1,0 +1,21 @@
+{
+  "planId": "plan-demo-001",
+  "oldVersion": 1,
+  "newVersion": 2,
+  "changedTasks": [
+    {
+      "taskId": "task-postorder",
+      "knowledgePointId": "binary-tree-postorder",
+      "durationMinutes": 45,
+      "change": "+15"
+    },
+    {
+      "taskId": "task-graph",
+      "knowledgePointId": "graph-traversal",
+      "durationMinutes": 15,
+      "change": "-15"
+    }
+  ],
+  "adjustmentReason": "二叉树后序遍历 mastery=58，低于巩固阈值60",
+  "triggerEvidence": ["evidence-demo-001"]
+}

@@ -1,18 +1,18 @@
 import router from '@ohos.router';
 import { appState } from '../data/AppState';
-import { PartnerMatch as PartnerMatchType, MatchFactor, UserProfile } from '../models/AgentModels';
+import { PartnerMatch as PartnerMatchType, MatchFactor, UserProfile, LearningPlanTask } from '../models/AgentModels';
 import { LocalAgentService } from '../services/LocalAgentService';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AIFloatButton } from '../components/AIFloatButton';
 
-const generatedPartner: PartnerMatchType | null =
+let generatedPartner: PartnerMatchType | null =
   LocalAgentService.matchBestPartner(appState.currentUser, appState.candidates);
 
 interface CandidateMatchEntry {
   candidate: UserProfile;
   match: PartnerMatchType;
 }
-const otherCandidateMatches: CandidateMatchEntry[] = [];
+let otherCandidateMatches: CandidateMatchEntry[] = [];
 for (let i: number = 0; i < appState.candidates.length; i++) {
   const c: UserProfile = appState.candidates[i];
   if (generatedPartner === null || c.userId !== generatedPartner.userId) {
@@ -26,16 +26,66 @@ for (let i: number = 0; i < appState.candidates.length; i++) {
 @Entry
 @Component
 struct PartnerMatch {
+  @State invitationSent: boolean = false;
+  private collaborativeTaskId: string = '';
+
+  aboutToAppear(): void {
+    generatedPartner = LocalAgentService.matchBestPartner(appState.currentUser, appState.candidates);
+    if (generatedPartner !== null && appState.latestPartner?.userId === generatedPartner.userId) {
+      const previousTask: LearningPlanTask = LocalAgentService.createCollaborativeTask(generatedPartner, appState.currentUser);
+      if (!appState.hasActiveCollaborativeTask(previousTask.id) &&
+          appState.hasCompletedCollaborativeTask(previousTask.id)) {
+        const remainingCandidates: UserProfile[] = appState.candidates.filter((candidate: UserProfile) =>
+          candidate.userId !== generatedPartner!.userId
+        );
+        generatedPartner = LocalAgentService.matchBestPartner(appState.currentUser, remainingCandidates);
+      }
+    }
+    otherCandidateMatches = [];
+    for (let index: number = 0; index < appState.candidates.length; index++) {
+      const candidate: UserProfile = appState.candidates[index];
+      if (generatedPartner === null || candidate.userId !== generatedPartner!.userId) {
+        otherCandidateMatches.push({
+          candidate: candidate,
+          match: LocalAgentService.matchPartner(appState.currentUser, candidate)
+        });
+      }
+    }
+    if (generatedPartner !== null) {
+      const task: LearningPlanTask = LocalAgentService.createCollaborativeTask(generatedPartner, appState.currentUser);
+      this.collaborativeTaskId = appState.nextCollaborativeTaskId(task.id);
+      this.invitationSent = appState.latestPartner?.userId === generatedPartner.userId &&
+        appState.hasActiveCollaborativeTask(task.id);
+    }
+  }
+
   private goBack(): void {
     appState.leaveChatTask();
     router.back();
   }
 
   private confirmPartner(): void {
-    const name: string = generatedPartner === null ? '候选搭子' : generatedPartner.matchName;
+    if (generatedPartner === null) {
+      return;
+    }
+    if (appState.weeklyPlan === null) {
+      appState.setWeeklyPlan(LocalAgentService.generateWeeklyPlan(
+        appState.courses, appState.homeworkDDLs, appState.currentUser
+      ));
+    }
+    const collaborativeTask: LearningPlanTask = LocalAgentService.createCollaborativeTask(generatedPartner, appState.currentUser);
+    collaborativeTask.id = this.collaborativeTaskId.length > 0 ? this.collaborativeTaskId :
+      appState.nextCollaborativeTaskId(collaborativeTask.id);
+    const added: boolean = appState.addCollaborativeTask(
+      collaborativeTask,
+      `已安排与${generatedPartner.matchName}的协同学习任务。`
+    );
+    appState.latestPartner = generatedPartner;
+    this.invitationSent = true;
+    const name: string = generatedPartner.matchName;
     appState.completeChatTask(
-      `已向 ${name} 发出学习邀请。`,
-      '接下来可以把共同学习安排进本周计划。',
+      added ? `已向 ${name} 发出学习邀请，并加入协同学习任务。` : `与 ${name} 的协同学习任务已经在计划中。`,
+      '接下来可以确认协同任务并开始专注。',
       '查看本周计划',
       'pages/StudyPlan'
     );
@@ -65,7 +115,7 @@ struct PartnerMatch {
               .fontColor(factor.match ? '#2563EB' : '#C4CDD5')
           }
           .width('100%').padding({ top: 12, bottom: 12 })
-          .border({ width: { bottom: index < generatedPartner.matchFactors.length - 1 ? 0.5 : 0 }, color: '#E0E7EF' })
+          .border({ width: { bottom: index < generatedPartner!.matchFactors.length - 1 ? 0.5 : 0 }, color: '#E0E7EF' })
         }, (factor: MatchFactor) => factor.label)
 
         Divider().color('#E0E7EF').margin({ top: 4, bottom: 4 })
@@ -74,6 +124,9 @@ struct PartnerMatch {
           Text('综合匹配度').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#172033')
 Text(`${generatedPartner.score}%`).fontSize(28).fontWeight(FontWeight.Bold).fontColor('#2563EB')
         }.width('100%').padding({ top: 8, bottom: 4 })
+      } else {
+        Text('暂无满足条件的候选搭子。请先补充课程、目标和空闲时间，再重新进入本页。')
+          .fontSize(13).fontColor('#667085').lineHeight(20).width('100%').padding({ top: 8, bottom: 8 })
       }
     }
     .width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(18)
@@ -215,9 +268,16 @@ Column() {
           Column({ space: 8 }) {
             Text('确认后将回到对话，由知学搭子继续安排共同学习。')
               .fontSize(12).fontColor('#667085').lineHeight(18).width('100%')
-            Button('向该搭子发起学习邀请')
+            Button(this.invitationSent ? '查看协同任务' : '向该搭子发起学习邀请')
               .width('100%').height(46).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
-              .backgroundColor('#2563EB').borderRadius(14).onClick(() => this.confirmPartner())
+              .backgroundColor('#2563EB').borderRadius(14).enabled(generatedPartner !== null)
+              .onClick(() => {
+                if (this.invitationSent) {
+                  router.pushUrl({ url: 'pages/StudyPlan' });
+                } else {
+                  this.confirmPartner();
+                }
+              })
             if (!appState.isDataImported) {
               Text('资料不足时，可在对话里补充课程和空闲时间。')
                 .fontSize(12).fontColor('#667085').width('100%').textAlign(TextAlign.Center)

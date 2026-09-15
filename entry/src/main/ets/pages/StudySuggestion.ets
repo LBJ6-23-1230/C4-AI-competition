@@ -5,15 +5,22 @@ import { LocalAgentService } from '../services/LocalAgentService';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AIFloatButton } from '../components/AIFloatButton';
 
-const highPriorityCourse: CourseInfo = appState.getHighPriorityCourse();
-const generatedSuggestion: StudySuggestionType =
+let highPriorityCourse: CourseInfo = appState.getHighPriorityCourse();
+let generatedSuggestion: StudySuggestionType =
   LocalAgentService.generateStudySuggestions(appState.currentUser, highPriorityCourse);
-const allTasks: TaskPriority[] =
+let allTasks: TaskPriority[] =
   LocalAgentService.judgeOptimalTask(appState.courses, appState.homeworkDDLs, appState.currentUser);
 
 @Entry
 @Component
 struct StudySuggestion {
+  aboutToAppear(): void {
+    highPriorityCourse = appState.getHighPriorityCourse();
+    generatedSuggestion = LocalAgentService.generateStudySuggestions(appState.currentUser, highPriorityCourse);
+    allTasks = LocalAgentService.judgeOptimalTask(appState.courses, appState.homeworkDDLs, appState.currentUser);
+    appState.latestSuggestion = generatedSuggestion;
+  }
+
   private goBack(): void {
     appState.leaveChatTask();
     router.back();

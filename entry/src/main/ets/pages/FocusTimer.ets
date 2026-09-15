@@ -110,6 +110,7 @@ struct FocusTimer {
     const focusTask: FocusTask | null = appState.activeFocusTask;
     return {
       taskId: `focus-${Date.now()}`,
+      planTaskId: focusTask?.planTaskId,
       course: focusTask?.course ?? '数据结构',
       task: focusTask?.task ?? '理清二叉树中序遍历',
       plannedMinutes: this.isStopwatch() ? 0 : (focusTask?.plannedMinutes ?? 30),
@@ -181,6 +182,10 @@ struct FocusTimer {
   private leaveWithoutRecord(): void {
     this.stopTimer();
     this.showExitConfirm = false;
+    const planTaskId: string | undefined = appState.activeFocusTask?.planTaskId;
+    if (planTaskId !== undefined) {
+      appState.updatePlanTaskStatus(planTaskId, 'todo');
+    }
     router.back();
   }
 

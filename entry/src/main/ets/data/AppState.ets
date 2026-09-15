@@ -277,6 +277,10 @@ export class AppState {
     this.activeFocusTask = task;
   }
 
+  public clearFocusTask(): void {
+    this.activeFocusTask = null;
+  }
+
   public setWeeklyPlan(plan: WeeklyLearningPlan): void {
     this.weeklyPlan = plan;
     this.advanceStage('output', 'Agent 已生成并更新本周学习计划');
@@ -315,12 +319,77 @@ export class AppState {
     }
   }
 
-  public addReviewTask(task: LearningPlanTask, message: string): void {
+  public hasPendingWrongQuestionReview(course: string, knowledgePoint: string): boolean {
     if (this.weeklyPlan === null) {
-      return;
+      return false;
+    }
+    return this.weeklyPlan.tasks.some((task: LearningPlanTask) =>
+      task.source === 'wrong_question' &&
+      task.course === course &&
+      task.knowledgePoint === knowledgePoint &&
+      task.status !== 'completed'
+    );
+  }
+
+  public addReviewTask(task: LearningPlanTask, message: string): boolean {
+    if (this.weeklyPlan === null) {
+      return false;
+    }
+    if (this.hasPendingWrongQuestionReview(task.course, task.knowledgePoint)) {
+      this.weeklyPlan.adjustmentMessage = `“${task.knowledgePoint}”已在复习计划中，无需重复添加。`;
+      return false;
     }
     this.weeklyPlan.tasks.unshift(task);
     this.weeklyPlan.adjustmentMessage = message;
+    return true;
+  }
+
+  public hasActiveCollaborativeTask(taskId: string): boolean {
+    if (this.weeklyPlan === null) {
+      return false;
+    }
+    return this.weeklyPlan.tasks.some((task: LearningPlanTask) =>
+      (task.id === taskId || task.id.startsWith(taskId + '-round-')) &&
+      task.source === 'partner_match' && task.status !== 'completed'
+    );
+  }
+
+  public hasCompletedCollaborativeTask(taskId: string): boolean {
+    if (this.weeklyPlan === null) {
+      return false;
+    }
+    return this.weeklyPlan.tasks.some((task: LearningPlanTask) =>
+      (task.id === taskId || task.id.startsWith(taskId + '-round-')) &&
+      task.source === 'partner_match' && task.status === 'completed'
+    );
+  }
+
+  public nextCollaborativeTaskId(taskId: string): string {
+    if (this.weeklyPlan === null) {
+      return taskId;
+    }
+    const count: number = this.weeklyPlan.tasks.filter((task: LearningPlanTask) =>
+      task.source === 'partner_match' &&
+      (task.id === taskId || task.id.startsWith(taskId + '-round-'))
+    ).length;
+    return count === 0 ? taskId : `${taskId}-round-${count + 1}`;
+  }
+
+  public addCollaborativeTask(task: LearningPlanTask, message: string): boolean {
+    if (this.weeklyPlan === null || this.hasActiveCollaborativeTask(task.id)) {
+      if (this.weeklyPlan !== null) {
+        this.weeklyPlan.adjustmentMessage = '该搭子的协同学习任务已在计划中，无需重复添加。';
+      }
+      return false;
+    }
+    this.weeklyPlan.tasks.unshift(task);
+    this.weeklyPlan.adjustmentMessage = message;
+    return true;
+  }
+
+  public clearCurrentWrongQuestionDraft(): void {
+    this.selectedImageUri = '';
+    this.latestWrongAnalysis = null;
   }
 
   public setFocusResultDraft(session: FocusSession): void {
@@ -331,8 +400,12 @@ export class AppState {
     this.focusResultDraft = null;
   }
 
-  public saveFocusSession(session: FocusSession): void {
+  public saveFocusSession(session: FocusSession): boolean {
+    if (this.focusSessions.some((saved: FocusSession) => saved.taskId === session.taskId)) {
+      return false;
+    }
     this.focusSessions.push(session);
+    return true;
   }
 
   public getFocusSummary(): FocusSummary {

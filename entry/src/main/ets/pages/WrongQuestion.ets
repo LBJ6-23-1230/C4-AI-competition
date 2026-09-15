@@ -15,8 +15,12 @@ struct WrongQuestion {
   @State isAnalyzing: boolean = false;
   @State analysisResult: WrongAnalysisResult | null = null;
   @State showAnalysis: boolean = false;
+  @State reviewAdded: boolean = false;
+  private analysisRequestVersion: number = 0;
+  private isPageActive: boolean = false;
 
   aboutToAppear(): void {
+    this.isPageActive = true;
     if (appState.selectedImageUri.length > 0) {
       this.selectedImageUri = appState.selectedImageUri;
       this.hasPhoto = true;
@@ -28,7 +32,16 @@ struct WrongQuestion {
     if (appState.latestWrongAnalysis !== null) {
       this.analysisResult = appState.latestWrongAnalysis;
       this.showAnalysis = true;
+      this.reviewAdded = appState.hasPendingWrongQuestionReview(
+        appState.latestWrongAnalysis.course,
+        appState.latestWrongAnalysis.knowledge[0] ?? '错题知识点'
+      );
     }
+  }
+
+  aboutToDisappear(): void {
+    this.isPageActive = false;
+    this.analysisRequestVersion++;
   }
 
   private goBack(): void {
@@ -88,8 +101,16 @@ struct WrongQuestion {
   }
 
   private startAnalysis(imageUri: string): void {
+    const requestVersion: number = ++this.analysisRequestVersion;
     this.isAnalyzing = true;
+    this.showAnalysis = false;
+    this.analysisResult = null;
+    this.reviewAdded = false;
+    appState.latestWrongAnalysis = null;
     setTimeout(() => {
+      if (!this.isPageActive || requestVersion !== this.analysisRequestVersion) {
+        return;
+      }
       const result: WrongAnalysisResult = LocalAgentService.analyzeWrongQuestion(imageUri);
       this.analysisResult = result;
       this.showAnalysis = true;
@@ -107,12 +128,13 @@ struct WrongQuestion {
         appState.courses, appState.homeworkDDLs, appState.currentUser
       ));
     }
-    appState.addReviewTask(
+    const added: boolean = appState.addReviewTask(
       LocalAgentService.createWrongQuestionReviewTask(this.analysisResult),
       'Agent 已将这道错题加入明日复习，并提高了它的优先级。'
     );
+    this.reviewAdded = true;
     appState.completeChatTask(
-      '这道错题已加入明日复习，并已提高优先级。',
+      added ? '这道错题已加入明日复习，并已提高优先级。' : '这道错题已经在明日复习计划中，没有重复添加。',
       '现在可以确认本周复习计划。',
       '查看复习计划',
       'pages/StudyPlan'
@@ -195,11 +217,12 @@ Text('✅ 分析完成')
 
       Button() {
         Row({ space: 8 }) {
-          Text('加入明日复习').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+          Text(this.reviewAdded ? '已加入明日复习' : '加入明日复习').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
 Text('→').fontSize(16).fontColor('#FFFFFF')
         }.width('100%').padding({ left: 16, right: 16 })
       }
-      .width('100%').height(48).backgroundColor('#2563EB').borderRadius(14)
+      .width('100%').height(48).backgroundColor(this.reviewAdded ? '#94A3B8' : '#2563EB').borderRadius(14)
+      .enabled(!this.reviewAdded)
       .onClick(() => this.addToTomorrowPlan())
 
       Button() {
@@ -215,6 +238,11 @@ Text('→').fontSize(16).fontColor('#2563EB')
         this.showAnalysis = false;
         this.analysisResult = null;
         this.selectedImageUri = '';
+        this.selectedImageName = '';
+        this.reviewAdded = false;
+        this.analysisRequestVersion++;
+        this.isAnalyzing = false;
+        appState.clearCurrentWrongQuestionDraft();
       })
     }
     .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)

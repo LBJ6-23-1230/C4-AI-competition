@@ -1,5 +1,6 @@
 import { AgentApiClient } from '../api/AgentApiClient';
 import { Evidence, KnowledgeMastery, MasteryHistory, ProfileResponse } from '../api/ApiModels';
+import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
 
 /**
@@ -31,9 +32,10 @@ export class ProfileViewModel {
       return this.toViewState(result.data, false);
     }
 
+    const detail: string = (result as ApiFailure).error.message;
     if (cached !== null) {
       const state: ProfileViewState = this.toViewState(cached, true);
-      state.errorMessage = '网络暂不可用，正在显示刚才获取的数据。';
+      state.errorMessage = `${detail} 正在显示刚才获取的数据。`;
       return state;
     }
 
@@ -44,7 +46,7 @@ export class ProfileViewModel {
       mastery: [],
       history: [],
       evidence: [],
-      errorMessage: '知识画像加载失败，请稍后重试。',
+      errorMessage: detail,
       isCached: false
     };
   }

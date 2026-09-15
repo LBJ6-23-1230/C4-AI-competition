@@ -97,6 +97,9 @@ struct FocusSetup {
       timerType: this.timerType,
       planTaskId: planTaskId
     });
+    if (planTaskId !== undefined) {
+      appState.updatePlanTaskStatus(planTaskId, 'in_progress');
+    }
     appState.clearFocusResultDraft();
     router.pushUrl({ url: 'pages/FocusTimer' });
   }

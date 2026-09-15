@@ -14,6 +14,7 @@ import uuid
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 from dotenv import load_dotenv
+from v1_routes import CONTRACT_VERSION
 
 # 加载 .env 文件
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
@@ -444,16 +445,24 @@ def agent_chat():
     返回: {
         "reply": "Agent的回复",
         "intent": "识别的意图",
-        "card": {"type": "...", "targetPage": "..."} 或 null
+        "card": {"type": "...", "targetPage": "..."}（可选）
     }
     """
+    supplied_version = request.headers.get("X-API-Contract-Version", "")
+    if supplied_version != CONTRACT_VERSION:
+        return jsonify({
+            "code": "CONTRACT_VERSION_MISMATCH",
+            "message": f"请使用 X-API-Contract-Version: {CONTRACT_VERSION}",
+            "recoverable": False,
+        }), 409
+
     data = request.get_json(silent=True) or {}
     user_message = (data.get("message") or data.get("user_message") or "").strip()
     image_base64 = data.get("image")
     frontend_data = data.get("user_data", {})  # 前端传来的真实课程数据
 
     if not user_message and not image_base64:
-        return jsonify({"reply": "请告诉我你需要什么帮助？", "intent": "unknown", "card": None})
+        return jsonify({"reply": "请告诉我你需要什么帮助？", "intent": "unknown"})
 
     # 如果只有图片没有文字，给一个默认文字
     if not user_message and image_base64:
@@ -486,11 +495,13 @@ def agent_chat():
     if reply and intent != 'unknown':
         save_history_entry(user_message, reply)
 
-    return jsonify({
+    response_payload = {
         "reply": reply,
         "intent": intent,
-        "card": card
-    })
+    }
+    if card is not None:
+        response_payload["card"] = card
+    return jsonify(response_payload)
 
 @agent_bp.route('/api/agent/health', methods=['GET'])
 def health_check():

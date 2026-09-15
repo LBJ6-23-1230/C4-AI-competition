@@ -3,6 +3,7 @@ import { appState } from '../data/AppState';
 import { AgentFeedback, FocusSelfAssessment, FocusSession, FocusTask } from '../models/AgentModels';
 import { LocalAgentService } from '../services/LocalAgentService';
 import { AIFloatButton } from '../components/AIFloatButton';
+import { ChatNavigation } from '../services/ChatNavigation';
 
 @Entry
 @Component
@@ -12,9 +13,12 @@ struct FocusResult {
   @State pauseCount: number = 0;
   @State interruptionCount: number = 0;
   @State saved: boolean = false;
+  @State resultSession: FocusSession | null = null;
+  private fallbackTaskId: string = `focus-${Date.now()}`;
 
   aboutToAppear(): void {
     if (appState.focusResultDraft !== null) {
+      this.resultSession = appState.focusResultDraft;
       this.assessment = appState.focusResultDraft.selfAssessment;
       this.actualMinutes = appState.focusResultDraft.actualMinutes;
       this.pauseCount = appState.focusResultDraft.pauseCount;
@@ -23,31 +27,68 @@ struct FocusResult {
   }
 
   private currentSession(): FocusSession {
-    if (appState.focusResultDraft !== null) {
-      return appState.focusResultDraft;
-    }
+    const draft: FocusSession | null = this.resultSession ?? appState.focusResultDraft;
     const focusTask: FocusTask | null = appState.activeFocusTask;
-    const planned: number = focusTask?.plannedMinutes ?? 30;
-    const actual: number = this.assessment === 'completed' ? planned : Math.min(this.actualMinutes, Math.max(1, planned - 1));
+    const planned: number = draft?.plannedMinutes ?? focusTask?.plannedMinutes ?? 30;
+    const actual: number = draft?.actualMinutes ?? this.actualMinutes;
+    const timedRate: number = planned <= 0 ? (actual > 0 ? 100 : 0) : Math.min(100, Math.round(actual / planned * 100));
+    let completionRate: number = 100;
+    if (this.assessment === 'partial') {
+      completionRate = Math.max(40, Math.min(89, timedRate));
+    } else if (this.assessment === 'not_completed') {
+      completionRate = Math.min(39, timedRate);
+    }
+    const status = this.assessment === 'completed' ? 'completed' :
+      ((draft?.status === 'interrupted' || this.interruptionCount > 0) ? 'interrupted' : 'not_completed');
     return {
-      taskId: `focus-${Date.now()}`, course: focusTask?.course ?? '数据结构', task: focusTask?.task ?? '理清二叉树中序遍历',
-      plannedMinutes: planned, actualMinutes: actual, pauseCount: this.pauseCount, interruptionCount: this.interruptionCount,
-      completionRate: Math.min(100, Math.round(actual / planned * 100)), selfAssessment: this.assessment,
-      timerType: focusTask?.timerType ?? 'countdown',
-      status: this.assessment === 'completed' ? 'completed' : (this.interruptionCount > 0 ? 'interrupted' : 'not_completed'),
-      endedAt: new Date().toLocaleString()
+      taskId: draft?.taskId ?? this.fallbackTaskId,
+      planTaskId: draft?.planTaskId ?? focusTask?.planTaskId,
+      course: draft?.course ?? focusTask?.course ?? '数据结构',
+      task: draft?.task ?? focusTask?.task ?? '理清二叉树中序遍历',
+      plannedMinutes: planned, actualMinutes: actual,
+      pauseCount: draft?.pauseCount ?? this.pauseCount,
+      interruptionCount: draft?.interruptionCount ?? this.interruptionCount,
+      completionRate: completionRate, selfAssessment: this.assessment,
+      timerType: draft?.timerType ?? focusTask?.timerType ?? 'countdown',
+      status: status,
+      endedAt: draft?.endedAt ?? new Date().toLocaleString()
     };
   }
 
   private save(): void {
+    if (this.saved) {
+      return;
+    }
     const session: FocusSession = this.currentSession();
-    appState.saveFocusSession(session);
+    const inserted: boolean = appState.saveFocusSession(session);
+    if (!inserted) {
+      this.resultSession = session;
+      this.saved = true;
+      return;
+    }
     const currentPlan = appState.weeklyPlan ?? LocalAgentService.generateWeeklyPlan(
       appState.courses, appState.homeworkDDLs, appState.currentUser
     );
     appState.setWeeklyPlan(LocalAgentService.adjustPlanAfterFocus(currentPlan, session));
+    appState.latestReview = LocalAgentService.generateReviewSummary(
+      appState.latestSuggestion,
+      appState.latestPartner,
+      appState.latestWrongAnalysis
+    );
+    appState.completeChatTask(
+      this.assessment === 'completed' ? '本次专注已完成，学习计划已经同步更新。' : '本次专注结果已保存，Agent 已调整后续任务。',
+      '查看 Agent 根据本次结果更新后的安排。',
+      '查看更新计划',
+      'pages/StudyPlan'
+    );
+    this.resultSession = session;
     appState.clearFocusResultDraft();
+    appState.clearFocusTask();
     this.saved = true;
+  }
+
+  private returnToChat(): void {
+    ChatNavigation.returnToChat();
   }
 
   private timerLabel(): string {
@@ -65,7 +106,17 @@ struct FocusResult {
   build() {
     Stack() {
     Column() {
-      Row() { Text('专注结果').fontSize(16).fontWeight(FontWeight.Medium).fontColor('#2563EB'); Blank(); Text('完成后已记录').fontSize(12).fontColor('#6B7FA0') }
+      Row() {
+        Text(this.saved ? '← 返回聊天' : '专注结果')
+          .fontSize(16).fontWeight(FontWeight.Medium).fontColor('#2563EB')
+          .onClick(() => {
+            if (this.saved) {
+              this.returnToChat();
+            }
+          })
+        Blank()
+        Text(this.saved ? '已保存' : '保存后可返回').fontSize(12).fontColor('#6B7FA0')
+      }
         .width('100%').padding(20).backgroundColor('#FFFFFF')
       Scroll() {
         Column({ space: 16 }) {
@@ -84,7 +135,8 @@ struct FocusResult {
               ForEach(['completed', 'partial', 'not_completed'], (value: string) => {
                 Button(this.assessmentLabel(value)).layoutWeight(1).fontSize(13).fontColor(this.assessment === value ? '#FFFFFF' : '#2563EB')
                   .backgroundColor(this.assessment === value ? '#2563EB' : '#FFFFFF').borderRadius(12)
-                  .border({ width: 1, color: '#BFDBFE' }).onClick(() => this.assessment = value as FocusSelfAssessment)
+                  .border({ width: 1, color: '#BFDBFE' }).enabled(!this.saved)
+                  .onClick(() => this.assessment = value as FocusSelfAssessment)
               }, (value: string) => value)
             }.width('100%')
           }.width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(20).border({ width: 1, color: '#F1F5F9' })
@@ -96,6 +148,9 @@ struct FocusResult {
           if (this.saved) {
             Button('查看 Agent 更新后的计划').width('100%').height(52).fontColor('#FFFFFF').fontWeight(FontWeight.Bold).backgroundColor('#2563EB').borderRadius(16)
               .onClick(() => router.pushUrl({ url: 'pages/StudyPlan' }))
+            Button('返回聊天页').width('100%').height(48).fontColor('#2563EB').fontWeight(FontWeight.Medium).backgroundColor('#FFFFFF')
+              .border({ width: 1, color: '#BFDBFE' }).borderRadius(16)
+              .onClick(() => this.returnToChat())
           } else {
             Button('保存这次记录').width('100%').height(52).fontColor('#FFFFFF').fontWeight(FontWeight.Bold).backgroundColor('#2563EB').borderRadius(16).onClick(() => this.save())
           }

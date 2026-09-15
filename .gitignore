@@ -18,5 +18,7 @@
 /docs/superpowers
 backend/.env
 backend/history.json
+backend/__pycache__/
+*.pyc
 *.env
 /.arkui-x

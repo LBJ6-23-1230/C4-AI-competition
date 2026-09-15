@@ -18,15 +18,16 @@ export class TraceViewModel {
     if (!forceRefresh && cached !== null && cached.traceId === traceId) {
       return cached;
     }
-    if (forceRefresh) {
-      ClientCache.invalidateTrace();
-    }
     const result = await AgentApiClient.getTrace(traceId);
     if (result.ok) {
       ClientCache.cacheTrace(result.data);
       return result.data;
     }
     this.errorMessage = (result as ApiFailure).error.message;
+    if (cached !== null && cached.traceId === traceId) {
+      this.errorMessage = `${this.errorMessage} 正在显示刚才获取的轨迹。`;
+      return cached;
+    }
     return null;
   }
 

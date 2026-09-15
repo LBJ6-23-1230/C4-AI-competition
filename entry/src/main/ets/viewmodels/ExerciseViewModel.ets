@@ -22,13 +22,9 @@ export class ExerciseViewModel {
   async load(setId: string, forceRefresh: boolean = false,
     query?: ExerciseQuery): Promise<ExerciseSetResponse | null> {
     this.errorMessage = '';
-    if (!forceRefresh) {
-      const cached: ExerciseSetResponse | null = ClientCache.getExerciseSet();
-      if (cached !== null && cached.setId === setId) {
-        return cached;
-      }
-    } else {
-      ClientCache.invalidateExerciseSet();
+    const cached: ExerciseSetResponse | null = ClientCache.getExerciseSet();
+    if (!forceRefresh && cached !== null && cached.setId === setId) {
+      return cached;
     }
     const result = await AgentApiClient.getExerciseSet(setId, query);
     if (result.ok) {
@@ -36,6 +32,10 @@ export class ExerciseViewModel {
       return result.data;
     }
     this.errorMessage = (result as ApiFailure).error.message;
+    if (cached !== null && cached.setId === setId) {
+      this.errorMessage = `${this.errorMessage} 正在显示刚才获取的练习。`;
+      return cached;
+    }
     return null;
   }
 

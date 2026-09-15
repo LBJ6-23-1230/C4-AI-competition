@@ -91,7 +91,6 @@ struct StudyPlan {
   }
 
   private startTask(task: LearningPlanTask): void {
-    appState.updatePlanTaskStatus(task.id, 'in_progress');
     appState.setFocusTask({
       course: task.course, task: task.title, plannedMinutes: task.plannedMinutes,
       source: task.canCollaborate ? 'collaborative' : 'agent', mode: 'normal', timerType: 'countdown', planTaskId: task.id
@@ -102,6 +101,12 @@ struct StudyPlan {
   private deferTask(task: LearningPlanTask): void {
     appState.updatePlanTaskStatus(task.id, 'deferred');
     this.plan().adjustmentMessage = `已将"${task.title}"延后，Agent 会在明天重新评估优先级。`;
+    this.refreshKey++;
+  }
+
+  private cancelDeferTask(task: LearningPlanTask): void {
+    appState.updatePlanTaskStatus(task.id, 'todo');
+    this.plan().adjustmentMessage = `已取消"${task.title}"的延后安排，任务恢复为待执行。`;
     this.refreshKey++;
   }
 
@@ -217,11 +222,16 @@ struct StudyPlan {
         Text(task.completionCriteria).fontSize(13).fontColor('#1F2937').lineHeight(19)
       }.width('100%').padding(12).backgroundColor('#F7F8FA').borderRadius(12)
       Row({ space: 10 }) {
-        if (task.status !== 'completed') {
+        if (task.status === 'todo' || task.status === 'partial' || task.status === 'in_progress' || task.status === 'deferred') {
           Button('开始任务').layoutWeight(1).height(42).fontSize(13).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
             .backgroundColor('#2563EB').borderRadius(12).onClick(() => this.startTask(task))
-          Button('延后').layoutWeight(1).height(42).fontSize(13).fontColor('#2563EB').backgroundColor('#FFFFFF')
-            .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => this.deferTask(task))
+          if (task.status !== 'deferred') {
+            Button('延后').layoutWeight(1).height(42).fontSize(13).fontColor('#2563EB').backgroundColor('#FFFFFF')
+              .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => this.deferTask(task))
+          } else {
+            Button('取消延后').layoutWeight(1).height(42).fontSize(13).fontColor('#2563EB').backgroundColor('#FFFFFF')
+              .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => this.cancelDeferTask(task))
+          }
         }
       }.width('100%')
       if (task.canCollaborate) {
@@ -327,7 +337,7 @@ struct StudyPlan {
           } else {
             ForEach(this.currentTasks(), (task: LearningPlanTask) => {
               this.TaskCard(task)
-            }, (task: LearningPlanTask) => task.id)
+            }, (task: LearningPlanTask) => `${task.id}-${task.status}-${this.refreshKey}`)
           }
 
           // ===== 底部导航按钮 =====

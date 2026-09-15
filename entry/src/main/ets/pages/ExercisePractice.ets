@@ -1,7 +1,8 @@
 import router from '@ohos.router';
 import { AIFloatButton } from '../components/AIFloatButton';
-import { Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmissionResult, PlanTaskChange, WorkflowStatusResponse } from '../api/ApiModels';
+import { Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmissionResult, WorkflowStatusResponse } from '../api/ApiModels';
 import { DemoSnapshot } from '../cache/DemoSnapshot';
+import { PlanDiffCard } from '../components/PlanDiffCard';
 import { ExerciseViewModel } from '../viewmodels/ExerciseViewModel';
 import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
@@ -21,13 +22,41 @@ struct ExercisePractice {
   @State workflowMessage: string = '';
   private viewModel: ExerciseViewModel = new ExerciseViewModel();
   private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
+  private pageScroller: Scroller = new Scroller();
   private submissionKey: string = '';
   private requestVersion: number = 0;
   private isPageActive: boolean = false;
+  private observedResetVersion: number = DemoSnapshot.getResetVersion();
 
   aboutToAppear(): void {
     this.isPageActive = true;
+    if (this.consumeDemoReset()) {
+      return;
+    }
     this.loadExercises();
+  }
+
+  onPageShow(): void {
+    this.isPageActive = true;
+    this.consumeDemoReset();
+  }
+
+  onPageHide(): void {
+    this.isPageActive = false;
+    this.requestVersion++;
+  }
+
+  private consumeDemoReset(): boolean {
+    const resetVersion: number = DemoSnapshot.getResetVersion();
+    if (resetVersion !== this.observedResetVersion) {
+      this.observedResetVersion = resetVersion;
+      this.result = null;
+      this.workflowStatus = null;
+      this.workflowMessage = '';
+      this.loadExercises(true);
+      return true;
+    }
+    return false;
   }
 
   aboutToDisappear(): void {
@@ -61,6 +90,7 @@ struct ExercisePractice {
     }
     this.submissionKey = `practice-${data.setId}-${Date.now()}`;
     this.isLoading = false;
+    this.scrollToTop();
   }
 
   private selectAnswer(questionIndex: number, option: string): void {
@@ -125,7 +155,14 @@ struct ExercisePractice {
     }
     this.warningMessage = this.viewModel.getWarningMessage();
     this.result = submissionResult;
+    this.scrollToTop();
     this.refreshWorkflowStatus();
+  }
+
+  private scrollToTop(): void {
+    setTimeout(() => {
+      this.pageScroller.scrollEdge(Edge.Top);
+    }, 100);
   }
 
   private async refreshWorkflowStatus(): Promise<void> {
@@ -206,14 +243,7 @@ struct ExercisePractice {
       }.width('100%').padding(13).backgroundColor('#FFFBEB').borderRadius(12)
 
       if (value.needReplan && value.planDiff !== undefined) {
-        Column({ space: 9 }) {
-          Text(`Plan V${value.planDiff.newVersion} 已自动生成`).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#111827')
-          Text(value.planDiff.adjustmentReason).fontSize(13).fontColor('#475467').lineHeight(19)
-          ForEach(value.planDiff.changedTasks, (change: PlanTaskChange) => {
-            Text(`${ApiDisplayFormatter.knowledgePoint(change.knowledgePointId ?? change.taskId)}：${change.change ?? '已调整'} · ${change.durationMinutes ?? 0} 分钟`)
-              .fontSize(13).fontColor('#1F2937').width('100%').padding(10).backgroundColor('#F8FAFC').borderRadius(9)
-          }, (change: PlanTaskChange) => change.taskId)
-        }.width('100%').padding(14).backgroundColor('#FFFFFF').border({ width: 1, color: '#BFDBFE' }).borderRadius(14)
+        PlanDiffCard({ value: value.planDiff })
       }
 
       Button('查看更新后的知识画像')
@@ -237,7 +267,7 @@ struct ExercisePractice {
           Text(this.practiceTitle()).fontSize(14).fontWeight(FontWeight.Bold).fontColor('#2563EB')
         }.width('100%').padding({ left: 16, right: 16, top: 14, bottom: 14 }).backgroundColor('#FFFFFF')
 
-        Scroll() {
+        Scroll(this.pageScroller) {
           Column({ space: 16 }) {
             if (this.isLoading) {
               LoadingProgress().width(36).height(36).margin({ top: 40 })

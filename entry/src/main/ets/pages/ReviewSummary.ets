@@ -1,6 +1,6 @@
 import router from '@ohos.router';
 import { appState } from '../data/AppState';
-import { LearningPlanTask } from '../models/AgentModels';
+import { LearningBadge, LearningPlanTask, LearningReview } from '../models/AgentModels';
 import { AIFloatButton } from '../components/AIFloatButton';
 
 @Entry
@@ -24,6 +24,7 @@ struct ReviewSummary {
 
   private focusMinutes(): number { return appState.getFocusSummary().todayMinutes; }
   private focusCompletionRate(): number { return appState.getFocusSummary().completionRate; }
+  private review(): LearningReview | null { return appState.latestReview; }
 
   build() {
     Stack() {
@@ -76,6 +77,26 @@ struct ReviewSummary {
               }.width('100%')
             }
           }.width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(18).border({ width: 1, color: '#EAECF0' })
+
+          if (this.review() !== null && this.review()!.badges.length > 0) {
+            Column({ space: 10 }) {
+              Text('本次收获').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#1F2937').width('100%')
+              ForEach(this.review()!.badges, (badge: LearningBadge) => {
+                Row({ space: 10 }) {
+                  Text(badge.icon).fontSize(24)
+                  Column({ space: 2 }) {
+                    Text(badge.name).fontSize(14).fontWeight(FontWeight.Bold).fontColor('#1F2937')
+                    Text(badge.description).fontSize(12).fontColor('#667085')
+                  }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+                }.width('100%').padding(12).backgroundColor('#EFF6FF').borderRadius(12)
+              }, (badge: LearningBadge) => badge.name)
+            }.width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(18).border({ width: 1, color: '#EAECF0' })
+          }
+
+          if (appState.latestPartner !== null) {
+            Text(`学习搭子：${appState.latestPartner!.matchName} · ${appState.latestPartner!.score}% 匹配`)
+              .fontSize(13).fontColor('#2563EB').width('100%').padding(13).backgroundColor('#EFF6FF').borderRadius(12)
+          }
 
           Column({ space: 8 }) {
             Text('Agent 的下一步').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#1F2937').width('100%')

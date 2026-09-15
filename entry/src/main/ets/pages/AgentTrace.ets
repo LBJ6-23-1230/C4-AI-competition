@@ -16,6 +16,7 @@ struct AgentTrace {
   @State message: string = '';
   @State events: TraceEvent[] = [];
   @State traceId: string = '';
+  @State expandedStateVersions: number[] = [];
   private viewModel: TraceViewModel = new TraceViewModel();
   private traceRequestVersion: number = 0;
   private resetRequestVersion: number = 0;
@@ -62,12 +63,39 @@ struct AgentTrace {
     }
     if (trace === null) {
       this.events = [];
+      this.expandedStateVersions = [];
       const detail: string = this.viewModel.getErrorMessage();
       this.message = detail.length > 0 ? `暂时无法读取 Agent 决策过程：${detail}` : '暂时无法读取 Agent 决策过程。';
     } else {
-      this.events = trace.events;
+      const orderedEvents: TraceEvent[] = trace.events.slice().sort((left: TraceEvent, right: TraceEvent) =>
+        left.stateVersion - right.stateVersion
+      );
+      this.events = orderedEvents;
+      if (orderedEvents.length > 0 && this.expandedStateVersions.length === 0) {
+        this.expandedStateVersions = [orderedEvents[orderedEvents.length - 1].stateVersion];
+      }
     }
     this.isLoading = false;
+  }
+
+  private isExpanded(stateVersion: number): boolean {
+    return this.expandedStateVersions.indexOf(stateVersion) !== -1;
+  }
+
+  private toggleExpanded(stateVersion: number): void {
+    if (this.isExpanded(stateVersion)) {
+      this.expandedStateVersions = this.expandedStateVersions.filter((value: number) => value !== stateVersion);
+      return;
+    }
+    this.expandedStateVersions = this.expandedStateVersions.concat([stateVersion]);
+  }
+
+  private statusTextColor(status: string): string {
+    return status === 'failed' ? '#B42318' : '#0F766E';
+  }
+
+  private statusBackgroundColor(status: string): string {
+    return status === 'failed' ? '#FEF3F2' : '#ECFDF5';
   }
 
   private async resetDemo(): Promise<void> {
@@ -100,12 +128,24 @@ struct AgentTrace {
         Text(`${index + 1}`).fontSize(12).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
           .width(24).height(24).textAlign(TextAlign.Center).backgroundColor('#2563EB').borderRadius(12)
         Text(ApiDisplayFormatter.agent(event.agent)).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#111827')
-        Text(ApiDisplayFormatter.workflowStatus(event.status)).fontSize(11).fontColor('#0F766E').backgroundColor('#ECFDF5').borderRadius(8).padding({ left: 7, right: 7, top: 3, bottom: 3 })
+        Text(ApiDisplayFormatter.workflowStatus(event.status)).fontSize(11).fontColor(this.statusTextColor(event.status))
+          .backgroundColor(this.statusBackgroundColor(event.status)).borderRadius(8)
+          .padding({ left: 7, right: 7, top: 3, bottom: 3 })
       }.width('100%')
       Text(`执行动作：${ApiDisplayFormatter.tools(event.toolCalls)}`).fontSize(13).fontColor('#2563EB')
-      Text(`输入：${event.inputSummary}`).fontSize(13).fontColor('#475467').lineHeight(19)
-      Text(`结论：${event.outputSummary}`).fontSize(13).fontColor('#475467').lineHeight(19)
-      Text(`状态版本 ${event.stateVersion} · ${ApiDisplayFormatter.timestamp(event.timestamp)}`).fontSize(11).fontColor('#98A2B3')
+      if (this.isExpanded(event.stateVersion)) {
+        Text(`输入：${event.inputSummary}`).fontSize(13).fontColor('#475467').lineHeight(19)
+        Text(`结论：${event.outputSummary}`).fontSize(13).fontColor('#475467').lineHeight(19)
+        if (event.evidenceIds.length > 0) {
+          Text(`关联证据：${event.evidenceIds.join('、')}`).fontSize(12).fontColor('#667085').lineHeight(18)
+        }
+      }
+      Row() {
+        Text(`状态版本 ${event.stateVersion} · ${ApiDisplayFormatter.timestamp(event.timestamp)}`).fontSize(11).fontColor('#98A2B3')
+        Blank()
+        Text(this.isExpanded(event.stateVersion) ? '收起详情 ↑' : '展开详情 ↓')
+          .fontSize(11).fontWeight(FontWeight.Medium).fontColor('#2563EB')
+      }.width('100%').onClick(() => this.toggleExpanded(event.stateVersion))
     }.width('100%').padding(15).backgroundColor('#FFFFFF').border({ width: 1, color: '#E2E8F0' }).borderRadius(14)
   }
 

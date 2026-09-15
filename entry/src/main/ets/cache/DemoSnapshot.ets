@@ -11,8 +11,14 @@ export class DemoSnapshot {
   static readonly EXERCISE_KNOWLEDGE_POINT_ID: string = 'binary-tree-postorder';
   static readonly EXERCISE_COUNT: number = 3;
   static readonly INITIAL_PLAN_ID: string = 'plan-demo-001';
+  private static resetVersion: number = 0;
+
+  static getResetVersion(): number {
+    return DemoSnapshot.resetVersion;
+  }
 
   static clearAfterReset(): void {
     ClientCache.clearDemoData();
+    DemoSnapshot.resetVersion++;
   }
 }

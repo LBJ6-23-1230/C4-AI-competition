@@ -1,5 +1,6 @@
 import { describe, it, expect } from '@ohos/hypium';
 import { AgentBridge } from '../main/ets/services/AgentBridge';
+import { AgentApiClient, ApiClientConfig } from '../main/ets/api/AgentApiClient';
 import { ChatNavigation } from '../main/ets/services/ChatNavigation';
 import { ChatMessage } from '../main/ets/models/ChatModels';
 import { appState } from '../main/ets/data/AppState';
@@ -7,10 +8,10 @@ import { appState } from '../main/ets/data/AppState';
 export default function agentBridgeTest() {
   describe('agentBridgeTest', () => {
     it('matches study intents from natural Chinese wording', 0, () => {
-      expect(AgentBridge.matchIntent('今天先学什么比较合适')).assertEqual('suggestion');
-      expect(AgentBridge.matchIntent('帮我看看错题薄弱点')).assertEqual('weakness');
-      expect(AgentBridge.matchIntent('给我匹配学习搭子')).assertEqual('partner');
-      expect(AgentBridge.matchIntent('随便聊两句')).assertEqual('free_chat');
+      expect(AgentBridge.matchIntentLocal('今天先学什么比较合适')).assertEqual('get_suggestion');
+      expect(AgentBridge.matchIntentLocal('帮我看看错题薄弱点')).assertEqual('analyze_wrong');
+      expect(AgentBridge.matchIntentLocal('给我匹配学习搭子')).assertEqual('match_partner');
+      expect(AgentBridge.matchIntentLocal('随便聊两句')).assertEqual('get_suggestion');
     });
 
     it('builds the future backend request shape with trimmed history', 0, () => {
@@ -25,23 +26,25 @@ export default function agentBridgeTest() {
         });
       }
 
-      const request = AgentBridge.buildRequest('看看我的复习计划', 'image://wrong-question', history, 'u-1');
-      expect(request.intent).assertEqual('plan');
-      expect(request.user_message).assertEqual('看看我的复习计划');
-      expect(request.user_id).assertEqual('u-1');
+      const request = AgentBridge.buildRequest('看看我的复习计划', 'image://wrong-question', history);
+      expect(request.message).assertEqual('看看我的复习计划');
       expect(request.image).assertEqual('image://wrong-question');
       expect(request.history.length).assertEqual(20);
       expect(request.history[0].text).assertEqual('message-4');
     });
 
     it('returns cards that map to the three A-side entry points', 0, async () => {
-      const suggestion = await AgentBridge.callAgent('今天学习建议', undefined, [], 'u-1');
-      const weakness = await AgentBridge.callAgent('分析错题薄弱点', 'image://wrong-question', [], 'u-1');
-      const partner = await AgentBridge.callAgent('匹配搭子', undefined, [], 'u-1');
+      const original: ApiClientConfig = AgentApiClient.getConfig();
+      AgentApiClient.configure({ baseUrl: original.baseUrl, useFixture: true, timeoutMs: original.timeoutMs });
+      const suggestion = await AgentBridge.callAgent('今天学习建议', undefined, []);
+      const weakness = await AgentBridge.callAgent('分析错题薄弱点', 'image://wrong-question', []);
+      const partner = await AgentBridge.callAgent('匹配搭子', undefined, []);
+      AgentApiClient.configure(original);
 
-      expect(suggestion.card?.type).assertEqual('suggestion');
-      expect(suggestion.card?.targetPage).assertEqual('pages/StudySuggestion');
-      expect(weakness.card?.type).assertEqual('weakness');
+      expect(suggestion.card?.type).assertEqual('tasks');
+      expect(suggestion.card?.targetPage).assertEqual('pages/StudyPlan');
+      expect(suggestion.reply.indexOf('LLM') === -1).assertTrue();
+      expect(weakness.card?.type).assertEqual('wrong');
       expect(weakness.card?.targetPage).assertEqual('pages/WrongQuestion');
       expect(partner.card?.type).assertEqual('partner');
       expect(partner.card?.targetPage).assertEqual('pages/PartnerMatch');
@@ -56,6 +59,49 @@ export default function agentBridgeTest() {
       expect(handoff?.actionLabel).assertEqual('复习计划');
       expect(handoff?.targetPage).assertEqual('pages/StudyPlan');
       expect(appState.consumeChatHandoff()).assertNull();
+    });
+
+    it('keeps backend cards inside registered application routes', 0, () => {
+      const card = AgentBridge.parseCard({
+        'type': 'weakness',
+        'title': '知识画像',
+        'summary': '查看薄弱点',
+        'targetPage': 'pages/NotRegistered'
+      });
+      expect(card.type).assertEqual('weakness');
+      expect(card.targetPage).assertEqual('pages/StudyTags');
+      expect(card.actions?.[0].targetPage).assertEqual('pages/StudyTags');
+
+      const unknownTypeCard = AgentBridge.parseCard({
+        'type': 'unknown',
+        'title': '未知卡片',
+        'summary': '',
+        'targetPage': 'https://example.invalid'
+      });
+      expect(unknownTypeCard.type).assertEqual('suggestion');
+      expect(unknownTypeCard.targetPage).assertEqual('pages/StudySuggestion');
+    });
+
+    it('rejects malformed backend response fields before rendering', 0, () => {
+      let invalidReplyRejected: boolean = false;
+      let invalidCardRejected: boolean = false;
+      try {
+        AgentBridge.parseResponse({ 'reply': 200, 'intent': 'get_suggestion' });
+      } catch (error) {
+        invalidReplyRejected = true;
+      }
+      try {
+        AgentBridge.parseResponse({
+          'reply': '已生成建议',
+          'intent': 'get_suggestion',
+          'card': ['not-a-card']
+        });
+      } catch (error) {
+        invalidCardRejected = true;
+      }
+
+      expect(invalidReplyRejected).assertTrue();
+      expect(invalidCardRejected).assertTrue();
     });
 
     it('uses the chat home as the fixed return destination', 0, () => {

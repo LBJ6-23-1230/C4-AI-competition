@@ -15,19 +15,35 @@ import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
 @Component
 struct Index {
   @State refreshKey: number = 0;
+  @State isWorkflowRefreshing: boolean = false;
   private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
+  private workflowRequestVersion: number = 0;
+  private isPageActive: boolean = false;
 
   aboutToAppear(): void {
+    this.isPageActive = true;
     this.ensurePlan();
     this.refreshKey++;
     this.refreshWorkflowStatus();
   }
 
+  aboutToDisappear(): void {
+    this.isPageActive = false;
+    this.workflowRequestVersion++;
+    this.isWorkflowRefreshing = false;
+  }
+
   private async refreshWorkflowStatus(): Promise<void> {
-    if (ClientCache.getWorkflow() === null) {
+    if (ClientCache.getWorkflow() === null || this.isWorkflowRefreshing) {
       return;
     }
+    this.isWorkflowRefreshing = true;
+    const requestVersion: number = ++this.workflowRequestVersion;
     await this.workflowViewModel.refreshStatus(true);
+    if (!this.isPageActive || requestVersion !== this.workflowRequestVersion) {
+      return;
+    }
+    this.isWorkflowRefreshing = false;
     this.refreshKey++;
   }
 
@@ -57,7 +73,6 @@ struct Index {
   }
 
   private startTask(task: LearningPlanTask): void {
-    appState.updatePlanTaskStatus(task.id, 'in_progress');
     appState.setFocusTask({
       course: task.course,
       task: task.title,

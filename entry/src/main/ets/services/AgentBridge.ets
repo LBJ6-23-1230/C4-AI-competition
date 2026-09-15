@@ -2,6 +2,7 @@ import { AgentHistoryItem, AgentRequest, AgentResponse, ChatAction, ChatCard, Ch
 import { http } from '@kit.NetworkKit';
 import { appState } from '../data/AppState';
 import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
+import { API_CONTRACT_VERSION } from '../api/ApiModels';
 
 interface IntentRule {
   intent: ChatIntent;
@@ -85,36 +86,54 @@ export class AgentBridge {
 
       const httpRequest: http.HttpRequestOptions = {
         method: http.RequestMethod.POST,
-        header: { 'Content-Type': 'application/json' },
+        header: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-API-Contract-Version': API_CONTRACT_VERSION
+        },
         extraData: requestBody,
+        expectDataType: http.HttpDataType.STRING,
         connectTimeout: apiConfig.timeoutMs,
-        readTimeout: 60000
+        readTimeout: apiConfig.timeoutMs
       };
       const httpResponse: http.HttpResponse =
         await httpRequestInstance.request(apiConfig.baseUrl + '/api/agent/chat', httpRequest);
 
-      if (httpResponse.responseCode === 200) {
-        const resultStr: string = httpResponse.result as string;
-        const data: Record<string, Object> = JSON.parse(resultStr) as Record<string, Object>;
-        return AgentBridge.parseResponse(data);
+      if (httpResponse.responseCode >= 200 && httpResponse.responseCode < 300) {
+        const resultStr: string = (httpResponse.result as string).trim();
+        if (resultStr.length === 0) {
+          throw new Error('服务未返回可解析的数据。');
+        }
+        try {
+          const data: Record<string, Object> = JSON.parse(resultStr) as Record<string, Object>;
+          return AgentBridge.parseResponse(data);
+        } catch (parseError) {
+          throw new Error('服务返回的数据格式不正确，请检查聊天接口响应。');
+        }
       }
-      console.warn('[AgentBridge] Backend unavailable, using local demo');
-      return AgentBridge.createDemoResponse(message, image);
+      const serverFailure = AgentApiClient.parseServerError(httpResponse.result as string, httpResponse.responseCode);
+      throw new Error(`服务请求失败：${serverFailure.error.message}`);
     } catch (err) {
-      console.warn('[AgentBridge] Network error, using local demo');
-      return AgentBridge.createDemoResponse(message, image);
+      const detail: string = err instanceof Error ? err.message : '';
+      if (detail.startsWith('服务')) {
+        throw new Error(detail);
+      }
+      throw new Error('连接超时或网络不可用，请检查服务地址后重试。');
     } finally {
       httpRequestInstance.destroy();
     }
   }
 
   static parseResponse(data: Record<string, Object>): AgentResponse {
-    const reply: string = (data['reply'] as string) || 'received, thinking...';
-    const intent: string = (data['intent'] as string) || 'free_chat';
+    const reply: string = AgentBridge.requiredString(data, 'reply');
+    const intent: string = AgentBridge.requiredString(data, 'intent');
     const cardObj: Object | undefined = data['card'] as Object | undefined;
 
     let card: ChatCard | undefined = undefined;
     if (cardObj !== undefined && cardObj !== null) {
+      if (typeof cardObj !== 'object' || Array.isArray(cardObj)) {
+        throw new Error('card must be an object.');
+      }
       card = AgentBridge.parseCard(cardObj as Record<string, Object>);
     }
 
@@ -122,10 +141,12 @@ export class AgentBridge {
   }
 
   static parseCard(cardObj: Record<string, Object>): ChatCard {
-    const cardType: string = (cardObj['type'] as string) || 'suggestion';
-    const title: string = (cardObj['title'] as string) || '';
-    const summary: string = (cardObj['summary'] as string) || '';
-    const targetPage: string = (cardObj['targetPage'] as string) || '';
+    const rawCardType: string = AgentBridge.requiredString(cardObj, 'type');
+    const cardType: ChatCardType = AgentBridge.normalizeCardType(rawCardType);
+    const title: string = AgentBridge.stringField(cardObj, 'title');
+    const summary: string = AgentBridge.stringField(cardObj, 'summary');
+    const rawTargetPage: string = AgentBridge.requiredString(cardObj, 'targetPage');
+    const targetPage: string = AgentBridge.safeTargetPage(cardType, rawTargetPage);
     const dataMap: Map<string, string> = new Map<string, string>();
 
     // 给卡片加默认操作按钮
@@ -133,7 +154,50 @@ export class AgentBridge {
     const action: ChatAction = { label: actionLabel, targetPage: targetPage };
     const actions: ChatAction[] = [action];
 
-    return { type: cardType as ChatCardType, title: title, summary: summary, targetPage: targetPage, data: dataMap, actions: actions };
+    return { type: cardType, title: title, summary: summary, targetPage: targetPage, data: dataMap, actions: actions };
+  }
+
+  private static requiredString(data: Record<string, Object>, key: string): string {
+    const value: Object | undefined = data[key] as Object | undefined;
+    if (typeof value !== 'string' || (value as string).trim().length === 0) {
+      throw new Error(`${key} must be a non-empty string.`);
+    }
+    return value as string;
+  }
+
+  private static stringField(data: Record<string, Object>, key: string): string {
+    const value: Object | undefined = data[key] as Object | undefined;
+    if (value === undefined || value === null) {
+      return '';
+    }
+    if (typeof value !== 'string') {
+      throw new Error(`${key} must be a string.`);
+    }
+    return value as string;
+  }
+
+  private static normalizeCardType(cardType: string): ChatCardType {
+    if (cardType === 'weakness' || cardType === 'partner' || cardType === 'tasks' ||
+      cardType === 'wrong' || cardType === 'suggestion') {
+      return cardType as ChatCardType;
+    }
+    return 'suggestion';
+  }
+
+  private static safeTargetPage(cardType: ChatCardType, targetPage: string): string {
+    const safePages: string[] = [
+      'pages/Index', 'pages/StudySuggestion', 'pages/WrongQuestion', 'pages/StudyTags',
+      'pages/ExercisePractice', 'pages/AgentTrace', 'pages/PartnerMatch', 'pages/StudyPlan',
+      'pages/ReviewSummary', 'pages/FocusSetup'
+    ];
+    if (safePages.indexOf(targetPage) >= 0) {
+      return targetPage;
+    }
+    if (cardType === 'weakness') return 'pages/StudyTags';
+    if (cardType === 'partner') return 'pages/PartnerMatch';
+    if (cardType === 'wrong') return 'pages/WrongQuestion';
+    if (cardType === 'tasks') return 'pages/StudyPlan';
+    return 'pages/StudySuggestion';
   }
 
   static getActionLabel(cardType: string): string {
@@ -156,15 +220,15 @@ export class AgentBridge {
     }
 
     const replyMap: Map<ChatIntent, string> = new Map<ChatIntent, string>();
-    replyMap.set('query_tasks', '我先帮你列出当前的任务。LLM正在连接中，稍后会有更智能的分析。');
-    replyMap.set('analyze_weakness', '你的薄弱点分析在知识画像页面有展示。LLM接入后我会动态分析错题规律。');
-    replyMap.set('get_suggestion', '我根据你的课程紧迫度给你推荐学习任务。LLM就绪后推荐会更个性化。');
-    replyMap.set('match_partner', '搭子匹配功能已就绪！你可以去搭子页面查看匹配结果。');
-    replyMap.set('analyze_wrong', '请描述一下这道题：题目内容、你的答案、正确答案。我帮你分析。');
-    replyMap.set('update_profile', '好的，我帮你更新信息。');
-    replyMap.set('free_chat', '你可以直接问我要建议、查薄弱点、匹配搭子，或者上传错题让我分析～');
+    replyMap.set('query_tasks', '我已根据当前演示数据整理好近期任务，你可以打开学习计划查看优先级。');
+    replyMap.set('analyze_weakness', '我已读取当前演示画像，你可以查看薄弱知识点、掌握度和学习证据。');
+    replyMap.set('get_suggestion', '我已根据课程紧迫度和薄弱点生成今日建议，先从最高优先级任务开始。');
+    replyMap.set('match_partner', '我已按课程、目标和空闲时间完成搭子匹配，你可以查看匹配结果。');
+    replyMap.set('analyze_wrong', '请上传或选择一道错题，我会展示知识点、错误原因和补强建议。');
+    replyMap.set('update_profile', '当前处于固定离线演示，画像更新请通过诊断练习完成。');
+    replyMap.set('free_chat', '你可以问我今日建议、薄弱点和学习计划，也可以上传错题或匹配学习搭子。');
 
-    const defaultReply: string = 'Ask me about study suggestions, weak points, partner matching, or upload wrong questions!';
+    const defaultReply: string = '你可以问我今日建议、薄弱点、学习计划或搭子匹配。';
     const foundReply: string | undefined = replyMap.get(intent);
 
     return {
@@ -174,7 +238,7 @@ export class AgentBridge {
     };
   }
 
-  /** Local fallback uses the same navigation cards as the real Agent response. */
+  /** Fixture mode uses the same navigation card structure as the real Agent response. */
   static createLocalCardForIntent(intent: ChatIntent): ChatCard | undefined {
     if (intent === 'analyze_weakness') {
       return AgentBridge.createLocalCard('weakness', '知识画像', '查看当前薄弱知识点、掌握度和学习证据。', 'pages/StudyTags');

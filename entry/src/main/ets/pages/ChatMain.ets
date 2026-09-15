@@ -3,6 +3,10 @@ import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { appState } from '../data/AppState';
 import { ChatAction, ChatCard, ChatHandoff, ChatMessage, IntentChip } from '../models/ChatModels';
 import { AgentBridge } from '../services/AgentBridge';
+import { ClientCache } from '../cache/ClientCache';
+import { WorkflowResponse, WorkflowStatusResponse } from '../api/ApiModels';
+import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
+import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
 
 const INTENT_CHIPS: IntentChip[] = [
   { intent: 'get_suggestion', label: '今日建议', prompt: '今天我应该先学什么？' },
@@ -29,8 +33,18 @@ struct ChatMain {
   @State pendingImage: string = '';
   @State selectedIntent: string = 'get_suggestion';
   @State isSending: boolean = false;
+  @State workflowTitle: string = '';
+  @State workflowDetail: string = '';
+  @State workflowStateVersion: number = 0;
+  @State isWorkflowLoading: boolean = false;
+  @State workflowMessage: string = '';
+  private messageScroller: Scroller = new Scroller();
+  private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
+  private workflowRequestVersion: number = 0;
+  private isPageActive: boolean = false;
 
   aboutToAppear(): void {
+    this.isPageActive = true;
     // 恢复之前的对话，没有才显示欢迎消息
     if (appState.hasActiveChat && appState.chatMessages.length > 0) {
       try {
@@ -48,6 +62,20 @@ struct ChatMain {
       appState.pendingChatPrompt = '';
     }
     this.appendTaskHandoff();
+    this.scrollToLatestMessage();
+    this.refreshWorkflowStatus();
+  }
+
+  aboutToDisappear(): void {
+    this.isPageActive = false;
+    this.workflowRequestVersion++;
+    this.isWorkflowLoading = false;
+  }
+
+  private scrollToLatestMessage(): void {
+    setTimeout(() => {
+      this.messageScroller.scrollEdge(Edge.Bottom);
+    }, 100);
   }
 
   private saveMessages(): void {
@@ -58,6 +86,9 @@ struct ChatMain {
   build() {
     Column() {
       this.Header()
+      if (this.workflowTitle.length > 0 || this.workflowMessage.length > 0) {
+        this.WorkflowStatusBar()
+      }
       this.IntentBar()
       this.MessageList()
       this.InputBar()
@@ -65,6 +96,71 @@ struct ChatMain {
     .width('100%')
     .height('100%')
     .backgroundColor('#F3F6FA')
+  }
+
+  private syncWorkflowSummary(status: WorkflowStatusResponse | null): void {
+    const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
+    if (workflow === null) {
+      this.workflowTitle = '';
+      this.workflowDetail = '';
+      this.workflowStateVersion = 0;
+      return;
+    }
+    if (status !== null) {
+      this.workflowTitle = `${ApiDisplayFormatter.agent(status.currentAgent)} · ${ApiDisplayFormatter.workflowStatus(status.status)}`;
+      this.workflowDetail = status.finalAction !== null ? status.finalAction : `正在推进：${workflow.nextAction}`;
+      this.workflowStateVersion = status.stateVersion;
+      return;
+    }
+    this.workflowTitle = `Agent 会话 · ${ApiDisplayFormatter.workflowStatus(workflow.status)}`;
+    this.workflowDetail = `下一步：${workflow.nextAction}`;
+    this.workflowStateVersion = 0;
+  }
+
+  private async refreshWorkflowStatus(): Promise<void> {
+    const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
+    this.syncWorkflowSummary(ClientCache.getWorkflowStatus());
+    if (workflow === null || this.isWorkflowLoading) {
+      return;
+    }
+    this.isWorkflowLoading = true;
+    this.workflowMessage = '';
+    const requestVersion: number = ++this.workflowRequestVersion;
+    const status: WorkflowStatusResponse | null = await this.workflowViewModel.refreshStatus(true);
+    if (!this.isPageActive || requestVersion !== this.workflowRequestVersion) {
+      return;
+    }
+    this.isWorkflowLoading = false;
+    if (status === null) {
+      this.workflowMessage = this.workflowViewModel.getErrorMessage();
+      return;
+    }
+    this.syncWorkflowSummary(status);
+  }
+
+  @Builder
+  private WorkflowStatusBar() {
+    Row({ space: 10 }) {
+      Column() {
+        Text(this.isWorkflowLoading ? '···' : 'AI').fontSize(11).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+      }.width(28).height(28).borderRadius(14).justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center).backgroundColor(this.workflowMessage.length > 0 ? '#B45309' : '#2563EB')
+      Column({ space: 2 }) {
+        Text(this.workflowTitle.length > 0 ? this.workflowTitle : 'Agent 状态暂时无法同步')
+          .fontSize(12).fontWeight(FontWeight.Bold).fontColor('#1F2937')
+        Text(this.workflowMessage.length > 0 ? this.workflowMessage : this.workflowDetail)
+          .fontSize(11).fontColor('#667085').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+      }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+      if (this.workflowMessage.length > 0) {
+        Text('重试').fontSize(12).fontWeight(FontWeight.Bold).fontColor('#B45309')
+          .onClick(() => this.refreshWorkflowStatus())
+      } else {
+        Text(this.workflowStateVersion > 0 ? `v${this.workflowStateVersion} ›` : '查看 ›')
+          .fontSize(12).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+          .onClick(() => router.pushUrl({ url: 'pages/AgentTrace' }))
+      }
+    }.width('100%').padding({ left: 16, right: 16, top: 9, bottom: 9 })
+      .backgroundColor(this.workflowMessage.length > 0 ? '#FFFBEB' : '#EFF6FF')
   }
 
   @Builder
@@ -135,7 +231,7 @@ struct ChatMain {
 
   @Builder
   private MessageList() {
-    List({ space: 2 }) {
+    List({ space: 2, scroller: this.messageScroller }) {
       ForEach(this.messages, (item: ChatMessage) => {
         ListItem() {
           this.MessageBubble(item)
@@ -327,6 +423,7 @@ struct ChatMain {
     };
     this.messages = this.messages.concat([message]);
     this.saveMessages();
+    this.scrollToLatestMessage();
   }
 
   @Builder
@@ -471,6 +568,7 @@ struct ChatMain {
     this.inputText = '';
     this.pendingImage = '';
     this.isSending = true;
+    this.scrollToLatestMessage();
 
     try {
       const response = await AgentBridge.callAgent(text, image, this.messages);
@@ -485,17 +583,21 @@ struct ChatMain {
       };
       this.messages = [...this.messages, agentMessage];
       this.saveMessages();
+      this.scrollToLatestMessage();
     } catch (error) {
       this.messages = this.messages.filter((item: ChatMessage) => item.id !== loadingMessage.id);
       const errorMessage: ChatMessage = {
         id: `agent-error-${Date.now()}`,
         role: 'agent',
-        text: '这次没有连上 Agent，我先把消息留在这里，稍后可以重试。',
+        text: error instanceof Error ? error.message : '这次没有连上 Agent，请检查数据源后重试。',
         time: this.formatTime(),
         status: 'error'
       };
       this.messages = [...this.messages, errorMessage];
+      this.inputText = text;
+      this.pendingImage = image ?? '';
       this.saveMessages();
+      this.scrollToLatestMessage();
     }
     this.isSending = false;
   }

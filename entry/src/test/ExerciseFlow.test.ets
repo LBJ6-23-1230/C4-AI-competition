@@ -2,6 +2,7 @@ import { describe, it, expect } from '@ohos/hypium';
 import { AgentApiClient, ApiClientConfig } from '../main/ets/api/AgentApiClient';
 import { ExerciseSetResponse, WorkflowResponse } from '../main/ets/api/ApiModels';
 import { ClientCache } from '../main/ets/cache/ClientCache';
+import { FixtureDemoStateStore } from '../main/ets/api/FixtureDemoStateStore';
 
 export default function exerciseFlowTest() {
   describe('exerciseFlowTest', () => {
@@ -64,6 +65,39 @@ export default function exerciseFlowTest() {
       ClientCache.invalidateWorkflow();
       expect(ClientCache.getWorkflow()).assertNull();
       expect(ClientCache.getWorkflowStatus()).assertNull();
+    });
+
+    it('keeps the fixture profile plan and workflow status on one demo state', 0, async () => {
+      const original: ApiClientConfig = AgentApiClient.getConfig();
+      AgentApiClient.configure({ baseUrl: original.baseUrl, useFixture: true, timeoutMs: original.timeoutMs });
+      FixtureDemoStateStore.reset();
+
+      const initialProfile = await AgentApiClient.getProfile('demo-user');
+      expect(initialProfile.ok).assertTrue();
+      if (initialProfile.ok) {
+        expect(initialProfile.data.profileVersion).assertEqual(1);
+        expect(initialProfile.data.mastery[0].masteryScore).assertEqual(42);
+      }
+
+      await AgentApiClient.submitExercise('set-demo-binary-tree-001', {
+        idempotencyKey: 'fixture-state-test',
+        answers: []
+      });
+      const updatedProfile = await AgentApiClient.getProfile('demo-user');
+      const updatedPlan = await AgentApiClient.getCurrentPlan();
+      const updatedWorkflow = await AgentApiClient.getWorkflow('session-demo-001');
+      expect(updatedProfile.ok).assertTrue();
+      expect(updatedPlan.ok).assertTrue();
+      expect(updatedWorkflow.ok).assertTrue();
+      if (updatedProfile.ok && updatedPlan.ok && updatedWorkflow.ok) {
+        expect(updatedProfile.data.profileVersion).assertEqual(2);
+        expect(updatedProfile.data.mastery[0].masteryScore).assertEqual(58);
+        expect(updatedPlan.data.version).assertEqual(2);
+        expect(updatedWorkflow.data.stateVersion).assertEqual(5);
+      }
+
+      FixtureDemoStateStore.reset();
+      AgentApiClient.configure(original);
     });
   });
 }

@@ -3,6 +3,10 @@ import learningFlowDataTest from './LearningFlowData.test';
 import agentBridgeTest from './AgentBridge.test';
 import exerciseFlowTest from './ExerciseFlow.test';
 import apiDisplayFormatterTest from './ApiDisplayFormatter.test';
+import wrongQuestionPlanTest from './WrongQuestionPlan.test';
+import focusLogicTest from './FocusLogic.test';
+import partnerFlowTest from './PartnerFlow.test';
+import apiResponseValidatorTest from './ApiResponseValidator.test';
 
 export default function testsuite() {
   localUnitTest();
@@ -10,4 +14,8 @@ export default function testsuite() {
   agentBridgeTest();
   exerciseFlowTest();
   apiDisplayFormatterTest();
+  wrongQuestionPlanTest();
+  focusLogicTest();
+  partnerFlowTest();
+  apiResponseValidatorTest();
 }

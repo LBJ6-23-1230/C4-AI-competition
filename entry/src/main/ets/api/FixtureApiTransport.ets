@@ -1,10 +1,9 @@
 import { DemoResetResponse, Evidence, ExerciseSetResponse, ExerciseSubmissionResult, KnowledgeMastery, LearningPlan, PlanDiff, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiResult, apiFailure, apiSuccess } from './ApiResult';
+import { FixtureDemoStateStore } from './FixtureDemoStateStore';
 
 /** Success payloads mirror contracts/fixtures/*.json api-contract-v0.2. */
 export class FixtureApiTransport {
-  private static exerciseSubmitted: boolean = false;
-
   static async request<T>(method: string, path: string, body?: Object): Promise<ApiResult<T>> {
     if (method === 'POST' && path === '/api/v1/workflows') return apiSuccess<WorkflowResponse>(FixtureApiTransport.workflow(body as WorkflowCreateRequest), 'fixture') as ApiResult<T>;
     if (method === 'GET' && path.indexOf('/api/v1/workflows/') === 0) return apiSuccess<WorkflowStatusResponse>(FixtureApiTransport.workflowStatus(), 'fixture') as ApiResult<T>;
@@ -12,13 +11,13 @@ export class FixtureApiTransport {
     if (method === 'GET' && path === '/api/v1/plans/current') return apiSuccess<LearningPlan>(FixtureApiTransport.plan(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && path.indexOf('/api/v1/exercises/') === 0 && !path.endsWith('/submit')) return apiSuccess<ExerciseSetResponse>(FixtureApiTransport.exerciseSet(), 'fixture') as ApiResult<T>;
     if (method === 'POST' && path.indexOf('/api/v1/exercises/') === 0 && path.endsWith('/submit')) {
-      FixtureApiTransport.exerciseSubmitted = true;
+      FixtureDemoStateStore.markExerciseSubmitted();
       return apiSuccess<ExerciseSubmissionResult>(FixtureApiTransport.assessment(), 'fixture') as ApiResult<T>;
     }
     if (method === 'GET' && path.indexOf('/api/v1/plans/') === 0 && path.endsWith('/diff')) return apiSuccess<PlanDiff>(FixtureApiTransport.planDiff(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && path.indexOf('/api/v1/traces/') === 0) return apiSuccess<TraceResponse>(FixtureApiTransport.trace(), 'fixture') as ApiResult<T>;
     if (method === 'POST' && path === '/api/v1/demo/reset') {
-      FixtureApiTransport.exerciseSubmitted = false;
+      FixtureDemoStateStore.reset();
       return apiSuccess<DemoResetResponse>(FixtureApiTransport.reset(), 'fixture') as ApiResult<T>;
     }
     return apiFailure('FIXTURE_ROUTE_NOT_FOUND', `未找到 fixture 路由：${method} ${path}`, false, 'fixture') as ApiResult<T>;
@@ -29,13 +28,14 @@ export class FixtureApiTransport {
   }
 
   private static profile(): ProfileResponse {
-    const masteryScore: number = FixtureApiTransport.exerciseSubmitted ? 58 : 42;
+    const exerciseSubmitted: boolean = FixtureDemoStateStore.isExerciseSubmitted();
+    const masteryScore: number = exerciseSubmitted ? 58 : 42;
     const mastery: KnowledgeMastery[] = [{ knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', masteryScore: masteryScore, confidence: 0.7, lastUpdated: '2026-09-02T09:00:00Z' }];
-    return { profileVersion: FixtureApiTransport.exerciseSubmitted ? 2 : 1, profile: { userId: 'demo-user', goal: '数据结构考试80+', examDate: '2026-09-30', freeTimeSlots: ['20:00-22:00'], profileVersion: FixtureApiTransport.exerciseSubmitted ? 2 : 1, mastery: mastery }, mastery: mastery, history: FixtureApiTransport.exerciseSubmitted ? [{ oldScore: 42, newScore: 58, evidenceIds: ['evidence-demo-001'], source: 'assessment', timestamp: '2026-09-02T09:30:00Z' }] : [], evidence: FixtureApiTransport.exerciseSubmitted ? [FixtureApiTransport.evidence()] : [] };
+    return { profileVersion: exerciseSubmitted ? 2 : 1, profile: { userId: 'demo-user', goal: '数据结构考试80+', examDate: '2026-09-30', freeTimeSlots: ['20:00-22:00'], profileVersion: exerciseSubmitted ? 2 : 1, mastery: mastery }, mastery: mastery, history: exerciseSubmitted ? [{ oldScore: 42, newScore: 58, evidenceIds: ['evidence-demo-001'], source: 'assessment', timestamp: '2026-09-02T09:30:00Z' }] : [], evidence: exerciseSubmitted ? [FixtureApiTransport.evidence()] : [] };
   }
 
   private static plan(): LearningPlan {
-    const replanned: boolean = FixtureApiTransport.exerciseSubmitted;
+    const replanned: boolean = FixtureDemoStateStore.isExerciseSubmitted();
     return { planId: 'plan-demo-001', version: replanned ? 2 : 1, generatedFromProfileVersion: replanned ? 2 : 1, reason: replanned ? '掌握度仍低于巩固阈值，已自动重规划。' : '巩固二叉树后序遍历', tasks: [{ taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', durationMinutes: replanned ? 45 : 30, status: 'pending', priority: 'high' }] };
   }
 
@@ -44,7 +44,8 @@ export class FixtureApiTransport {
   }
 
   private static workflowStatus(): WorkflowStatusResponse {
-    return { status: FixtureApiTransport.exerciseSubmitted ? 'completed' : 'running', currentAgent: FixtureApiTransport.exerciseSubmitted ? 'planner' : 'diagnosis', stateVersion: FixtureApiTransport.exerciseSubmitted ? 5 : 2, finalAction: FixtureApiTransport.exerciseSubmitted ? '查看 Plan V2' : null };
+    const exerciseSubmitted: boolean = FixtureDemoStateStore.isExerciseSubmitted();
+    return { status: exerciseSubmitted ? 'completed' : 'running', currentAgent: exerciseSubmitted ? 'planner' : 'diagnosis', stateVersion: exerciseSubmitted ? 5 : 2, finalAction: exerciseSubmitted ? '查看 Plan V2' : null };
   }
 
   private static exerciseSet(): ExerciseSetResponse {
@@ -64,7 +65,7 @@ export class FixtureApiTransport {
   }
 
   private static trace(): TraceResponse {
-    if (!FixtureApiTransport.exerciseSubmitted) {
+    if (!FixtureDemoStateStore.isExerciseSubmitted()) {
       return { traceId: 'trace-demo-001', events: [
         { agent: 'secretary', toolCalls: ['get_learner_profile'], inputSummary: '读取 demo-user 学习状态', outputSummary: '发现 mastery=42，需要进入专项诊断', evidenceIds: [], stateVersion: 1, timestamp: '2026-09-02T09:00:00Z', status: 'success' },
         { agent: 'diagnosis', toolCalls: ['select_knowledge_point'], inputSummary: '结合目标与当前掌握度筛选薄弱点', outputSummary: '选择二叉树后序遍历作为本轮练习主题', evidenceIds: [], stateVersion: 2, timestamp: '2026-09-02T09:01:00Z', status: 'success' }
@@ -80,7 +81,6 @@ export class FixtureApiTransport {
   }
 
   private static reset(): DemoResetResponse {
-    FixtureApiTransport.exerciseSubmitted = false;
     const profile: ProfileResponse = FixtureApiTransport.profile();
     return { status: 'reset', userId: 'demo-user', profile: profile.profile ?? null, plan: FixtureApiTransport.plan(), traceId: 'trace-demo-001' };
   }

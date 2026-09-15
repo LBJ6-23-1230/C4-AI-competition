@@ -24,6 +24,17 @@ export interface DemoPage {
   cards: DemoCard[];
 }
 
+export interface PageRoutes {
+  hub: string;
+  courseImport: string;
+  studySuggestion: string;
+  wrongQuestion: string;
+  studyTags: string;
+  partnerMatch: string;
+  studyPlan: string;
+  reviewSummary: string;
+}
+
 /** 存档：原始8步演示流程数据，保留用于参考 */
 export const learningFlowPages: DemoPage[] = [
   {
@@ -110,7 +121,7 @@ export const learningFlowPages: DemoPage[] = [
  * Page route map — 所有可用页面
  * 用于底部导航栏和Hub卡片跳转
  */
-export const PAGE_ROUTES: Record<string, string> = {
+export const PAGE_ROUTES: PageRoutes = {
   hub: 'pages/Index',
   courseImport: 'pages/CourseImport',
   studySuggestion: 'pages/StudySuggestion',

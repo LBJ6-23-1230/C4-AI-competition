@@ -133,7 +133,10 @@ export class LocalAgentService {
   }
 
   static adjustPlanAfterFocus(plan: WeeklyLearningPlan, session: FocusSession): WeeklyLearningPlan {
-    const task: LearningPlanTask | undefined = plan.tasks.find((item: LearningPlanTask) => item.id === appState.activeFocusTask?.planTaskId || item.title === session.task);
+    const task: LearningPlanTask | undefined = plan.tasks.find((item: LearningPlanTask) =>
+      (session.planTaskId !== undefined && item.id === session.planTaskId) ||
+      (session.planTaskId === undefined && item.title === session.task)
+    );
     const feedback: AgentFeedback = LocalAgentService.createFocusFeedback(session);
     if (task !== undefined) {
       if (session.completionRate >= 90 && session.selfAssessment === 'completed') {
@@ -186,10 +189,31 @@ export class LocalAgentService {
     );
   }
 
+  static createCollaborativeTask(partner: PartnerMatch, user: UserProfile): LearningPlanTask {
+    const weekDays: WeekDay[] = DateHelper.getWeekDays();
+    const dateLabel: string = weekDays.length > 0 ? weekDays[0].fullLabel : '今天';
+    const knowledgePoint: string = user.knowledge.weakness[0] ?? '当前薄弱点';
+    const duration: number = partner.duration > 0 ? Math.min(90, partner.duration) : 30;
+    return LocalAgentService.createPlanTask(
+      `partner-${partner.userId}-${knowledgePoint}`,
+      user.learningGoal.course,
+      `与${partner.matchName}协同复习`,
+      knowledgePoint,
+      'review',
+      dateLabel,
+      duration,
+      88,
+      `与${partner.matchName}在${partner.studyTime ?? '双方约定时间'}互讲互测，利用知识结构互补完成巩固。`,
+      '完成互讲概念、互测练习和错题复盘三个阶段。',
+      ['互讲核心概念', '互测两道练习', '共同复盘错题'],
+      'partner_match'
+    );
+  }
+
   private static createPlanTask(
     id: string, course: string, title: string, knowledgePoint: string, type: 'learn' | 'practice' | 'review' | 'test' | 'assignment',
     dateLabel: string, plannedMinutes: number, priorityScore: number, reason: string, completionCriteria: string,
-    steps: string[], source: 'agent' | 'ddl' | 'wrong_question' | 'focus_feedback'
+    steps: string[], source: 'agent' | 'ddl' | 'wrong_question' | 'focus_feedback' | 'partner_match'
   ): LearningPlanTask {
     return {
       id: id, course: course, title: title, knowledgePoint: knowledgePoint, type: type, dateLabel: dateLabel,
@@ -840,14 +864,23 @@ export class LocalAgentService {
     const completedTasks: string[] = [];
     const knowledgeReviewed: string[] = [];
     const badges: LearningBadge[] = [];
+    const completedPlanTasks: LearningPlanTask[] = appState.weeklyPlan?.tasks.filter(
+      (task: LearningPlanTask) => task.status === 'completed'
+    ) ?? [];
 
-    if (suggestion !== null) {
-      completedTasks.push(suggestion.task);
-      knowledgeReviewed.push(suggestion.task);
+    for (let taskIndex: number = 0; taskIndex < completedPlanTasks.length; taskIndex++) {
+      const completedTask: LearningPlanTask = completedPlanTasks[taskIndex];
+      completedTasks.push(completedTask.title);
+      if (knowledgeReviewed.indexOf(completedTask.knowledgePoint) === -1) {
+        knowledgeReviewed.push(completedTask.knowledgePoint);
+      }
+    }
+
+    if (completedPlanTasks.length > 0) {
       badges.push({
         name: '计划大师',
         icon: '📋',
-        description: '按计划完成所有学习任务'
+        description: '完成计划中的学习任务'
       });
     }
 
@@ -871,8 +904,10 @@ export class LocalAgentService {
       });
     }
 
-    if (partner !== null) {
-      completedTasks.push(`与 ${partner.matchName} 完成协同学习`);
+    const completedCollaboration: boolean = completedPlanTasks.some(
+      (task: LearningPlanTask) => task.source === 'partner_match'
+    );
+    if (partner !== null && completedCollaboration) {
       badges.push({
         name: '最佳搭档',
         icon: '🤝',
@@ -880,12 +915,14 @@ export class LocalAgentService {
       });
     }
 
-    const totalMinutes: number = suggestion !== null ? Number(suggestion.duration.replace(/[^0-9]/g, '')) || 30 : 0;
-    badges.push({
-      name: '专注达人',
-      icon: '🎯',
-      description: '连续学习超过 25 分钟'
-    });
+    const totalMinutes: number = appState.getFocusSummary().todayMinutes;
+    if (totalMinutes >= 25) {
+      badges.push({
+        name: '专注达人',
+        icon: '🎯',
+        description: '累计专注超过 25 分钟'
+      });
+    }
 
     // 添加数据导入徽章
     if (appState.isDataImported) {
