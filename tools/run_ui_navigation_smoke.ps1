@@ -65,6 +65,20 @@ function Click-Text([string]$Text) {
     Start-Sleep -Milliseconds 700
 }
 
+function Scroll-UntilVisibleText([string]$Text, [int]$MaxSwipes = 5) {
+    for ($attempt = 0; $attempt -le $MaxSwipes; $attempt++) {
+        $layout = Get-Layout
+        if ($null -ne (Find-TextNode $layout $Text)) {
+            return
+        }
+        if ($attempt -lt $MaxSwipes) {
+            & $HdcPath shell uitest uiInput swipe 1105 1900 1105 600 800 | Out-Null
+            Start-Sleep -Milliseconds 500
+        }
+    }
+    throw "Expected visible text did not become available: $Text"
+}
+
 function Back-ToIndex {
     & $HdcPath shell uitest uiInput keyEvent Back | Out-Null
     Start-Sleep -Milliseconds 700
@@ -81,6 +95,16 @@ $null = Assert-Page 'pages/Index'
 
 Click-Text '查看全部计划 →'
 $null = Assert-Page 'pages/StudyPlan'
+Back-ToIndex
+
+Scroll-UntilVisibleText '开始诊断练习'
+Click-Text '开始诊断练习'
+$null = Assert-Page 'pages/ExercisePractice'
+Back-ToIndex
+
+Scroll-UntilVisibleText '查看 Agent 决策过程'
+Click-Text '查看 Agent 决策过程'
+$null = Assert-Page 'pages/AgentTrace'
 Back-ToIndex
 
 Click-Text '课程与作业'
@@ -102,4 +126,4 @@ Back-ToIndex
 Click-Text '返回对话'
 $null = Assert-Page 'pages/ChatMain'
 
-Write-Output 'UI navigation smoke passed: ChatMain -> Index -> StudyPlan/CourseImport/WrongQuestion/LearningHistory/ApiEnvironment -> ChatMain.'
+Write-Output 'UI navigation smoke passed: ChatMain -> Index -> StudyPlan/ExercisePractice/AgentTrace/CourseImport/WrongQuestion/LearningHistory/ApiEnvironment -> ChatMain.'

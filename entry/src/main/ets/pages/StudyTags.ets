@@ -23,6 +23,7 @@ struct StudyTags {
   @State mastery: KnowledgeMastery[] = [];
   @State history: MasteryHistory[] = [];
   @State evidence: Evidence[] = [];
+  @State expandedHistoryTimestamp: string = '';
   @State chartDims: string[] = [];
   @State chartCurrent: number[] = [];
   @State chartTarget: number[] = [];
@@ -113,6 +114,18 @@ struct StudyTags {
 
   private evidenceValue(evidence: Evidence): string {
     return JSON.stringify(evidence.value);
+  }
+
+  private isHistoryExpanded(item: MasteryHistory): boolean {
+    return this.expandedHistoryTimestamp === item.timestamp;
+  }
+
+  private toggleHistoryEvidence(item: MasteryHistory): void {
+    this.expandedHistoryTimestamp = this.isHistoryExpanded(item) ? '' : item.timestamp;
+  }
+
+  private evidenceForHistory(item: MasteryHistory): Evidence[] {
+    return this.evidence.filter((evidence: Evidence) => item.evidenceIds.indexOf(evidence.id) !== -1);
   }
 
   build() {
@@ -225,9 +238,24 @@ struct StudyTags {
                 Column({ space: 10 }) {
                   Text('掌握度变化').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
                   ForEach(this.history, (item: MasteryHistory) => {
-                    Text(`${item.oldScore} → ${item.newScore} · 来源：${ApiDisplayFormatter.evidenceSource(item.source)}`)
-                      .fontSize(14).fontColor('#1F2937').width('100%').padding(12)
-                      .backgroundColor('#EFF6FF').borderRadius(10)
+                    Column({ space: 8 }) {
+                      Row() {
+                        Text(`${item.oldScore} → ${item.newScore} · 来源：${ApiDisplayFormatter.evidenceSource(item.source)}`)
+                          .fontSize(14).fontColor('#1F2937').layoutWeight(1)
+                        Text(this.isHistoryExpanded(item) ? '收起 ↑' : '查看证据 ↓')
+                          .fontSize(12).fontWeight(FontWeight.Medium).fontColor('#2563EB')
+                      }.width('100%').onClick(() => this.toggleHistoryEvidence(item))
+                      if (this.isHistoryExpanded(item)) {
+                        if (this.evidenceForHistory(item).length === 0) {
+                          Text('该次变化暂未返回可展示的证据详情。').fontSize(12).fontColor('#667085')
+                        } else {
+                          ForEach(this.evidenceForHistory(item), (evidence: Evidence) => {
+                            Text(`${ApiDisplayFormatter.evidenceSource(evidence.sourceType)} · ${ApiDisplayFormatter.metric(evidence.metric)} · ${this.evidenceValue(evidence)}`)
+                              .fontSize(12).fontColor('#475467').lineHeight(18).width('100%')
+                          }, (evidence: Evidence) => evidence.id)
+                        }
+                      }
+                    }.width('100%').padding(12).backgroundColor('#EFF6FF').borderRadius(10)
                   }, (item: MasteryHistory) => item.timestamp)
                 }
                 .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)

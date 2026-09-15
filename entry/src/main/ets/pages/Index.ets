@@ -24,7 +24,7 @@ struct Index {
     this.isPageActive = true;
     this.ensurePlan();
     this.refreshKey++;
-    this.refreshWorkflowStatus();
+    this.bootstrapWorkflow();
   }
 
   aboutToDisappear(): void {
@@ -33,13 +33,22 @@ struct Index {
     this.isWorkflowRefreshing = false;
   }
 
-  private async refreshWorkflowStatus(): Promise<void> {
-    if (ClientCache.getWorkflow() === null || this.isWorkflowRefreshing) {
+  private async bootstrapWorkflow(): Promise<void> {
+    if (this.isWorkflowRefreshing) {
       return;
     }
     this.isWorkflowRefreshing = true;
     const requestVersion: number = ++this.workflowRequestVersion;
-    await this.workflowViewModel.refreshStatus(true);
+    let workflow: WorkflowResponse | null = ClientCache.getWorkflow();
+    if (workflow === null) {
+      workflow = await this.workflowViewModel.start(
+        appState.currentUser.learningGoal.goal,
+        appState.currentUser.userId
+      );
+    }
+    if (workflow !== null) {
+      await this.workflowViewModel.refreshStatus(true);
+    }
     if (!this.isPageActive || requestVersion !== this.workflowRequestVersion) {
       return;
     }
@@ -99,6 +108,14 @@ struct Index {
 
   private openApiEnvironment(): void {
     router.pushUrl({ url: 'pages/ApiEnvironment' });
+  }
+
+  private openExercisePractice(): void {
+    router.pushUrl({ url: 'pages/ExercisePractice' });
+  }
+
+  private openAgentTrace(): void {
+    router.pushUrl({ url: 'pages/AgentTrace' });
   }
 
   private apiEnvironmentLabel(): string {
@@ -260,6 +277,13 @@ struct Index {
               .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => router.pushUrl({ url: 'pages/CourseImport' }))
             Button('错题复习').layoutWeight(1).height(44).fontSize(13).fontColor('#2563EB').backgroundColor('#FFFFFF')
               .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => router.pushUrl({ url: 'pages/WrongQuestion' }))
+          }.width('100%').margin({ bottom: 24 })
+
+          Row({ space: 10 }) {
+            Button('开始诊断练习').layoutWeight(1).height(46).fontSize(13).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+              .backgroundColor('#2563EB').borderRadius(12).onClick(() => this.openExercisePractice())
+            Button('查看 Agent 决策过程').layoutWeight(1).height(46).fontSize(13).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+              .backgroundColor('#FFFFFF').border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => this.openAgentTrace())
           }.width('100%').margin({ bottom: 24 })
         }.width('100%').padding(20)
       }.layoutWeight(1)
