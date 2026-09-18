@@ -1,5 +1,5 @@
 import { AgentApiClient } from '../api/AgentApiClient';
-import { ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff } from '../api/ApiModels';
+import { ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, WorkflowResponse, WorkflowRunResponse, WorkflowStatusResponse } from '../api/ApiModels';
 import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
 
@@ -42,7 +42,14 @@ export class ExerciseViewModel {
   async submit(setId: string, submission: ExerciseSubmission): Promise<ExerciseSubmissionResult | null> {
     this.errorMessage = '';
     this.warningMessage = '';
-    const result = await AgentApiClient.submitExercise(setId, submission);
+    const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
+    const request: ExerciseSubmission = {
+      userId: submission.userId ?? 'demo-user',
+      sessionId: submission.sessionId ?? workflow?.sessionId,
+      idempotencyKey: submission.idempotencyKey,
+      answers: submission.answers
+    };
+    const result = await AgentApiClient.submitExercise(setId, request);
     if (result.ok) {
       const submissionResult: ExerciseSubmissionResult = result.data;
       let plan: LearningPlan | undefined = submissionResult.plan;
@@ -74,6 +81,22 @@ export class ExerciseViewModel {
       }
       ClientCache.invalidateProfile();
       ClientCache.invalidateTrace();
+      if (workflow !== null && submissionResult.submissionId !== undefined) {
+        const workflowResult = await AgentApiClient.runWorkflow(workflow.sessionId,
+          { submissionId: submissionResult.submissionId });
+        if (workflowResult.ok) {
+          const run: WorkflowRunResponse = workflowResult.data;
+          const status: WorkflowStatusResponse = {
+            status: run.status,
+            currentAgent: run.currentAgent,
+            stateVersion: run.stateVersion,
+            finalAction: run.finalAction
+          };
+          ClientCache.cacheWorkflowStatus(status);
+        } else if (this.warningMessage.length === 0) {
+          this.warningMessage = '诊断结果已保存，但 Agent 工作流状态暂时未能同步。';
+        }
+      }
       return submissionResult;
     }
     this.errorMessage = (result as ApiFailure).error.message;

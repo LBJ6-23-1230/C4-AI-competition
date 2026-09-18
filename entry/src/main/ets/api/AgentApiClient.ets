@@ -1,5 +1,5 @@
 import { http } from '@kit.NetworkKit';
-import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
+import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiFailure, ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { FixtureApiTransport } from './FixtureApiTransport';
 import { ApiResponseValidator } from './ApiResponseValidator';
@@ -33,9 +33,9 @@ export class AgentApiClient {
     return AgentApiClient.request<WorkflowStatusResponse>(http.RequestMethod.GET, `/api/v1/workflows/${encodeURIComponent(sessionId)}`);
   }
 
-  static async runWorkflow(sessionId: string): Promise<ApiResult<WorkflowRunResponse>> {
+  static async runWorkflow(sessionId: string, request?: WorkflowRunRequest): Promise<ApiResult<WorkflowRunResponse>> {
     return AgentApiClient.request<WorkflowRunResponse>(http.RequestMethod.POST,
-      `/api/v1/workflows/${encodeURIComponent(sessionId)}/run`);
+      `/api/v1/workflows/${encodeURIComponent(sessionId)}/run`, request);
   }
 
   static async getProfile(userId: string): Promise<ApiResult<ProfileResponse>> {
@@ -85,6 +85,10 @@ export class AgentApiClient {
 
   static async resetDemo(): Promise<ApiResult<DemoResetResponse>> {
     return AgentApiClient.request<DemoResetResponse>(http.RequestMethod.POST, '/api/v1/demo/reset');
+  }
+
+  static async getProactiveDecision(request: ProactiveRequest): Promise<ApiResult<ProactiveResponse>> {
+    return AgentApiClient.request<ProactiveResponse>(http.RequestMethod.POST, '/api/v1/agent/proactive', request);
   }
 
   private static async request<T>(method: http.RequestMethod, path: string, body?: Object): Promise<ApiResult<T>> {

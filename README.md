@@ -269,7 +269,7 @@ LLM_MODEL=qwen-vl-plus             # 支持 qwen-plus / qwen-vl-plus / deepseek-
 | `GET` | `/api/v1/profile/{userId}` | 获取版本化学习画像与证据 |
 | `GET` | `/api/v1/plans/current` | 获取当前权威学习计划 |
 | `GET/POST` | `/api/v1/exercises/{setId}...` | 获取练习并提交评估 |
-| `GET` | `/api/v1/plans/{planId}/diff` | 获取重规划差异 |
+| `GET` | `/api/v1/plans/{id}/diff` | 获取重规划差异 |
 | `GET` | `/api/v1/traces/{traceId}` | 获取 Agent 决策轨迹 |
 | `POST` | `/api/v1/demo/reset` | 将契约演示状态重置为 Profile/Plan V1 |
 

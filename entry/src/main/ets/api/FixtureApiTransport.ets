@@ -1,4 +1,4 @@
-import { DecisionFactor, DemoResetResponse, Evidence, ExerciseSetResponse, ExerciseSubmissionResult, KnowledgeMastery, LearningPlan, PlanDiff, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
+import { DecisionFactor, DemoResetResponse, Evidence, ExerciseSetResponse, ExerciseSubmissionResult, KnowledgeMastery, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { FixtureDemoStateStore } from './FixtureDemoStateStore';
 
@@ -6,7 +6,7 @@ import { FixtureDemoStateStore } from './FixtureDemoStateStore';
 export class FixtureApiTransport {
   static async request<T>(method: string, path: string, body?: Object): Promise<ApiResult<T>> {
     if (method === 'POST' && path === '/api/v1/workflows') return apiSuccess<WorkflowResponse>(FixtureApiTransport.workflow(body as WorkflowCreateRequest), 'fixture') as ApiResult<T>;
-    if (method === 'POST' && path.indexOf('/api/v1/workflows/') === 0 && path.endsWith('/run')) return apiSuccess<WorkflowRunResponse>(FixtureApiTransport.workflowRun(), 'fixture') as ApiResult<T>;
+    if (method === 'POST' && path.indexOf('/api/v1/workflows/') === 0 && path.endsWith('/run')) return apiSuccess<WorkflowRunResponse>(FixtureApiTransport.workflowRun(body as WorkflowRunRequest), 'fixture') as ApiResult<T>;
     if (method === 'GET' && path.indexOf('/api/v1/workflows/') === 0) return apiSuccess<WorkflowStatusResponse>(FixtureApiTransport.workflowStatus(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && path.indexOf('/api/v1/profile/') === 0) return apiSuccess<ProfileResponse>(FixtureApiTransport.profile(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && path === '/api/v1/plans/current') return apiSuccess<LearningPlan>(FixtureApiTransport.plan(), 'fixture') as ApiResult<T>;
@@ -20,6 +20,9 @@ export class FixtureApiTransport {
     if (method === 'POST' && path === '/api/v1/demo/reset') {
       FixtureDemoStateStore.reset();
       return apiSuccess<DemoResetResponse>(FixtureApiTransport.reset(), 'fixture') as ApiResult<T>;
+    }
+    if (method === 'POST' && path === '/api/v1/agent/proactive') {
+      return apiSuccess<ProactiveResponse>(FixtureApiTransport.proactive(body as ProactiveRequest), 'fixture') as ApiResult<T>;
     }
     return apiFailure('FIXTURE_ROUTE_NOT_FOUND', `未找到 fixture 路由：${method} ${path}`, false, 'fixture') as ApiResult<T>;
   }
@@ -50,6 +53,26 @@ export class FixtureApiTransport {
     ];
   }
 
+  private static proactive(request?: ProactiveRequest): ProactiveResponse {
+    const context = request?.context;
+    const shouldNotify: boolean = context?.focusSessionActive !== true && context?.foreground !== true;
+    return {
+      userId: request?.userId ?? 'demo-user',
+      shouldNotify: shouldNotify,
+      channel: shouldNotify ? 'reminder' : 'silent',
+      title: shouldNotify ? '数据结构考试还有 5 天' : '',
+      body: shouldNotify ? '后序遍历掌握度偏低，建议现在用 45 分钟补强。' : '当前无需打扰。',
+      action: shouldNotify
+        ? { type: 'focus', targetPage: 'pages/FocusSetup', preset: { taskId: 'task-postorder', durationMinutes: 45 } }
+        : { type: 'none', targetPage: '', preset: {} },
+      contextTags: shouldNotify ? ['exam_within_7d', 'recent_gap_2d'] : [],
+      reason: shouldNotify ? '考试临近、掌握度偏低且近期复习不足。' : '用户正在应用内或专注中，不主动打扰。',
+      factors: shouldNotify ? FixtureApiTransport.factors() : [],
+      cardData: { taskName: '二叉树后序遍历', durationMinutes: 45, examCountdownDays: 5,
+        hint: shouldNotify ? '近期复习不足 · 2 项作业临近' : '' }
+    };
+  }
+
   private static workflow(request?: WorkflowCreateRequest): WorkflowResponse {
     return { sessionId: request?.sessionId ?? 'session-demo-001', traceId: 'trace-demo-001', status: 'running', currentStep: 'diagnosis', nextAction: 'diagnose' };
   }
@@ -59,11 +82,16 @@ export class FixtureApiTransport {
     return { status: exerciseSubmitted ? 'completed' : 'running', currentAgent: exerciseSubmitted ? 'planner' : 'diagnosis', stateVersion: exerciseSubmitted ? 5 : 2, finalAction: exerciseSubmitted ? '查看 Plan V2' : null };
   }
 
-  private static workflowRun(): WorkflowRunResponse {
+  private static workflowRun(request?: WorkflowRunRequest): WorkflowRunResponse {
     const status: WorkflowStatusResponse = FixtureApiTransport.workflowStatus();
+    const state: Record<string, Object> = {};
+    if (request?.submissionId !== undefined) {
+      state['submissionId'] = request.submissionId;
+    }
     return { sessionId: 'session-demo-001', traceId: 'trace-demo-001', status: status.status,
       currentStep: status.currentAgent ?? 'finish', currentAgent: status.currentAgent ?? 'finish',
-      stateVersion: status.stateVersion, finalAction: status.finalAction, state: {} };
+      stateVersion: status.stateVersion, finalAction: status.finalAction,
+      state: state };
   }
 
   private static exerciseSet(): ExerciseSetResponse {
@@ -75,7 +103,7 @@ export class FixtureApiTransport {
   }
 
   private static assessment(): ExerciseSubmissionResult {
-    return { assessment: { score: 67, perKnowledgeAccuracy: { 'binary-tree-postorder': 67 }, errorTypes: ['后序遍历顺序混淆'], oldMastery: 42, suggestedNewMastery: 58 }, masteryUpdate: { knowledgePointId: 'binary-tree-postorder', oldScore: 42, newScore: 58 }, needReplan: true, plan: FixtureApiTransport.plan(), planDiff: FixtureApiTransport.planDiff() };
+    return { userId: 'demo-user', submissionId: 'demo-user:set-demo-binary-tree-001:fixture-submission', assessment: { score: 67, perKnowledgeAccuracy: { 'binary-tree-postorder': 67 }, errorTypes: ['后序遍历顺序混淆'], oldMastery: 42, suggestedNewMastery: 58 }, masteryUpdate: { knowledgePointId: 'binary-tree-postorder', oldScore: 42, newScore: 58 }, needReplan: true, plan: FixtureApiTransport.plan(), planDiff: FixtureApiTransport.planDiff() };
   }
 
   private static planDiff(): PlanDiff {

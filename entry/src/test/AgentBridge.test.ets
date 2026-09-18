@@ -82,6 +82,35 @@ export default function agentBridgeTest() {
       expect(unknownTypeCard.targetPage).assertEqual('pages/StudySuggestion');
     });
 
+    it('normalizes v0.3 backend intent cards to frontend routes', 0, () => {
+      const wrongCard = AgentBridge.parseCard({
+        'type': 'analyze_wrong',
+        'title': '错题分析',
+        'actionLabel': '查看错题并开始分析',
+        'targetPage': 'pages/WrongQuestions'
+      });
+      const partnerCard = AgentBridge.parseCard({
+        'type': 'match_partner',
+        'title': '学习搭子',
+        'actionLabel': '查找合适的学习伙伴',
+        'targetPage': 'pages/Partner'
+      });
+      const tasksCard = AgentBridge.parseCard({
+        'type': 'query_tasks',
+        'title': '今日任务',
+        'actionLabel': '查看待完成的学习任务',
+        'targetPage': 'pages/Tasks'
+      });
+
+      expect(wrongCard.type).assertEqual('wrong');
+      expect(wrongCard.targetPage).assertEqual('pages/WrongQuestion');
+      expect(wrongCard.actions?.[0].label).assertEqual('查看错题并开始分析');
+      expect(partnerCard.type).assertEqual('partner');
+      expect(partnerCard.targetPage).assertEqual('pages/PartnerMatch');
+      expect(tasksCard.type).assertEqual('tasks');
+      expect(tasksCard.targetPage).assertEqual('pages/StudyPlan');
+    });
+
     it('rejects malformed backend response fields before rendering', 0, () => {
       let invalidReplyRejected: boolean = false;
       let invalidCardRejected: boolean = false;

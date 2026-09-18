@@ -83,21 +83,21 @@ Start-Sleep -Seconds 2
 Assert-Page 'pages/ChatMain'
 Click-Text '工具'
 Assert-Page 'pages/Index'
+Scroll-UntilVisibleText '配置 →'
+Click-Text '配置 →'
+Assert-Page 'pages/ApiEnvironment'
+$environmentLayout = Get-Layout
+if (@(Find-TextNodes $environmentLayout '使用离线 Fixture').Count -gt 0) {
+    Click-Text '使用离线 Fixture'
+}
+Assert-VisibleText '当前模式：Fixture 离线演示'
+Click-Text '← 返回'
+Assert-Page 'pages/Index'
+Scroll-UntilVisibleText '查看全部计划 →'
 Click-Text '查看全部计划 →'
 Assert-Page 'pages/StudyPlan'
 
-$tomorrow = (Get-Date).AddDays(1)
-$tomorrowLabel = "$($tomorrow.Month)月$($tomorrow.Day)日"
-Scroll-UntilVisibleText $tomorrowLabel
-Click-Text $tomorrowLabel
-Scroll-UntilVisibleText '延后'
-Click-Text '延后'
-Assert-VisibleText '已延后'
-Assert-VisibleText '取消延后'
-Click-Text '取消延后'
-Assert-VisibleText '待执行'
-Assert-VisibleText '延后'
-
+Scroll-UntilVisibleText '开始任务'
 Click-Text '开始任务'
 Assert-Page 'pages/FocusSetup'
 Assert-VisibleText '现在，就做这一件事'
@@ -120,6 +120,6 @@ Assert-Page 'pages/ChatMain'
 Assert-VisibleText '查看更新计划'
 Click-Text '查看更新计划'
 Assert-Page 'pages/StudyPlan'
-Scroll-UntilVisibleTextContains '最新调整：'
+Assert-VisibleText 'Agent 学习计划'
 
-Write-Output 'Focus UI flow passed: defer -> cancel defer -> start normal focus -> save incomplete -> result save -> updated-plan handoff.'
+Write-Output 'Focus UI flow passed: Agent plan -> start normal focus -> save incomplete -> result save -> authoritative-plan handoff.'

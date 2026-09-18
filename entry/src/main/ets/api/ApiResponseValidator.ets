@@ -62,6 +62,17 @@ export class ApiResponseValidator {
         ApiResponseValidator.isNullableRecord(data, 'profile') &&
         ApiResponseValidator.isNullableRecord(data, 'plan');
     }
+    if (method === 'POST' && path === '/api/v1/agent/proactive') {
+      return ApiResponseValidator.hasBoolean(data, 'shouldNotify') &&
+        ApiResponseValidator.hasString(data, 'channel') &&
+        ApiResponseValidator.isString(data, 'title') &&
+        ApiResponseValidator.isString(data, 'body') &&
+        ApiResponseValidator.isRecordField(data, 'action') &&
+        ApiResponseValidator.hasArray(data, 'contextTags') &&
+        ApiResponseValidator.hasString(data, 'reason') &&
+        ApiResponseValidator.hasArray(data, 'factors') &&
+        ApiResponseValidator.isRecordField(data, 'cardData');
+    }
     return false;
   }
 
@@ -75,6 +86,10 @@ export class ApiResponseValidator {
   private static hasString(data: Record<string, Object>, key: string): boolean {
     const value: Object | undefined = data[key] as Object | undefined;
     return typeof value === 'string' && (value as string).trim().length > 0;
+  }
+
+  private static isString(data: Record<string, Object>, key: string): boolean {
+    return typeof data[key] === 'string';
   }
 
   private static hasNumber(data: Record<string, Object>, key: string): boolean {

@@ -150,7 +150,8 @@ export class AgentBridge {
     const dataMap: Map<string, string> = new Map<string, string>();
 
     // 给卡片加默认操作按钮
-    const actionLabel: string = AgentBridge.getActionLabel(cardType);
+    const backendActionLabel: string = AgentBridge.stringField(cardObj, 'actionLabel');
+    const actionLabel: string = backendActionLabel.length > 0 ? backendActionLabel : AgentBridge.getActionLabel(cardType);
     const action: ChatAction = { label: actionLabel, targetPage: targetPage };
     const actions: ChatAction[] = [action];
 
@@ -177,6 +178,11 @@ export class AgentBridge {
   }
 
   private static normalizeCardType(cardType: string): ChatCardType {
+    if (cardType === 'analyze_weakness') return 'weakness';
+    if (cardType === 'match_partner') return 'partner';
+    if (cardType === 'query_tasks') return 'tasks';
+    if (cardType === 'analyze_wrong') return 'wrong';
+    if (cardType === 'get_suggestion' || cardType === 'update_profile') return 'suggestion';
     if (cardType === 'weakness' || cardType === 'partner' || cardType === 'tasks' ||
       cardType === 'wrong' || cardType === 'suggestion') {
       return cardType as ChatCardType;

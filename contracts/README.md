@@ -1,13 +1,15 @@
 # API 契约说明
 
-`openapi.json` 是前端、后端和离线 Fixture 的共同字段基线，当前版本为 `api-contract-v0.2`。后端实现和前端请求都应携带 `X-API-Contract-Version: api-contract-v0.2`。
+`openapi.json` 是前端、后端和离线 Fixture 的共同字段基线，当前版本为 `api-contract-v0.3`。前端请求统一携带 `X-API-Contract-Version: api-contract-v0.3`，并以 GitHub `backend` 分支中的同名契约为唯一真源。
 
 ## 文件映射
 
 | 接口 | 请求阶段 | Fixture 文件 |
 | --- | --- | --- |
 | `POST /api/agent/chat` | 对话卡片 | `fixtures/chat-response.json` |
+| `POST /api/v1/agent/proactive` | 主动提醒与情境建议 | 前端 Fixture 内置确定性响应 |
 | `POST /api/v1/workflows` | 创建诊断工作流 | `fixtures/workflow-created.json` |
+| `POST /api/v1/workflows/{sessionId}/run` | 推进 Agent 工作流 | 前端 Fixture 内置确定性响应 |
 | `GET /api/v1/workflows/{sessionId}` | 诊断中 / 完成 | `fixtures/workflow-running.json`、`workflow-completed.json` |
 | `GET /api/v1/profile/{userId}` | 诊断前 / 诊断后 | `fixtures/profile-v1.json`、`profile-v2.json` |
 | `GET /api/v1/plans/current` | 重规划前 / 重规划后 | `fixtures/plan-v1.json`、`plan-v2.json` |
@@ -16,6 +18,7 @@
 | `GET /api/v1/plans/{planId}/diff` | V1/V2 差异 | `fixtures/plan-diff.json` |
 | `GET /api/v1/traces/{traceId}` | 诊断前 / 完成后 | `fixtures/trace-before.json`、`trace-after.json` |
 | `POST /api/v1/demo/reset` | 重置固定演示 | `fixtures/demo-reset.json` |
+| `GET /api/v1/experiments/snapshot` | 导出匿名实验数据 | 仅真实后端 |
 
 ## 修改规则
 

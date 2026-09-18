@@ -81,11 +81,64 @@ export interface WorkflowRunResponse {
   state?: Record<string, Object>;
 }
 
+export interface WorkflowRunRequest {
+  submissionId?: string;
+  answers?: ExerciseAnswer[];
+}
+
 export interface DecisionFactor {
   name: string;
   value: number;
   weight: number;
   contribution: number;
+}
+
+export interface ProactiveContext {
+  now: string;
+  location?: string;
+  foreground: boolean;
+  lastStudyAt?: string;
+  focusSessionActive: boolean;
+  masteryScore?: number;
+  errorIntensity?: number;
+  daysLeft?: number;
+  importance?: number;
+}
+
+export interface ProactiveRequest {
+  userId: string;
+  context: ProactiveContext;
+}
+
+export interface ProactiveActionPreset {
+  taskId?: string;
+  durationMinutes?: number;
+}
+
+export interface ProactiveAction {
+  type: string;
+  targetPage: string;
+  preset: ProactiveActionPreset;
+}
+
+export interface ProactiveCardData {
+  taskName?: string;
+  durationMinutes?: number;
+  examCountdownDays?: number;
+  hint?: string;
+}
+
+export interface ProactiveResponse {
+  userId?: string;
+  shouldNotify: boolean;
+  channel: 'reminder' | 'silent';
+  title: string;
+  body: string;
+  action: ProactiveAction;
+  contextTags: string[];
+  reason: string;
+  factors: DecisionFactor[];
+  cardData: ProactiveCardData;
 }
 
 export interface PlanTask {
@@ -134,6 +187,8 @@ export interface ExerciseAnswer {
 }
 
 export interface ExerciseSubmission {
+  userId?: string;
+  sessionId?: string;
   idempotencyKey: string;
   answers: ExerciseAnswer[];
 }
@@ -169,6 +224,8 @@ export interface PlanDiff {
 }
 
 export interface ExerciseSubmissionResult {
+  userId?: string;
+  submissionId?: string;
   assessment: AssessmentResult;
   masteryUpdate: MasteryUpdate | null;
   needReplan: boolean;

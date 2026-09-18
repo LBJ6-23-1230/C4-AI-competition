@@ -21,17 +21,20 @@ function Assert-Equal($Actual, $Expected, [string]$Message) {
 
 $contract = Read-JsonFile $contractPath
 Assert-Equal $contract.openapi '3.0.3' 'Unexpected OpenAPI version.'
-Assert-Equal $contract.info.version 'api-contract-v0.2' 'Unexpected API contract version.'
+Assert-Equal $contract.info.version 'api-contract-v0.3' 'Unexpected API contract version.'
 
 $requiredPaths = @(
     '/api/agent/chat',
+    '/api/v1/experiments/snapshot',
+    '/api/v1/agent/proactive',
     '/api/v1/workflows',
-    '/api/v1/workflows/{sessionId}',
+    '/api/v1/workflows/{id}',
+    '/api/v1/workflows/{id}/run',
     '/api/v1/profile/{userId}',
     '/api/v1/plans/current',
     '/api/v1/exercises/{setId}',
     '/api/v1/exercises/{setId}/submit',
-    '/api/v1/plans/{planId}/diff',
+    '/api/v1/plans/{id}/diff',
     '/api/v1/traces/{traceId}',
     '/api/v1/demo/reset'
 )
@@ -41,31 +44,43 @@ foreach ($path in $requiredPaths) {
     }
 }
 
-$v1RoutesPath = Join-Path $ProjectRoot 'backend\v1_routes.py'
-if (-not (Test-Path -LiteralPath $v1RoutesPath -PathType Leaf)) {
-    throw "Missing stateful contract-demo backend: $v1RoutesPath"
+$apiClientPath = Join-Path $ProjectRoot 'entry\src\main\ets\api\AgentApiClient.ets'
+if (-not (Test-Path -LiteralPath $apiClientPath -PathType Leaf)) {
+    throw "Missing frontend API client: $apiClientPath"
 }
-$v1RoutesSource = Get-Content -LiteralPath $v1RoutesPath -Raw -Encoding UTF8
-$requiredRouteMarkers = @(
+$apiClientSource = Get-Content -LiteralPath $apiClientPath -Raw -Encoding UTF8
+$requiredClientMarkers = @(
+    '/api/v1/agent/proactive',
     '/api/v1/workflows',
-    '/api/v1/workflows/<session_id>',
-    '/api/v1/profile/<user_id>',
+    '/run',
+    '/api/v1/profile/',
     '/api/v1/plans/current',
-    '/api/v1/exercises/<set_id>',
-    '/api/v1/exercises/<set_id>/submit',
-    '/api/v1/plans/<plan_id>/diff',
-    '/api/v1/traces/<trace_id>',
+    '/api/v1/exercises/',
+    '/submit',
+    '/diff',
+    '/api/v1/traces/',
     '/api/v1/demo/reset'
 )
-foreach ($routeMarker in $requiredRouteMarkers) {
-    if (-not $v1RoutesSource.Contains($routeMarker)) {
-        throw "Backend route missing: $routeMarker"
+foreach ($clientMarker in $requiredClientMarkers) {
+    if (-not $apiClientSource.Contains($clientMarker)) {
+        throw "Frontend API client route missing: $clientMarker"
     }
 }
 
 $mainPagesPath = Join-Path $ProjectRoot 'entry\src\main\resources\base\profile\main_pages.json'
 $mainPages = Read-JsonFile $mainPagesPath
-$allowedCardTargets = @($contract.components.schemas.ChatCard.properties.targetPage.enum)
+$allowedCardTargets = @(
+    'pages/Index',
+    'pages/StudySuggestion',
+    'pages/WrongQuestion',
+    'pages/StudyTags',
+    'pages/ExercisePractice',
+    'pages/AgentTrace',
+    'pages/PartnerMatch',
+    'pages/StudyPlan',
+    'pages/ReviewSummary',
+    'pages/FocusSetup'
+)
 foreach ($targetPage in $allowedCardTargets) {
     if ($mainPages.src -notcontains $targetPage) {
         throw "Chat card target is not registered in main_pages.json: $targetPage"
@@ -127,4 +142,4 @@ Assert-Equal $fixtures['demo-reset.json'].profile.profileVersion 1 'Reset profil
 Assert-Equal $fixtures['demo-reset.json'].plan.version 1 'Reset plan version mismatch.'
 
 $jsonCount = @(Get-ChildItem -LiteralPath $fixtureRoot -Filter '*.json' -File).Count
-Write-Output "Contract valid: $($requiredPaths.Count) paths; $($requiredRouteMarkers.Count) v1 backend routes; $jsonCount fixture files; $($allowedCardTargets.Count) safe card routes; $($navigationTargets.Count) registered navigation targets; core chain 42 -> 58 -> Plan V2 is consistent."
+Write-Output "Contract valid: $($requiredPaths.Count) paths; $($requiredClientMarkers.Count) frontend route markers; $jsonCount fixture files; $($navigationTargets.Count) registered navigation targets; api-contract-v0.3 core chain is consistent."

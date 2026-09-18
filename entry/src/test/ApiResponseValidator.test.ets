@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@ohos/hypium';
 import { ApiResponseValidator } from '../main/ets/api/ApiResponseValidator';
 import { AgentApiClient } from '../main/ets/api/AgentApiClient';
-import { WorkflowRunResponse } from '../main/ets/api/ApiModels';
+import { ProactiveResponse, WorkflowRunResponse } from '../main/ets/api/ApiModels';
 
 export default function apiResponseValidatorTest() {
   describe('apiResponseValidatorTest', () => {
@@ -41,6 +41,19 @@ export default function apiResponseValidatorTest() {
         state: {}
       };
       expect(ApiResponseValidator.isValid('POST', '/api/v1/workflows/session-1/run', workflowRun as Object)).assertTrue();
+
+      const proactive: ProactiveResponse = {
+        shouldNotify: true,
+        channel: 'reminder',
+        title: '数据结构考试还有 5 天',
+        body: '建议现在补强后序遍历。',
+        action: { type: 'focus', targetPage: 'pages/FocusSetup', preset: {} },
+        contextTags: ['exam_within_7d'],
+        reason: '考试临近且掌握度偏低。',
+        factors: [],
+        cardData: {}
+      };
+      expect(ApiResponseValidator.isValid('POST', '/api/v1/agent/proactive', proactive as Object)).assertTrue();
     });
 
     it('preserves structured server errors and safe HTTP fallbacks', 0, () => {

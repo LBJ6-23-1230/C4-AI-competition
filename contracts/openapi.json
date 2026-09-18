@@ -1,491 +1,208 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "知学 Mate Agent API",
-    "version": "api-contract-v0.2",
-    "description": "前端、后端与离线 Fixture 共用的接口契约。所有请求应携带 X-API-Contract-Version: api-contract-v0.2。"
+    "title": "Zhixue Mate Agent API",
+    "version": "api-contract-v0.3",
+    "description": "知学 Mate 前后端唯一接口契约。字段变更必须先升契约版本并通知前端。"
   },
   "servers": [
-    { "url": "http://10.0.2.2:5000", "description": "DevEco 模拟器访问电脑后端" }
+    { "url": "http://localhost:5000", "description": "本地开发" },
+    { "url": "http://{host}:5000", "description": "局域网联调", "variables": { "host": { "default": "192.168.1.100" } } }
   ],
+  "security": [],
   "paths": {
     "/api/agent/chat": {
       "post": {
-        "operationId": "chatWithAgent",
-        "parameters": [{ "$ref": "#/components/parameters/ContractVersion" }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AgentChatRequest" } } }
-        },
+        "summary": "Legacy frontend-compatible chat entry",
+        "operationId": "legacyAgentChat",
+        "requestBody": { "required": false, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LegacyChatRequest" } } } },
         "responses": {
-          "200": { "description": "Agent 回复", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AgentChatResponse" } } } },
-          "default": { "$ref": "#/components/responses/ApiError" }
+          "200": { "description": "Chat response", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LegacyChatResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/api/v1/experiments/snapshot": {
+      "get": {
+        "summary": "Export an anonymous experiment snapshot",
+        "operationId": "getExperimentSnapshot",
+        "responses": {
+          "200": { "description": "Versioned anonymous snapshot", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExperimentSnapshot" } } } }
+        }
+      }
+    },
+    "/api/v1/agent/proactive": {
+      "post": {
+        "summary": "根据学习上下文生成主动提醒决策",
+        "operationId": "proactiveDecision",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProactiveRequest" } } } },
+        "responses": {
+          "200": { "description": "主动决策结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProactiveResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" }
         }
       }
     },
     "/api/v1/workflows": {
       "post": {
+        "summary": "创建或继续学习工作流",
         "operationId": "createWorkflow",
-        "parameters": [{ "$ref": "#/components/parameters/ContractVersion" }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WorkflowCreateRequest" } } }
-        },
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WorkflowCreateRequest" } } } },
         "responses": {
-          "200": { "description": "已创建工作流", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WorkflowResponse" } } } },
-          "201": { "description": "已创建工作流", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WorkflowResponse" } } } },
-          "default": { "$ref": "#/components/responses/ApiError" }
+          "200": { "description": "工作流已创建或继续", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WorkflowResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/InternalError" }
         }
       }
     },
-    "/api/v1/workflows/{sessionId}": {
+    "/api/v1/workflows/{id}": {
       "get": {
+        "summary": "读取工作流状态",
         "operationId": "getWorkflow",
-        "parameters": [
-          { "$ref": "#/components/parameters/ContractVersion" },
-          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/WorkflowId" }],
         "responses": {
-          "200": { "description": "工作流实时状态", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WorkflowStatusResponse" } } } },
-          "default": { "$ref": "#/components/responses/ApiError" }
+          "200": { "description": "工作流状态", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WorkflowStatusResponse" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/workflows/{id}/run": {
+      "post": {
+        "summary": "推进一个工作流步骤",
+        "operationId": "runWorkflow",
+        "parameters": [{ "$ref": "#/components/parameters/WorkflowId" }],
+        "requestBody": { "required": false, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WorkflowRunRequest" } } } },
+        "responses": {
+          "200": { "description": "工作流推进结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WorkflowRunResponse" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalError" }
         }
       }
     },
     "/api/v1/profile/{userId}": {
       "get": {
+        "summary": "读取学习画像",
         "operationId": "getProfile",
-        "parameters": [
-          { "$ref": "#/components/parameters/ContractVersion" },
-          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/UserId" }],
         "responses": {
-          "200": { "description": "知识画像、历史与证据", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProfileResponse" } } } },
-          "default": { "$ref": "#/components/responses/ApiError" }
+          "200": { "description": "学习画像", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProfileResponse" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
     "/api/v1/plans/current": {
       "get": {
+        "summary": "读取当前学习计划",
         "operationId": "getCurrentPlan",
-        "parameters": [{ "$ref": "#/components/parameters/ContractVersion" }],
+        "parameters": [{ "$ref": "#/components/parameters/UserIdQuery" }],
         "responses": {
-          "200": { "description": "当前权威学习计划", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LearningPlan" } } } },
-          "default": { "$ref": "#/components/responses/ApiError" }
-        }
-      }
-    },
-    "/api/v1/exercises/{setId}": {
-      "get": {
-        "operationId": "getExerciseSet",
-        "parameters": [
-          { "$ref": "#/components/parameters/ContractVersion" },
-          { "name": "setId", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "knowledgePointId", "in": "query", "schema": { "type": "string" } },
-          { "name": "difficulty", "in": "query", "schema": { "type": "string" } },
-          { "name": "count", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
-          { "name": "excludeExerciseId", "in": "query", "schema": { "type": "array", "items": { "type": "string" } }, "style": "form", "explode": true }
-        ],
-        "responses": {
-          "200": { "description": "练习集", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExerciseSetResponse" } } } },
-          "default": { "$ref": "#/components/responses/ApiError" }
+          "200": { "description": "当前计划", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlanResponse" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
     "/api/v1/exercises/{setId}/submit": {
       "post": {
-        "operationId": "submitExercise",
-        "parameters": [
-          { "$ref": "#/components/parameters/ContractVersion" },
-          { "name": "setId", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExerciseSubmission" } } }
-        },
+        "summary": "提交练习并完成评估",
+        "operationId": "submitExercises",
+        "parameters": [{ "$ref": "#/components/parameters/ExerciseSetId" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExerciseSubmitRequest" } } } },
         "responses": {
-          "200": { "description": "评估、画像更新和重规划结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExerciseSubmissionResult" } } } },
-          "default": { "$ref": "#/components/responses/ApiError" }
+          "200": { "description": "评估结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExerciseSubmitResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
-    "/api/v1/plans/{planId}/diff": {
+    "/api/v1/exercises/{setId}": {
       "get": {
-        "operationId": "getPlanDiff",
-        "parameters": [
-          { "$ref": "#/components/parameters/ContractVersion" },
-          { "name": "planId", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
+        "summary": "获取练习题集",
+        "operationId": "getExerciseSet",
+        "parameters": [{ "$ref": "#/components/parameters/ExerciseSetId" }],
         "responses": {
-          "200": { "description": "计划版本差异", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlanDiff" } } } },
-          "default": { "$ref": "#/components/responses/ApiError" }
+          "200": { "description": "练习题集", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExerciseSetResponse" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/plans/{id}/diff": {
+      "get": {
+        "summary": "读取计划版本变化",
+        "operationId": "getPlanDiff",
+        "parameters": [{ "$ref": "#/components/parameters/PlanId" }],
+        "responses": {
+          "200": { "description": "计划差异", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlanDiffResponse" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
     "/api/v1/traces/{traceId}": {
       "get": {
+        "summary": "读取工作流轨迹",
         "operationId": "getTrace",
-        "parameters": [
-          { "$ref": "#/components/parameters/ContractVersion" },
-          { "name": "traceId", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/TraceId" }],
         "responses": {
-          "200": { "description": "Agent、工具、证据和状态版本轨迹", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TraceResponse" } } } },
-          "default": { "$ref": "#/components/responses/ApiError" }
+          "200": { "description": "轨迹事件列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TraceResponse" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
     "/api/v1/demo/reset": {
       "post": {
+        "summary": "重置固定演示数据",
         "operationId": "resetDemo",
-        "parameters": [{ "$ref": "#/components/parameters/ContractVersion" }],
         "responses": {
-          "200": { "description": "固定演示已恢复到 V1", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DemoResetResponse" } } } },
-          "default": { "$ref": "#/components/responses/ApiError" }
+          "200": { "description": "演示数据已重置", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DemoResetResponse" } } } },
+          "500": { "$ref": "#/components/responses/InternalError" }
         }
       }
     }
   },
   "components": {
     "parameters": {
-      "ContractVersion": {
-        "name": "X-API-Contract-Version",
-        "in": "header",
-        "required": true,
-        "schema": { "type": "string", "enum": ["api-contract-v0.2"] }
-      }
-    },
-    "responses": {
-      "ApiError": {
-        "description": "接口错误",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiError" } } }
-      }
+      "WorkflowId": { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+      "UserId": { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
+      "UserIdQuery": { "name": "userId", "in": "query", "required": false, "schema": { "type": "string", "default": "demo-user" } },
+      "ExerciseSetId": { "name": "setId", "in": "path", "required": true, "schema": { "type": "string" } },
+      "PlanId": { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+      "TraceId": { "name": "traceId", "in": "path", "required": true, "schema": { "type": "string" } }
     },
     "schemas": {
-      "ApiError": {
-        "type": "object",
-        "required": ["code", "message"],
-        "properties": {
-          "code": { "type": "string" },
-          "message": { "type": "string" },
-          "recoverable": { "type": "boolean" }
-        },
-        "additionalProperties": false
-      },
-      "AgentHistoryItem": {
-        "type": "object",
-        "required": ["role", "text"],
-        "properties": {
-          "role": { "type": "string", "enum": ["user", "agent"] },
-          "text": { "type": "string" }
-        },
-        "additionalProperties": false
-      },
-      "AgentChatRequest": {
-        "type": "object",
-        "required": ["message", "history", "user_data"],
-        "properties": {
-          "message": { "type": "string" },
-          "image": { "type": "string" },
-          "history": { "type": "array", "maxItems": 20, "items": { "$ref": "#/components/schemas/AgentHistoryItem" } },
-          "user_data": { "type": "object", "additionalProperties": true }
-        },
-        "additionalProperties": false
-      },
-      "ChatCard": {
-        "type": "object",
-        "required": ["type", "title", "summary", "targetPage"],
-        "properties": {
-          "type": { "type": "string", "enum": ["suggestion", "weakness", "partner", "tasks", "wrong"] },
-          "title": { "type": "string" },
-          "summary": { "type": "string" },
-          "targetPage": {
-            "type": "string",
-            "enum": [
-              "pages/Index",
-              "pages/StudySuggestion",
-              "pages/WrongQuestion",
-              "pages/StudyTags",
-              "pages/ExercisePractice",
-              "pages/AgentTrace",
-              "pages/PartnerMatch",
-              "pages/StudyPlan",
-              "pages/ReviewSummary",
-              "pages/FocusSetup"
-            ]
-          },
-          "data": { "type": "object", "additionalProperties": { "type": "string" } }
-        },
-        "additionalProperties": false
-      },
-      "AgentChatResponse": {
-        "type": "object",
-        "required": ["reply", "intent"],
-        "properties": {
-          "reply": { "type": "string", "minLength": 1 },
-          "intent": { "type": "string", "minLength": 1 },
-          "card": { "$ref": "#/components/schemas/ChatCard" }
-        },
-        "additionalProperties": false
-      },
-      "WorkflowCreateRequest": {
-        "type": "object",
-        "required": ["goal"],
-        "properties": {
-          "goal": { "type": "string", "minLength": 1 },
-          "sessionId": { "type": "string" },
-          "userId": { "type": "string" },
-          "maxSteps": { "type": "integer", "minimum": 1 }
-        },
-        "additionalProperties": false
-      },
-      "WorkflowResponse": {
-        "type": "object",
-        "required": ["sessionId", "traceId", "status", "currentStep", "nextAction"],
-        "properties": {
-          "sessionId": { "type": "string" },
-          "traceId": { "type": "string" },
-          "status": { "$ref": "#/components/schemas/WorkflowStatus" },
-          "currentStep": { "type": "string" },
-          "nextAction": { "type": "string" }
-        },
-        "additionalProperties": false
-      },
-      "WorkflowStatus": { "type": "string", "enum": ["running", "completed", "failed", "fallback"] },
-      "WorkflowStatusResponse": {
-        "type": "object",
-        "required": ["status", "currentAgent", "stateVersion", "finalAction"],
-        "properties": {
-          "status": { "$ref": "#/components/schemas/WorkflowStatus" },
-          "currentAgent": { "type": "string", "nullable": true },
-          "stateVersion": { "type": "integer", "minimum": 0 },
-          "finalAction": { "type": "string", "nullable": true }
-        },
-        "additionalProperties": false
-      },
-      "Evidence": {
-        "type": "object",
-        "required": ["id", "sourceType", "sourceId", "knowledgePointId", "metric", "value", "timestamp", "reliability"],
-        "properties": {
-          "id": { "type": "string" },
-          "sourceType": { "type": "string" },
-          "sourceId": { "type": "string" },
-          "knowledgePointId": { "type": "string" },
-          "metric": { "type": "string" },
-          "value": {},
-          "timestamp": { "type": "string", "format": "date-time" },
-          "reliability": { "type": "number", "minimum": 0, "maximum": 1 }
-        },
-        "additionalProperties": false
-      },
-      "KnowledgeMastery": {
-        "type": "object",
-        "required": ["knowledgePointId", "knowledgePointName", "masteryScore", "confidence", "lastUpdated"],
-        "properties": {
-          "knowledgePointId": { "type": "string" },
-          "knowledgePointName": { "type": "string" },
-          "masteryScore": { "type": "number", "minimum": 0, "maximum": 100 },
-          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-          "lastUpdated": { "type": "string", "format": "date-time" }
-        },
-        "additionalProperties": false
-      },
-      "MasteryHistory": {
-        "type": "object",
-        "required": ["oldScore", "newScore", "evidenceIds", "source", "timestamp"],
-        "properties": {
-          "oldScore": { "type": "number" },
-          "newScore": { "type": "number" },
-          "evidenceIds": { "type": "array", "items": { "type": "string" } },
-          "source": { "type": "string" },
-          "timestamp": { "type": "string", "format": "date-time" }
-        },
-        "additionalProperties": false
-      },
-      "LearnerProfile": {
-        "type": "object",
-        "required": ["userId", "goal", "examDate", "freeTimeSlots", "profileVersion", "mastery"],
-        "properties": {
-          "userId": { "type": "string" },
-          "goal": { "type": "string" },
-          "examDate": { "type": "string", "format": "date", "nullable": true },
-          "freeTimeSlots": { "type": "array", "items": { "type": "string" } },
-          "profileVersion": { "type": "integer", "minimum": 1 },
-          "mastery": { "type": "array", "items": { "$ref": "#/components/schemas/KnowledgeMastery" } }
-        },
-        "additionalProperties": false
-      },
-      "ProfileResponse": {
-        "type": "object",
-        "required": ["profileVersion", "mastery", "history", "evidence"],
-        "properties": {
-          "profileVersion": { "type": "integer", "minimum": 1 },
-          "profile": { "$ref": "#/components/schemas/LearnerProfile" },
-          "mastery": { "type": "array", "items": { "$ref": "#/components/schemas/KnowledgeMastery" } },
-          "history": { "type": "array", "items": { "$ref": "#/components/schemas/MasteryHistory" } },
-          "evidence": { "type": "array", "items": { "$ref": "#/components/schemas/Evidence" } }
-        },
-        "additionalProperties": false
-      },
-      "PlanTask": {
-        "type": "object",
-        "required": ["taskId", "knowledgePointId", "knowledgePointName", "durationMinutes", "status"],
-        "properties": {
-          "taskId": { "type": "string" },
-          "knowledgePointId": { "type": "string" },
-          "knowledgePointName": { "type": "string" },
-          "durationMinutes": { "type": "integer", "minimum": 0 },
-          "status": { "type": "string", "enum": ["pending", "in_progress", "completed"] },
-          "priority": { "type": "string" }
-        },
-        "additionalProperties": false
-      },
-      "LearningPlan": {
-        "type": "object",
-        "required": ["planId", "version", "tasks", "generatedFromProfileVersion"],
-        "properties": {
-          "planId": { "type": "string", "nullable": true },
-          "version": { "type": "integer", "minimum": 1 },
-          "tasks": { "type": "array", "items": { "$ref": "#/components/schemas/PlanTask" } },
-          "reason": { "type": "string" },
-          "generatedFromProfileVersion": { "type": "integer", "minimum": 1 }
-        },
-        "additionalProperties": false
-      },
-      "Exercise": {
-        "type": "object",
-        "required": ["exerciseId", "knowledgePointId", "knowledgePointName", "stem", "options"],
-        "properties": {
-          "exerciseId": { "type": "string" },
-          "knowledgePointId": { "type": "string" },
-          "knowledgePointName": { "type": "string" },
-          "difficulty": { "type": "string" },
-          "stem": { "type": "string" },
-          "options": { "type": "array", "minItems": 2, "items": { "type": "string" } },
-          "source": { "type": "string" }
-        },
-        "additionalProperties": false
-      },
-      "ExerciseSetResponse": {
-        "type": "object",
-        "required": ["setId", "exercises"],
-        "properties": {
-          "setId": { "type": "string" },
-          "exercises": { "type": "array", "items": { "$ref": "#/components/schemas/Exercise" } }
-        },
-        "additionalProperties": false
-      },
-      "ExerciseAnswer": {
-        "type": "object",
-        "required": ["exerciseId", "answer"],
-        "properties": {
-          "exerciseId": { "type": "string" },
-          "answer": { "type": "string" }
-        },
-        "additionalProperties": false
-      },
-      "ExerciseSubmission": {
-        "type": "object",
-        "required": ["idempotencyKey", "answers"],
-        "properties": {
-          "idempotencyKey": { "type": "string", "minLength": 1 },
-          "answers": { "type": "array", "items": { "$ref": "#/components/schemas/ExerciseAnswer" } }
-        },
-        "additionalProperties": false
-      },
-      "AssessmentResult": {
-        "type": "object",
-        "required": ["score", "perKnowledgeAccuracy", "errorTypes", "oldMastery", "suggestedNewMastery"],
-        "properties": {
-          "score": { "type": "number", "minimum": 0, "maximum": 100 },
-          "perKnowledgeAccuracy": { "type": "object", "additionalProperties": { "type": "number" } },
-          "errorTypes": { "type": "array", "items": { "type": "string" } },
-          "oldMastery": { "type": "number" },
-          "suggestedNewMastery": { "type": "number" }
-        },
-        "additionalProperties": false
-      },
-      "MasteryUpdate": {
-        "type": "object",
-        "required": ["knowledgePointId", "oldScore", "newScore"],
-        "properties": {
-          "knowledgePointId": { "type": "string" },
-          "oldScore": { "type": "number" },
-          "newScore": { "type": "number" }
-        },
-        "additionalProperties": false
-      },
-      "PlanTaskChange": {
-        "type": "object",
-        "required": ["taskId"],
-        "properties": {
-          "taskId": { "type": "string" },
-          "knowledgePointId": { "type": "string" },
-          "durationMinutes": { "type": "integer" },
-          "change": { "type": "string" }
-        },
-        "additionalProperties": false
-      },
-      "PlanDiff": {
-        "type": "object",
-        "required": ["oldVersion", "newVersion", "changedTasks", "adjustmentReason", "triggerEvidence"],
-        "properties": {
-          "planId": { "type": "string" },
-          "oldVersion": { "type": "integer" },
-          "newVersion": { "type": "integer" },
-          "changedTasks": { "type": "array", "items": { "$ref": "#/components/schemas/PlanTaskChange" } },
-          "adjustmentReason": { "type": "string" },
-          "triggerEvidence": { "type": "array", "items": { "type": "string" } }
-        },
-        "additionalProperties": false
-      },
-      "ExerciseSubmissionResult": {
-        "type": "object",
-        "required": ["assessment", "masteryUpdate", "needReplan"],
-        "properties": {
-          "assessment": { "$ref": "#/components/schemas/AssessmentResult" },
-          "masteryUpdate": { "allOf": [{ "$ref": "#/components/schemas/MasteryUpdate" }], "nullable": true },
-          "needReplan": { "type": "boolean" },
-          "plan": { "$ref": "#/components/schemas/LearningPlan" },
-          "planDiff": { "$ref": "#/components/schemas/PlanDiff" }
-        },
-        "additionalProperties": false
-      },
-      "TraceEvent": {
-        "type": "object",
-        "required": ["agent", "toolCalls", "inputSummary", "outputSummary", "evidenceIds", "stateVersion", "timestamp", "status"],
-        "properties": {
-          "agent": { "type": "string" },
-          "toolCalls": { "type": "array", "items": { "type": "string" } },
-          "inputSummary": { "type": "string" },
-          "outputSummary": { "type": "string" },
-          "evidenceIds": { "type": "array", "items": { "type": "string" } },
-          "stateVersion": { "type": "integer", "minimum": 0 },
-          "timestamp": { "type": "string", "format": "date-time" },
-          "status": { "type": "string", "enum": ["pending", "running", "success", "failed"] }
-        },
-        "additionalProperties": false
-      },
-      "TraceResponse": {
-        "type": "object",
-        "required": ["traceId", "events"],
-        "properties": {
-          "traceId": { "type": "string" },
-          "events": { "type": "array", "items": { "$ref": "#/components/schemas/TraceEvent" } }
-        },
-        "additionalProperties": false
-      },
-      "DemoResetResponse": {
-        "type": "object",
-        "required": ["status", "userId", "profile", "plan", "traceId"],
-        "properties": {
-          "status": { "type": "string", "enum": ["reset"] },
-          "userId": { "type": "string" },
-          "profile": { "allOf": [{ "$ref": "#/components/schemas/LearnerProfile" }], "nullable": true },
-          "plan": { "allOf": [{ "$ref": "#/components/schemas/LearningPlan" }], "nullable": true },
-          "traceId": { "type": "string" }
-        },
-        "additionalProperties": false
-      }
+      "LegacyChatRequest": { "type": "object", "properties": { "message": { "type": "string" }, "user_message": { "type": "string" }, "image": { "type": "string" } } },
+      "LegacyChatResponse": { "type": "object", "required": ["reply", "intent", "card"], "properties": { "reply": { "type": "string" }, "intent": { "type": "string", "enum": ["unknown", "analyze_wrong", "query_tasks", "analyze_weakness", "match_partner", "update_profile", "get_suggestion"] }, "card": { "type": "object", "nullable": true, "properties": { "type": { "type": "string" }, "title": { "type": "string" }, "actionLabel": { "type": "string" }, "targetPage": { "type": "string" }, "sessionId": { "type": "string" } } } } },
+      "ExperimentSnapshot": { "type": "object", "required": ["snapshotVersion", "generatedAt", "summary", "traces", "submissions", "evidences", "planDiffs"], "properties": { "snapshotVersion": { "type": "string" }, "generatedAt": { "type": "string", "format": "date-time" }, "summary": { "type": "object" }, "traces": { "type": "array", "items": { "type": "object" } }, "submissions": { "type": "array", "items": { "type": "object" } }, "evidences": { "type": "array", "items": { "type": "object" } }, "planDiffs": { "type": "array", "items": { "type": "object" } } } },
+      "WorkflowCreateRequest": { "type": "object", "required": ["goal"], "properties": { "goal": { "type": "string" }, "sessionId": { "type": "string", "nullable": true }, "userId": { "type": "string", "default": "demo-user" }, "maxSteps": { "type": "integer", "minimum": 1, "maximum": 20, "default": 6 }, "autoRun": { "type": "boolean", "default": false, "description": "创建后立即推进工作流；可与 /run 两阶段模式并存。" }, "answers": { "type": "array", "items": { "type": "object", "required": ["exerciseId", "answer"] } } } },
+      "WorkflowResponse": { "type": "object", "required": ["sessionId", "traceId", "status", "currentStep", "nextAction"], "properties": { "sessionId": { "type": "string" }, "traceId": { "type": "string" }, "status": { "type": "string", "enum": ["running", "completed", "error", "failed", "fallback"] }, "currentStep": { "type": "string" }, "nextAction": { "type": "string" } } },
+      "WorkflowStatusResponse": { "type": "object", "required": ["status", "currentAgent", "stateVersion", "finalAction"], "properties": { "status": { "type": "string" }, "currentAgent": { "type": "string", "nullable": true }, "stateVersion": { "type": "integer", "minimum": 0 }, "finalAction": { "type": "string", "nullable": true } } },
+      "WorkflowRunRequest": { "type": "object", "properties": { "submissionId": { "type": "string", "description": "复用练习提交接口已生成的评估结果，避免重复写入画像。" }, "answers": { "type": "array", "items": { "type": "object", "required": ["exerciseId", "answer"], "properties": { "exerciseId": { "type": "string" }, "answer": { "type": "string" } } } } } },
+      "WorkflowRunResponse": { "type": "object", "required": ["sessionId", "traceId", "status", "currentStep", "currentAgent", "stateVersion"], "properties": { "sessionId": { "type": "string" }, "traceId": { "type": "string" }, "status": { "type": "string" }, "currentStep": { "type": "string" }, "currentAgent": { "type": "string" }, "stateVersion": { "type": "integer" }, "finalAction": { "type": "string", "nullable": true }, "state": { "type": "object" } } },
+      "KnowledgeMastery": { "type": "object", "required": ["knowledgePointId", "knowledgePointName", "masteryScore", "confidence", "lastUpdated"], "properties": { "knowledgePointId": { "type": "string" }, "knowledgePointName": { "type": "string" }, "masteryScore": { "type": "number", "minimum": 0, "maximum": 100 }, "confidence": { "type": "number", "minimum": 0, "maximum": 100 }, "lastUpdated": { "type": "string", "format": "date-time" } } },
+      "LearnerProfile": { "type": "object", "required": ["userId", "goal", "examDate", "freeTimeSlots", "profileVersion"], "properties": { "userId": { "type": "string" }, "goal": { "type": "string" }, "examDate": { "type": "string", "format": "date", "nullable": true }, "freeTimeSlots": { "type": "array", "items": { "type": "string" } }, "profileVersion": { "type": "integer", "minimum": 1 }, "mastery": { "type": "array", "items": { "$ref": "#/components/schemas/KnowledgeMastery" } } } },
+      "Evidence": { "type": "object", "required": ["id", "sourceType", "sourceId", "knowledgePointId", "metric", "value", "timestamp", "reliability"], "properties": { "id": { "type": "string" }, "sourceType": { "type": "string" }, "sourceId": { "type": "string" }, "knowledgePointId": { "type": "string" }, "metric": { "type": "string" }, "value": {}, "timestamp": { "type": "string", "format": "date-time" }, "reliability": { "type": "number", "minimum": 0, "maximum": 1 } } },
+      "ProfileResponse": { "type": "object", "required": ["profileVersion", "mastery", "history", "evidence"], "properties": { "profileVersion": { "type": "integer", "minimum": 1 }, "profile": { "$ref": "#/components/schemas/LearnerProfile" }, "mastery": { "type": "array", "items": { "$ref": "#/components/schemas/KnowledgeMastery" } }, "history": { "type": "array", "items": { "type": "object" } }, "evidence": { "type": "array", "items": { "$ref": "#/components/schemas/Evidence" } } } },
+      "PlanTask": { "type": "object", "required": ["taskId", "knowledgePointId", "knowledgePointName", "durationMinutes", "status"], "properties": { "taskId": { "type": "string" }, "knowledgePointId": { "type": "string" }, "knowledgePointName": { "type": "string" }, "durationMinutes": { "type": "integer", "minimum": 1 }, "status": { "type": "string", "enum": ["pending", "in_progress", "completed"] }, "priority": { "type": "string" } } },
+      "LearningPlan": { "type": "object", "required": ["planId", "version", "tasks", "generatedFromProfileVersion"], "properties": { "planId": { "type": "string" }, "userId": { "type": "string" }, "version": { "type": "integer", "minimum": 1 }, "tasks": { "type": "array", "items": { "$ref": "#/components/schemas/PlanTask" } }, "factors": { "type": "array", "items": { "$ref": "#/components/schemas/PriorityFactor" } }, "reason": { "type": "string" }, "generatedFromProfileVersion": { "type": "integer", "minimum": 1 } } },
+      "PlanResponse": { "allOf": [{ "$ref": "#/components/schemas/LearningPlan" }] },
+      "Exercise": { "type": "object", "required": ["exerciseId", "knowledgePointId", "knowledgePointName", "stem", "options"], "properties": { "exerciseId": { "type": "string" }, "knowledgePointId": { "type": "string" }, "knowledgePointName": { "type": "string" }, "difficulty": { "type": "string" }, "stem": { "type": "string" }, "options": { "type": "array", "items": { "type": "string" } }, "source": { "type": "string" } } },
+      "ExerciseSetResponse": { "type": "object", "required": ["setId", "exercises"], "properties": { "setId": { "type": "string" }, "exercises": { "type": "array", "items": { "$ref": "#/components/schemas/Exercise" }, "description": "固定 Demo 返回 3 道题；无可用题目时允许为空数组。" } } },
+      "ExerciseSubmitRequest": { "type": "object", "required": ["idempotencyKey", "answers"], "properties": { "userId": { "type": "string", "default": "demo-user" }, "sessionId": { "type": "string", "nullable": true }, "idempotencyKey": { "type": "string", "description": "客户端为本次提交生成的稳定唯一键；重复使用同一键不会产生重复写入。" }, "answers": { "type": "array", "items": { "type": "object", "required": ["exerciseId", "answer"], "properties": { "exerciseId": { "type": "string" }, "answer": { "type": "string" } } } } } },
+      "AssessmentResult": { "type": "object", "required": ["score", "perKnowledgeAccuracy", "errorTypes", "oldMastery", "suggestedNewMastery"], "properties": { "score": { "type": "number", "minimum": 0, "maximum": 100 }, "perKnowledgeAccuracy": { "type": "object", "additionalProperties": { "type": "number" } }, "errorTypes": { "type": "array", "items": { "type": "string" } }, "oldMastery": { "type": "number" }, "suggestedNewMastery": { "type": "number" } } },
+      "ExerciseSubmitResponse": { "type": "object", "required": ["userId", "submissionId", "assessment", "masteryUpdate", "needReplan", "traceId", "evidenceIds", "replanDecision"], "properties": { "userId": { "type": "string" }, "submissionId": { "type": "string" }, "traceId": { "type": "string" }, "evidenceIds": { "type": "array", "items": { "type": "string" } }, "replanDecision": { "$ref": "#/components/schemas/ReplanDecision" }, "assessment": { "$ref": "#/components/schemas/AssessmentResult" }, "masteryUpdate": { "type": "object", "required": ["knowledgePointId", "oldScore", "newScore"], "properties": { "knowledgePointId": { "type": "string" }, "oldScore": { "type": "number" }, "newScore": { "type": "number" } } }, "needReplan": { "type": "boolean" }, "plan": { "$ref": "#/components/schemas/LearningPlan" }, "planDiff": { "$ref": "#/components/schemas/PlanDiffResponse" } } },
+      "ReplanDecision": { "type": "object", "required": ["needReplan", "reasons"], "properties": { "needReplan": { "type": "boolean" }, "reasons": { "type": "array", "items": { "type": "string" } } } },
+      "PriorityFactor": { "type": "object", "required": ["name", "value", "weight", "contribution"], "properties": { "name": { "type": "string" }, "value": { "type": "number", "minimum": 0, "maximum": 1, "description": "归一化为 0~1。" }, "weight": { "type": "number", "minimum": 0, "maximum": 1 }, "contribution": { "type": "number", "minimum": 0, "maximum": 1 } } },
+      "ProactiveRequest": { "type": "object", "required": ["userId", "context"], "properties": { "userId": { "type": "string" }, "context": { "type": "object", "properties": { "now": { "type": "string", "format": "date-time" }, "location": { "type": "string", "nullable": true }, "foreground": { "type": "boolean" }, "lastStudyAt": { "type": "string", "format": "date-time", "nullable": true }, "focusSessionActive": { "type": "boolean" } } } } },
+      "ProactiveResponse": { "type": "object", "required": ["shouldNotify", "channel", "title", "body", "action", "contextTags", "reason", "factors", "cardData"], "properties": { "shouldNotify": { "type": "boolean" }, "channel": { "type": "string", "enum": ["reminder", "silent"] }, "title": { "type": "string" }, "body": { "type": "string" }, "action": { "type": "object" }, "contextTags": { "type": "array", "items": { "type": "string" } }, "reason": { "type": "string" }, "factors": { "type": "array", "items": { "$ref": "#/components/schemas/PriorityFactor" } }, "cardData": { "type": "object" } } },
+      "PlanDiffResponse": { "type": "object", "required": ["oldVersion", "newVersion", "changedTasks", "adjustmentReason", "triggerEvidence"], "properties": { "planId": { "type": "string" }, "oldVersion": { "type": "integer" }, "newVersion": { "type": "integer" }, "changedTasks": { "type": "array", "items": { "type": "object" } }, "adjustmentReason": { "type": "string" }, "triggerEvidence": { "type": "array", "items": { "type": "string" } } } },
+      "TraceEvent": { "type": "object", "required": ["agent", "toolCalls", "inputSummary", "outputSummary", "evidenceIds", "stateVersion", "timestamp", "status"], "properties": { "agent": { "type": "string" }, "toolCalls": { "type": "array", "items": { "type": "string" } }, "inputSummary": { "type": "string" }, "outputSummary": { "type": "string" }, "evidenceIds": { "type": "array", "items": { "type": "string" } }, "stateVersion": { "type": "integer" }, "timestamp": { "type": "string", "format": "date-time" }, "status": { "type": "string" } } },
+      "TraceResponse": { "type": "object", "required": ["traceId", "events"], "properties": { "traceId": { "type": "string" }, "events": { "type": "array", "items": { "$ref": "#/components/schemas/TraceEvent" } } } },
+      "DemoResetResponse": { "type": "object", "required": ["status", "userId", "profile", "plan", "traceId"], "properties": { "status": { "type": "string", "enum": ["reset"] }, "userId": { "type": "string", "example": "demo-user" }, "profile": { "$ref": "#/components/schemas/LearnerProfile" }, "plan": { "$ref": "#/components/schemas/LearningPlan" }, "traceId": { "type": "string" } } },
+      "ErrorResponse": { "type": "object", "required": ["errorCode", "message"], "properties": { "errorCode": { "type": "string", "enum": ["BAD_REQUEST", "NOT_FOUND", "CONFLICT", "VALIDATION_ERROR", "INTERNAL_ERROR", "LLM_FALLBACK"] }, "message": { "type": "string" }, "details": { "type": "object", "nullable": true } } }
+    },
+    "responses": {
+      "BadRequest": { "description": "请求参数错误", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+      "NotFound": { "description": "资源不存在", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+      "Conflict": { "description": "幂等键冲突或状态冲突", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+      "InternalError": { "description": "服务内部错误", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
     }
   }
 }

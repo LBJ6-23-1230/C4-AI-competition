@@ -5,12 +5,14 @@ import { LocalAgentService } from '../services/LocalAgentService';
 import { DateHelper } from '../utils/DateHelper';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AIFloatButton } from '../components/AIFloatButton';
+import { FactorBreakdownCard } from '../components/FactorBreakdownCard';
 import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
-import { LearningPlan, PlanTask, WorkflowResponse, WorkflowStatusResponse } from '../api/ApiModels';
+import { LearningPlan, PlanTask, ProactiveResponse, WorkflowResponse, WorkflowStatusResponse } from '../api/ApiModels';
 import { ClientCache } from '../cache/ClientCache';
 import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
 import { PlanViewModel } from '../viewmodels/PlanViewModel';
+import { ProactiveViewModel } from '../viewmodels/ProactiveViewModel';
 
 @Entry
 @Component
@@ -20,10 +22,15 @@ struct Index {
   @State isAgentPlanLoading: boolean = false;
   @State agentPlan: LearningPlan | null = null;
   @State agentPlanMessage: string = '';
+  @State proactiveDecision: ProactiveResponse | null = null;
+  @State proactiveMessage: string = '';
+  @State isProactiveLoading: boolean = false;
   private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
   private planViewModel: PlanViewModel = new PlanViewModel();
+  private proactiveViewModel: ProactiveViewModel = new ProactiveViewModel();
   private workflowRequestVersion: number = 0;
   private planRequestVersion: number = 0;
+  private proactiveRequestVersion: number = 0;
   private isPageActive: boolean = false;
 
   aboutToAppear(): void {
@@ -31,13 +38,27 @@ struct Index {
     this.ensurePlan();
     this.refreshKey++;
     this.bootstrapWorkflow();
+    this.loadProactiveDecision();
   }
 
   aboutToDisappear(): void {
     this.isPageActive = false;
     this.workflowRequestVersion++;
     this.planRequestVersion++;
+    this.proactiveRequestVersion++;
     this.isWorkflowRefreshing = false;
+  }
+
+  private async loadProactiveDecision(): Promise<void> {
+    this.isProactiveLoading = true;
+    this.proactiveMessage = '';
+    const requestVersion: number = ++this.proactiveRequestVersion;
+    const daysLeft: number = appState.getHighPriorityCourse().exam.daysLeft;
+    const state = await this.proactiveViewModel.load(appState.currentUser.userId, daysLeft, false);
+    if (!this.isPageActive || requestVersion !== this.proactiveRequestVersion) return;
+    this.proactiveDecision = state.decision;
+    this.proactiveMessage = state.errorMessage;
+    this.isProactiveLoading = false;
   }
 
   private async loadAgentPlan(forceRefresh: boolean = true): Promise<void> {
@@ -72,6 +93,21 @@ struct Index {
       mode: 'normal',
       timerType: 'countdown',
       planTaskId: task.taskId
+    } as FocusTask);
+    router.pushUrl({ url: 'pages/FocusSetup' });
+  }
+
+  private startProactiveTask(): void {
+    const decision: ProactiveResponse | null = this.proactiveDecision;
+    if (decision === null || decision.action.type !== 'focus') return;
+    appState.setFocusTask({
+      course: '数据结构',
+      task: decision.cardData.taskName ?? '二叉树后序遍历',
+      plannedMinutes: decision.action.preset.durationMinutes ?? decision.cardData.durationMinutes ?? 45,
+      source: 'agent',
+      mode: 'normal',
+      timerType: 'countdown',
+      planTaskId: decision.action.preset.taskId
     } as FocusTask);
     router.pushUrl({ url: 'pages/FocusSetup' });
   }
@@ -230,6 +266,34 @@ struct Index {
   }
 
   @Builder
+  ProactiveDecisionCard(decision: ProactiveResponse) {
+    Column({ space: 10 }) {
+      Row() {
+        Text(decision.shouldNotify ? 'Agent 主动提醒' : 'Agent 情境建议')
+          .fontSize(13).fontWeight(FontWeight.Bold).fontColor('#B45309')
+        Blank()
+        Text(decision.channel === 'reminder' ? '建议现在处理' : '已静默评估')
+          .fontSize(11).fontColor('#92400E').backgroundColor('#FEF3C7').borderRadius(9)
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+      }.width('100%')
+      if (decision.title.length > 0) {
+        Text(decision.title).fontSize(18).fontWeight(FontWeight.Bold).fontColor('#1F2937').width('100%')
+      }
+      Text(decision.body).fontSize(13).fontColor('#475467').lineHeight(20).width('100%')
+      if (decision.cardData.taskName !== undefined) {
+        Text(`${decision.cardData.taskName} · ${decision.cardData.durationMinutes ?? 45} 分钟`)
+          .fontSize(13).fontWeight(FontWeight.Medium).fontColor('#2563EB').width('100%')
+      }
+      if (decision.action.type === 'focus') {
+        Button('按 Agent 建议开始专注').width('100%').height(42).fontSize(13).fontWeight(FontWeight.Bold)
+          .fontColor('#FFFFFF').backgroundColor('#D97706').borderRadius(11)
+          .onClick(() => this.startProactiveTask())
+      }
+    }.width('100%').padding(16).backgroundColor('#FFFBEB').borderRadius(16)
+      .border({ width: 1, color: '#FDE68A' })
+  }
+
+  @Builder
   AgentPlanCard(task: PlanTask) {
     Column({ space: 12 }) {
       Row() {
@@ -304,6 +368,21 @@ struct Index {
       Scroll() {
         Column({ space: 16 }) {
           this.AgentStatus()
+          if (this.proactiveDecision !== null) {
+            this.ProactiveDecisionCard(this.proactiveDecision!)
+            if (this.proactiveDecision!.factors.length > 0) {
+              FactorBreakdownCard({ factors: this.proactiveDecision!.factors, reason: this.proactiveDecision!.reason })
+            }
+          } else if (this.isProactiveLoading) {
+            Row({ space: 10 }) {
+              LoadingProgress().width(22).height(22).color('#D97706')
+              Text('Agent 正在评估是否需要主动提醒…').fontSize(12).fontColor('#667085')
+            }.width('100%').padding(14).backgroundColor('#FFFBEB').borderRadius(14)
+          } else if (this.proactiveMessage.length > 0) {
+            Text(`主动建议暂不可用：${this.proactiveMessage}`).fontSize(12).fontColor('#92400E')
+              .width('100%').padding(12).backgroundColor('#FFFBEB').borderRadius(12)
+              .onClick(() => this.loadProactiveDecision())
+          }
           Row() {
             Column({ space: 2 }) {
               Text('开发调试：数据源设置').fontSize(13).fontColor('#475467')

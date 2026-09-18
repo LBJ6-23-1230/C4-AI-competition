@@ -3,7 +3,7 @@ param(
     [string]$TestHapPath = 'D:\project\zhixue_Mate\entry\build\default\outputs\ohosTest\entry-ohosTest-unsigned.hap',
     [string]$BundleName = 'com.zhixue.mate',
     [string]$TestModule = 'entry_test',
-    [int]$ExpectedTests = 32,
+    [int]$ExpectedTests = 33,
     [int]$MaxAttempts = 4
 )
 
