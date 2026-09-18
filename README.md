@@ -464,40 +464,54 @@ powershell -ExecutionPolicy Bypass -File tools\run_backend_core_regression.ps1
 
 ---
 
-## 仓库结构现状与待办
+## 仓库结构现状
 
-### 三个已知问题（团队内部待处理）
+### ✅ 已完成
 
-**1️⃣ 默认分支看不到代码** —— 评审打开仓库首页只能看到 LICENSE 与本文档，
-容易误判为"仓库是空的"。竞赛要求提交「项目运行所需的**所有工程文件**」，
-**建议将合并后的完整工程推送为 `main`。**
+**1️⃣ 默认分支现在就是完整工程** —— `main` 分支根目录已包含前后端全部工程文件
+（227 个文件 / 约 2.0 MB），评审打开仓库首页即可直接看到代码，
+不再需要切分支。竞赛要求的「项目运行所需的**所有工程文件**」已满足。
 
-**2️⃣ `frontend` 分支带遗留的 ArkUI-X 构建插件** —— 该分支的
-`hvigor/hvigor-config.json5` 依赖 `@ohos/hvigor-ohos-arkui-x-plugin`，
-会导致 hvigor Sync 报 `Unable to find 'arkui-x.dir'`。
-但工程的 `runtimeOS` 已是纯 `HarmonyOS`，且仓库里没有 `.arkui-x/` 目录 ——
-**ArkUI-X 对本项目零收益，只会多一个必须配置的 SDK 依赖**。
+**2️⃣ ArkUI-X 构建插件依赖已移除** —— `main` 使用的是标准构建插件：
 
-修复方式（3 个文件）：
-
-```diff
-# hvigor/hvigor-config.json5
--  "dependencies": { "@ohos/hvigor-ohos-arkui-x-plugin": "4.26.1" }
-+  "dependencies": {}
-
-# hvigorfile.ts
--export { AppTasksForArkUIX } from '@ohos/hvigor-ohos-arkui-x-plugin';
-+import { appTasks } from '@ohos/hvigor-ohos-plugin';
-+export default { system: appTasks, plugins: [] }
-
-# entry/hvigorfile.ts
--export { HapTasks } from '@ohos/hvigor-ohos-arkui-x-plugin';
-+import { hapTasks } from '@ohos/hvigor-ohos-plugin';
-+export default { system: hapTasks, plugins: [] }
+```json5
+// hvigor/hvigor-config.json5
+"dependencies": {}          // 原来是 @ohos/hvigor-ohos-arkui-x-plugin
 ```
 
-**3️⃣ 分支代码落后于本文档描述** —— 见开头「版本差异须知」。
-合并版工程（18 页面 / 登录优先 / 5 个智能体 / 四标签去重 / 104 项自检）尚未推送到远端。
+```ts
+// hvigorfile.ts
+import { appTasks } from '@ohos/hvigor-ohos-plugin';
+export default { system: appTasks, plugins: [] }
+```
+
+因此不会再出现 `Unable to find 'arkui-x.dir'` 的 Sync 报错，
+**克隆后不需要额外配置 ArkUI-X SDK**。
+
+**3️⃣ 行尾与编码已钉死**（`.gitattributes`）—— `.ps1` 脚本是
+「UTF-8 带 BOM」格式，Windows PowerShell 5.1 靠 BOM 才能正确显示中文。
+`.gitattributes` 显式声明了 `*.ps1 → CRLF`、其余文本 `→ LF`，
+保证克隆到任何机器结果一致。
+
+### ⚠️ 拿到代码后仍需自己做的一步
+
+**配置 HarmonyOS SDK 路径** —— `local.properties` 属于机器本地配置，
+按惯例不入库（已在 `.gitignore` 中）。克隆后二选一：
+
+```properties
+# 方式 A：在工程根目录新建 local.properties
+sdk.dir=D:\\DevEco\\DevEco Studio\\sdk
+nodejs.dir=D:\\DevEco\\DevEco Studio\\tools\\node
+```
+
+```powershell
+# 方式 B：设系统环境变量
+setx DEVECO_SDK_HOME "D:\DevEco\DevEco Studio\sdk"
+```
+
+然后用 DevEco Studio 打开工程根目录 → **Sync and Refresh Project**。
+
+> 代码本身已从全新克隆实测通过：**104/104 自检** + **90 个单元测试全绿**。
 
 ---
 
