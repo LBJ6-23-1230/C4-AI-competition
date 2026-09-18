@@ -1,5 +1,5 @@
 import { http } from '@kit.NetworkKit';
-import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowStatusResponse } from './ApiModels';
+import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiFailure, ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { FixtureApiTransport } from './FixtureApiTransport';
 import { ApiResponseValidator } from './ApiResponseValidator';
@@ -31,6 +31,11 @@ export class AgentApiClient {
 
   static async getWorkflow(sessionId: string): Promise<ApiResult<WorkflowStatusResponse>> {
     return AgentApiClient.request<WorkflowStatusResponse>(http.RequestMethod.GET, `/api/v1/workflows/${encodeURIComponent(sessionId)}`);
+  }
+
+  static async runWorkflow(sessionId: string): Promise<ApiResult<WorkflowRunResponse>> {
+    return AgentApiClient.request<WorkflowRunResponse>(http.RequestMethod.POST,
+      `/api/v1/workflows/${encodeURIComponent(sessionId)}/run`);
   }
 
   static async getProfile(userId: string): Promise<ApiResult<ProfileResponse>> {
@@ -101,7 +106,7 @@ export class AgentApiClient {
       try {
         const parsed: Object = JSON.parse(payload) as Object;
         if (!ApiResponseValidator.isValid(methodName, path, parsed)) {
-          return apiFailure('INVALID_RESPONSE', '服务返回的数据结构与 api-contract-v0.2 不一致。', false, 'network');
+          return apiFailure('INVALID_RESPONSE', `服务返回的数据结构与 ${API_CONTRACT_VERSION} 不一致。`, false, 'network');
         }
         return apiSuccess<T>(parsed as T, 'network');
       } catch (parseError) {
@@ -126,7 +131,9 @@ export class AgentApiClient {
     let recoverable: boolean = defaultRecoverable;
     try {
       const parsed: Record<string, Object> = JSON.parse(payload.trim()) as Record<string, Object>;
-      const serverCode: Object | undefined = parsed['code'] as Object | undefined;
+      const errorCode: Object | undefined = parsed['errorCode'] as Object | undefined;
+      const legacyCode: Object | undefined = parsed['code'] as Object | undefined;
+      const serverCode: Object | undefined = errorCode !== undefined ? errorCode : legacyCode;
       const serverMessage: Object | undefined = parsed['message'] as Object | undefined;
       const serverRecoverable: Object | undefined = parsed['recoverable'] as Object | undefined;
       if (typeof serverCode === 'string' && (serverCode as string).trim().length > 0) {

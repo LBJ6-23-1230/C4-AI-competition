@@ -9,6 +9,7 @@ export default function exerciseFlowTest() {
     it('uses the real backend by default and normalizes configured base urls', 0, () => {
       const original: ApiClientConfig = AgentApiClient.getConfig();
       expect(original.useFixture).assertFalse();
+      expect(original.baseUrl).assertEqual('http://10.0.2.2:5000');
 
       AgentApiClient.configure({
         baseUrl: 'http://127.0.0.1:5000/',

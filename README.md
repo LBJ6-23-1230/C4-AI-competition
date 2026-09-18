@@ -259,16 +259,13 @@ LLM_MODEL=qwen-vl-plus             # 支持 qwen-plus / qwen-vl-plus / deepseek-
 
 ### API 接口
 
-前后端正式字段以 `contracts/openapi.json`（`api-contract-v0.2`）为准；`contracts/fixtures/` 提供固定核心链的逐接口样例。
+前端真实模式按 GitHub `backend` 分支的 `api-contract-v0.3` 连接 Agent 后端（模拟器地址 `http://10.0.2.2:5000`），并兼容旧错误体中的 `code` 与当前错误体中的 `errorCode`。`contracts/fixtures/` 继续用于不依赖后端的固定核心链回归。
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | `POST` | `/api/agent/chat` | 主对话接口，接受 `{"message": "...", "image": "base64..."}` 返回 `{"reply": "...", "intent": "...", "card": {...}}` |
-| `GET` | `/api/agent/health` | 健康检查，返回 LLM 配置状态 |
-| `GET` | `/api/agent/history` | 获取对话历史 |
-| `DELETE` | `/api/agent/history` | 清空对话历史 |
-| `GET` | `/api/agent/user-data` | 获取用户数据快照（用户/课程/候选人/错题） |
-| `POST/GET` | `/api/v1/workflows...` | 创建并查询诊断工作流 |
+| `GET` | `/health` | 后端健康检查 |
+| `POST/GET` | `/api/v1/workflows...` | 创建、推进（`/{sessionId}/run`）并查询诊断工作流 |
 | `GET` | `/api/v1/profile/{userId}` | 获取版本化学习画像与证据 |
 | `GET` | `/api/v1/plans/current` | 获取当前权威学习计划 |
 | `GET/POST` | `/api/v1/exercises/{setId}...` | 获取练习并提交评估 |
@@ -276,7 +273,7 @@ LLM_MODEL=qwen-vl-plus             # 支持 qwen-plus / qwen-vl-plus / deepseek-
 | `GET` | `/api/v1/traces/{traceId}` | 获取 Agent 决策轨迹 |
 | `POST` | `/api/v1/demo/reset` | 将契约演示状态重置为 Profile/Plan V1 |
 
-`/api/v1` 当前是状态化契约演示实现，可通过真实 HTTP 完整跑通 42 → 58 → Plan V2，并校验契约版本与幂等提交；它不等同于生产评分或生产推荐算法。
+`/api/v1` 当前仍是状态化演示实现，不等同于生产评分或生产推荐算法；真实评分还依赖后端部署时提供带 `answerKey` 的题库数据。
 
 ### 6 意图 Agent 系统
 

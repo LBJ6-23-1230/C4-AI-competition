@@ -1,6 +1,7 @@
 import { describe, it, expect } from '@ohos/hypium';
 import { ApiResponseValidator } from '../main/ets/api/ApiResponseValidator';
 import { AgentApiClient } from '../main/ets/api/AgentApiClient';
+import { WorkflowRunResponse } from '../main/ets/api/ApiModels';
 
 export default function apiResponseValidatorTest() {
   describe('apiResponseValidatorTest', () => {
@@ -28,12 +29,26 @@ export default function apiResponseValidatorTest() {
       expect(ApiResponseValidator.isValid('GET', '/api/v1/plans/current', malformedPlan)).assertFalse();
       expect(ApiResponseValidator.isValid('GET', '/api/v1/profile/demo-user', malformedProfile)).assertFalse();
       expect(ApiResponseValidator.isValid('GET', '/api/v1/unknown', validPlan)).assertFalse();
+
+      const workflowRun: WorkflowRunResponse = {
+        sessionId: 'session-1',
+        traceId: 'trace-session-1',
+        status: 'completed',
+        currentStep: 'finish',
+        currentAgent: 'assessment',
+        stateVersion: 3,
+        finalAction: '查看当前计划',
+        state: {}
+      };
+      expect(ApiResponseValidator.isValid('POST', '/api/v1/workflows/session-1/run', workflowRun as Object)).assertTrue();
     });
 
     it('preserves structured server errors and safe HTTP fallbacks', 0, () => {
       const contractError = AgentApiClient.parseServerError(
         '{"code":"PLAN_DIFF_NOT_READY","message":"完成诊断后再查看。","recoverable":true}', 409);
       const invalidBodyError = AgentApiClient.parseServerError('<html>bad gateway</html>', 502);
+      const v03Error = AgentApiClient.parseServerError(
+        '{"errorCode":"WORKFLOW_NOT_FOUND","message":"会话不存在。","details":{"sessionId":"missing"}}', 404);
 
       expect(contractError.error.code).assertEqual('PLAN_DIFF_NOT_READY');
       expect(contractError.error.message).assertEqual('完成诊断后再查看。');
@@ -42,6 +57,9 @@ export default function apiResponseValidatorTest() {
       expect(invalidBodyError.error.code).assertEqual('HTTP_ERROR');
       expect(invalidBodyError.error.message).assertEqual('服务返回 HTTP 502。');
       expect(invalidBodyError.error.recoverable).assertTrue();
+      expect(v03Error.error.code).assertEqual('WORKFLOW_NOT_FOUND');
+      expect(v03Error.error.message).assertEqual('会话不存在。');
+      expect(v03Error.error.recoverable).assertFalse();
     });
   });
 }

@@ -85,6 +85,10 @@ struct StudyTags {
     }
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     WorkflowSessionStore.save(context, workflow);
+    await this.workflowViewModel.runUntilComplete(1);
+    if (!this.isPageActive || requestVersion !== this.workflowRequestVersion) {
+      return;
+    }
     router.pushUrl({ url: 'pages/ExercisePractice' });
   }
 

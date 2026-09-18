@@ -1,5 +1,5 @@
 import { AgentApiClient } from '../api/AgentApiClient';
-import { WorkflowCreateRequest, WorkflowResponse, WorkflowStatusResponse } from '../api/ApiModels';
+import { WorkflowCreateRequest, WorkflowResponse, WorkflowRunResponse, WorkflowStatusResponse } from '../api/ApiModels';
 import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
 
@@ -51,5 +51,32 @@ export class WorkflowViewModel {
     }
     this.errorMessage = (result as ApiFailure).error.message;
     return null;
+  }
+
+  async runUntilComplete(maxRuns: number = 5): Promise<WorkflowStatusResponse | null> {
+    this.errorMessage = '';
+    const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
+    if (workflow === null) {
+      this.errorMessage = '当前还没有可推进的 Agent 会话。';
+      return null;
+    }
+    let latest: WorkflowStatusResponse | null = null;
+    for (let runIndex: number = 0; runIndex < maxRuns; runIndex++) {
+      const result = await AgentApiClient.runWorkflow(workflow.sessionId);
+      if (!result.ok) {
+        this.errorMessage = (result as ApiFailure).error.message;
+        return latest;
+      }
+      const runResponse: WorkflowRunResponse = result.data;
+      latest = { status: runResponse.status, currentAgent: runResponse.currentAgent,
+        stateVersion: runResponse.stateVersion, finalAction: runResponse.finalAction };
+      ClientCache.cacheWorkflowStatus(latest);
+      ClientCache.invalidateTrace();
+      if (latest.status === 'completed' || latest.status === 'failed' || latest.status === 'fallback' || latest.status === 'error') {
+        return latest;
+      }
+    }
+    this.errorMessage = `Agent 会话在 ${maxRuns} 步内尚未完成，可稍后继续推进。`;
+    return latest;
   }
 }

@@ -4,6 +4,7 @@ import { AgentFeedback, FocusSelfAssessment, FocusSession, FocusTask } from '../
 import { LocalAgentService } from '../services/LocalAgentService';
 import { AIFloatButton } from '../components/AIFloatButton';
 import { ChatNavigation } from '../services/ChatNavigation';
+import { AgentApiClient } from '../api/AgentApiClient';
 
 @Entry
 @Component
@@ -66,18 +67,22 @@ struct FocusResult {
       this.saved = true;
       return;
     }
-    const currentPlan = appState.weeklyPlan ?? LocalAgentService.generateWeeklyPlan(
-      appState.courses, appState.homeworkDDLs, appState.currentUser
-    );
-    appState.setWeeklyPlan(LocalAgentService.adjustPlanAfterFocus(currentPlan, session));
-    appState.latestReview = LocalAgentService.generateReviewSummary(
-      appState.latestSuggestion,
-      appState.latestPartner,
-      appState.latestWrongAnalysis
-    );
+    if (this.isFixture()) {
+      const currentPlan = appState.weeklyPlan ?? LocalAgentService.generateWeeklyPlan(
+        appState.courses, appState.homeworkDDLs, appState.currentUser
+      );
+      appState.setWeeklyPlan(LocalAgentService.adjustPlanAfterFocus(currentPlan, session));
+      appState.latestReview = LocalAgentService.generateReviewSummary(
+        appState.latestSuggestion,
+        appState.latestPartner,
+        appState.latestWrongAnalysis
+      );
+    }
     appState.completeChatTask(
-      this.assessment === 'completed' ? '本次专注已完成，学习计划已经同步更新。' : '本次专注结果已保存，Agent 已调整后续任务。',
-      '查看 Agent 根据本次结果更新后的安排。',
+      this.isFixture() ?
+        (this.assessment === 'completed' ? '本次专注已完成，离线计划已同步更新。' : '本次专注结果已保存，离线计划已调整。') :
+        '本次专注结果已保存；后端尚未提供专注结果同步接口。',
+      this.isFixture() ? '查看离线模式更新后的安排。' : '可继续查看后端当前计划。',
       '查看更新计划',
       'pages/StudyPlan'
     );
@@ -89,6 +94,10 @@ struct FocusResult {
 
   private returnToChat(): void {
     ChatNavigation.returnToChat();
+  }
+
+  private isFixture(): boolean {
+    return AgentApiClient.getConfig().useFixture;
   }
 
   private timerLabel(): string {
@@ -140,11 +149,16 @@ struct FocusResult {
               }, (value: string) => value)
             }.width('100%')
           }.width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(20).border({ width: 1, color: '#F1F5F9' })
-          Column({ space: 8 }) {
-            Text('小知的下一步建议').fontSize(14).fontWeight(FontWeight.Medium).fontColor('#2563EB').width('100%')
-            Text(this.currentFeedback().feedback).fontSize(16).fontWeight(FontWeight.Medium).fontColor('#202522').lineHeight(24)
-            Text(this.currentFeedback().nextSuggestion).fontSize(13).fontColor('#64748B').lineHeight(20)
-          }.width('100%').padding(18).backgroundColor('#EFF6FF').borderRadius(20)
+          if (this.isFixture()) {
+            Column({ space: 8 }) {
+              Text('离线模式的下一步建议').fontSize(14).fontWeight(FontWeight.Medium).fontColor('#2563EB').width('100%')
+              Text(this.currentFeedback().feedback).fontSize(16).fontWeight(FontWeight.Medium).fontColor('#202522').lineHeight(24)
+              Text(this.currentFeedback().nextSuggestion).fontSize(13).fontColor('#64748B').lineHeight(20)
+            }.width('100%').padding(18).backgroundColor('#EFF6FF').borderRadius(20)
+          } else {
+            Text('真实模式仅保存本次 UI 专注记录，不会在前端自行更改 Agent 计划。')
+              .fontSize(13).fontColor('#0F766E').lineHeight(20).width('100%').padding(16).backgroundColor('#ECFDF5').borderRadius(16)
+          }
           if (this.saved) {
             Button('查看 Agent 更新后的计划').width('100%').height(52).fontColor('#FFFFFF').fontWeight(FontWeight.Bold).backgroundColor('#2563EB').borderRadius(16)
               .onClick(() => router.pushUrl({ url: 'pages/StudyPlan' }))

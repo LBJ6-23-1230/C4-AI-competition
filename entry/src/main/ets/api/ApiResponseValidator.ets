@@ -1,4 +1,4 @@
-/** Lightweight runtime guards for JSON received from the api-contract-v0.2 endpoints. */
+/** Lightweight runtime guards for JSON received from the api-contract-v0.3 endpoints. */
 export class ApiResponseValidator {
   static isValid(method: string, path: string, payload: Object): boolean {
     if (!ApiResponseValidator.isRecord(payload)) {
@@ -17,6 +17,15 @@ export class ApiResponseValidator {
       return ApiResponseValidator.hasString(data, 'status') &&
         ApiResponseValidator.hasNumber(data, 'stateVersion') &&
         ApiResponseValidator.isNullableString(data, 'currentAgent') &&
+        ApiResponseValidator.isNullableString(data, 'finalAction');
+    }
+    if (method === 'POST' && path.indexOf('/api/v1/workflows/') === 0 && path.endsWith('/run')) {
+      return ApiResponseValidator.hasString(data, 'sessionId') &&
+        ApiResponseValidator.hasString(data, 'traceId') &&
+        ApiResponseValidator.hasString(data, 'status') &&
+        ApiResponseValidator.hasString(data, 'currentStep') &&
+        ApiResponseValidator.hasString(data, 'currentAgent') &&
+        ApiResponseValidator.hasNumber(data, 'stateVersion') &&
         ApiResponseValidator.isNullableString(data, 'finalAction');
     }
     if (method === 'GET' && path.indexOf('/api/v1/profile/') === 0) {

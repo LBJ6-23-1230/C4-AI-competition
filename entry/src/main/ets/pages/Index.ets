@@ -6,18 +6,24 @@ import { DateHelper } from '../utils/DateHelper';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AIFloatButton } from '../components/AIFloatButton';
 import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
-import { WorkflowResponse, WorkflowStatusResponse } from '../api/ApiModels';
+import { LearningPlan, PlanTask, WorkflowResponse, WorkflowStatusResponse } from '../api/ApiModels';
 import { ClientCache } from '../cache/ClientCache';
 import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
+import { PlanViewModel } from '../viewmodels/PlanViewModel';
 
 @Entry
 @Component
 struct Index {
   @State refreshKey: number = 0;
   @State isWorkflowRefreshing: boolean = false;
+  @State isAgentPlanLoading: boolean = false;
+  @State agentPlan: LearningPlan | null = null;
+  @State agentPlanMessage: string = '';
   private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
+  private planViewModel: PlanViewModel = new PlanViewModel();
   private workflowRequestVersion: number = 0;
+  private planRequestVersion: number = 0;
   private isPageActive: boolean = false;
 
   aboutToAppear(): void {
@@ -30,7 +36,44 @@ struct Index {
   aboutToDisappear(): void {
     this.isPageActive = false;
     this.workflowRequestVersion++;
+    this.planRequestVersion++;
     this.isWorkflowRefreshing = false;
+  }
+
+  private async loadAgentPlan(forceRefresh: boolean = true): Promise<void> {
+    this.isAgentPlanLoading = true;
+    this.agentPlanMessage = '';
+    const requestVersion: number = ++this.planRequestVersion;
+    const state = await this.planViewModel.load(forceRefresh);
+    if (!this.isPageActive || requestVersion !== this.planRequestVersion) return;
+    this.agentPlan = state.plan;
+    this.agentPlanMessage = state.errorMessage;
+    this.isAgentPlanLoading = false;
+  }
+
+  private isFixture(): boolean {
+    return AgentApiClient.getConfig().useFixture;
+  }
+
+  private currentAgentTask(): PlanTask | null {
+    if (this.agentPlan === null || this.agentPlan.tasks.length === 0) return null;
+    for (let index: number = 0; index < this.agentPlan.tasks.length; index++) {
+      if (this.agentPlan.tasks[index].status !== 'completed') return this.agentPlan.tasks[index];
+    }
+    return null;
+  }
+
+  private startAgentTask(task: PlanTask): void {
+    appState.setFocusTask({
+      course: '专项学习',
+      task: task.knowledgePointName,
+      plannedMinutes: task.durationMinutes,
+      source: 'agent',
+      mode: 'normal',
+      timerType: 'countdown',
+      planTaskId: task.taskId
+    } as FocusTask);
+    router.pushUrl({ url: 'pages/FocusSetup' });
   }
 
   private async bootstrapWorkflow(): Promise<void> {
@@ -40,14 +83,23 @@ struct Index {
     this.isWorkflowRefreshing = true;
     const requestVersion: number = ++this.workflowRequestVersion;
     let workflow: WorkflowResponse | null = ClientCache.getWorkflow();
+    let created: boolean = false;
     if (workflow === null) {
       workflow = await this.workflowViewModel.start(
         appState.currentUser.learningGoal.goal,
         appState.currentUser.userId
       );
+      created = workflow !== null;
     }
     if (workflow !== null) {
-      await this.workflowViewModel.refreshStatus(true);
+      if (created) {
+        await this.workflowViewModel.runUntilComplete(1);
+      } else {
+        await this.workflowViewModel.refreshStatus(true);
+      }
+    }
+    if (!this.isFixture()) {
+      await this.loadAgentPlan(true);
     }
     if (!this.isPageActive || requestVersion !== this.workflowRequestVersion) {
       return;
@@ -57,6 +109,7 @@ struct Index {
   }
 
   private ensurePlan(): void {
+    if (!this.isFixture()) return;
     if (appState.weeklyPlan === null) {
       appState.setWeeklyPlan(LocalAgentService.generateWeeklyPlan(
         appState.courses, appState.homeworkDDLs, appState.currentUser
@@ -121,7 +174,7 @@ struct Index {
   private apiEnvironmentLabel(): string {
     const config: ApiClientConfig = AgentApiClient.getConfig();
     if (config.useFixture) return 'Fixture';
-    return config.baseUrl === 'http://10.0.2.2:5000' ? '模拟器后端' : '真机后端';
+    return config.baseUrl === 'http://10.0.2.2:5000' ? '真 Agent 后端' : '自定义后端';
   }
 
   private agentStatusTitle(): string {
@@ -139,7 +192,8 @@ struct Index {
       return status.finalAction;
     }
     const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
-    return workflow === null ? this.plan().decisionTrace.inputSummary : `下一步：${workflow.nextAction}`;
+    if (workflow !== null) return `下一步：${workflow.nextAction}`;
+    return this.isFixture() ? this.plan().decisionTrace.inputSummary : '等待真 Agent 后端返回会话状态。';
   }
 
   private returnToChat(): void {
@@ -173,6 +227,26 @@ struct Index {
         .onClick(() => this.openApiEnvironment())
     }
     .width('100%').padding(14).backgroundColor('#EFF6FF').borderRadius(16)
+  }
+
+  @Builder
+  AgentPlanCard(task: PlanTask) {
+    Column({ space: 12 }) {
+      Row() {
+        Text('Agent 当前计划').fontSize(13).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+        Blank()
+        Text(`Plan V${this.agentPlan?.version ?? 0}`)
+          .fontSize(11).fontColor('#0F766E').backgroundColor('#ECFDF5').borderRadius(9)
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+      }.width('100%')
+      Text(task.knowledgePointName).fontSize(22).fontWeight(FontWeight.Bold).fontColor('#1F2937').width('100%')
+      Text(`${task.durationMinutes} 分钟 · ${task.status}`)
+        .fontSize(13).fontColor('#667085').width('100%')
+      Text(this.agentPlan?.reason ?? '任务来自后端当前学习计划。').fontSize(13).fontColor('#475467').lineHeight(20).width('100%')
+      Button('开始专注').width('100%').height(44).fontSize(14).fontWeight(FontWeight.Bold)
+        .fontColor('#FFFFFF').backgroundColor('#2563EB').borderRadius(12).onClick(() => this.startAgentTask(task))
+    }.width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(18)
+      .border({ width: 1, color: '#BFDBFE' })
   }
 
   @Builder
@@ -240,17 +314,32 @@ struct Index {
           }.width('100%').padding(13).backgroundColor('#FFFFFF').borderRadius(12)
           .border({ width: 1, color: '#E2E8F0' }).onClick(() => this.openApiEnvironment())
           Text('今天，先完成最重要的一件事').fontSize(24).fontWeight(FontWeight.Bold).fontColor('#1F2937').width('100%')
-          if (this.primaryTask() !== null) {
+          if (this.isFixture() && this.primaryTask() !== null) {
             this.PrimaryTaskCard(this.primaryTask()!)
-          } else {
+          } else if (this.isFixture()) {
             Column({ space: 8 }) {
               Text('今日任务已完成').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#1F2937')
               Text('Agent 已把后续任务安排到明天，去看看本周进度吧。').fontSize(13).fontColor('#667085')
               Button('查看本周计划').width('100%').height(44).fontColor('#FFFFFF').backgroundColor('#2563EB').borderRadius(12).onClick(() => this.openPlan())
             }.width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(18)
+          } else if (this.currentAgentTask() !== null) {
+            this.AgentPlanCard(this.currentAgentTask()!)
+          } else if (this.isAgentPlanLoading) {
+            Row({ space: 10 }) {
+              LoadingProgress().width(24).height(24).color('#2563EB')
+              Text('正在读取 Agent 当前计划…').fontSize(13).fontColor('#667085')
+            }.width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(14)
+          } else {
+            Column({ space: 8 }) {
+              Text('当前计划暂不可用').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#B45309')
+              Text(this.agentPlanMessage.length > 0 ? this.agentPlanMessage : '后端当前计划中没有待执行任务。')
+                .fontSize(12).fontColor('#667085').lineHeight(18)
+              Text('重试').fontSize(13).fontWeight(FontWeight.Bold).fontColor('#2563EB').onClick(() => this.loadAgentPlan(true))
+            }.width('100%').padding(16).backgroundColor('#FFFBEB').borderRadius(14)
           }
 
-          Column({ space: 4 }) {
+          if (this.isFixture()) {
+            Column({ space: 4 }) {
             Row() {
               Text('今日计划').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#1F2937')
               Blank()
@@ -264,7 +353,12 @@ struct Index {
             }, (task: LearningPlanTask) => task.id)
             Text('查看全部计划 →').fontSize(13).fontWeight(FontWeight.Medium).fontColor('#2563EB').width('100%').textAlign(TextAlign.Center)
               .margin({ top: 8 }).onClick(() => this.openPlan())
-          }.width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(18).border({ width: 1, color: '#EAECF0' })
+            }.width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(18).border({ width: 1, color: '#EAECF0' })
+          } else {
+            Button('查看全部计划 →').width('100%').height(46).fontSize(14).fontWeight(FontWeight.Bold)
+              .fontColor('#2563EB').backgroundColor('#FFFFFF').border({ width: 1, color: '#BFDBFE' }).borderRadius(12)
+              .onClick(() => this.openPlan())
+          }
 
           Row({ space: 10 }) {
             this.Metric(`${appState.getFocusSummary().todayMinutes}`, '今日专注分钟')

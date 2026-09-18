@@ -1,11 +1,9 @@
 import router from '@ohos.router';
 import { AIFloatButton } from '../components/AIFloatButton';
-import { Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmissionResult, WorkflowStatusResponse } from '../api/ApiModels';
+import { Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmissionResult } from '../api/ApiModels';
 import { DemoSnapshot } from '../cache/DemoSnapshot';
 import { PlanDiffCard } from '../components/PlanDiffCard';
 import { ExerciseViewModel } from '../viewmodels/ExerciseViewModel';
-import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
-import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
 
 @Entry
 @Component
@@ -18,10 +16,7 @@ struct ExercisePractice {
   @State exercises: Exercise[] = [];
   @State answers: string[] = [];
   @State result: ExerciseSubmissionResult | null = null;
-  @State workflowStatus: WorkflowStatusResponse | null = null;
-  @State workflowMessage: string = '';
   private viewModel: ExerciseViewModel = new ExerciseViewModel();
-  private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
   private pageScroller: Scroller = new Scroller();
   private submissionKey: string = '';
   private requestVersion: number = 0;
@@ -51,8 +46,6 @@ struct ExercisePractice {
     if (resetVersion !== this.observedResetVersion) {
       this.observedResetVersion = resetVersion;
       this.result = null;
-      this.workflowStatus = null;
-      this.workflowMessage = '';
       this.loadExercises(true);
       return true;
     }
@@ -156,22 +149,12 @@ struct ExercisePractice {
     this.warningMessage = this.viewModel.getWarningMessage();
     this.result = submissionResult;
     this.scrollToTop();
-    this.refreshWorkflowStatus();
   }
 
   private scrollToTop(): void {
     setTimeout(() => {
       this.pageScroller.scrollEdge(Edge.Top);
     }, 100);
-  }
-
-  private async refreshWorkflowStatus(): Promise<void> {
-    const status: WorkflowStatusResponse | null = await this.workflowViewModel.refreshStatus(true);
-    if (!this.isPageActive) {
-      return;
-    }
-    this.workflowStatus = status;
-    this.workflowMessage = status === null ? this.workflowViewModel.getErrorMessage() : '';
   }
 
   @Builder
@@ -212,16 +195,9 @@ struct ExercisePractice {
           .padding(12).backgroundColor('#FFFBEB').borderRadius(10)
       }
 
-      if (this.workflowStatus !== null) {
-        Column({ space: 5 }) {
-          Text(`Agent 状态：${ApiDisplayFormatter.workflowStatus(this.workflowStatus!.status)}`).fontSize(14).fontWeight(FontWeight.Bold).fontColor('#1F2937')
-          Text(this.workflowStatus!.finalAction !== null ? this.workflowStatus!.finalAction! : `当前执行：${ApiDisplayFormatter.agent(this.workflowStatus!.currentAgent)}`)
-            .fontSize(12).fontColor('#475467')
-          Text(`状态版本 ${this.workflowStatus!.stateVersion}`).fontSize(11).fontColor('#98A2B3')
-        }.width('100%').padding(12).backgroundColor('#EFF6FF').borderRadius(10)
-      } else if (this.workflowMessage.length > 0) {
-        Text(`诊断结果已保存；Agent 状态暂未同步：${this.workflowMessage}`)
-          .fontSize(12).fontColor('#B45309').lineHeight(18).width('100%').padding(12).backgroundColor('#FFFBEB').borderRadius(10)
+      if (value.traceId !== undefined) {
+        Text(`本次评估已生成可追溯记录：${value.traceId}`)
+          .fontSize(12).fontColor('#0F766E').lineHeight(18).width('100%').padding(12).backgroundColor('#ECFDF5').borderRadius(10)
       }
 
       Row({ space: 12 }) {

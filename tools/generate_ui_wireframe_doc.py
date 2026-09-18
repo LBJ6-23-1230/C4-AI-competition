@@ -9,7 +9,7 @@ from docx.oxml.ns import qn
 from PIL import Image, ImageDraw, ImageFont
 
 
-ROOT = Path(r"D:\zhixue_Mate")
+ROOT = Path(r"D:\project\zhixue_Mate")
 OUT_DIR = ROOT / "deliverables" / "ui_wireframes"
 DOCX_PATH = OUT_DIR / "知学搭子_前端页面草图设计.docx"
 FONT_PATH = Path(r"C:\Windows\Fonts\msyh.ttc")

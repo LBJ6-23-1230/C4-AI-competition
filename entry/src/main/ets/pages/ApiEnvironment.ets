@@ -58,7 +58,7 @@ struct ApiEnvironment {
   }
 
   private useEmulatorBackend(): void {
-    this.applyConfig('http://10.0.2.2:5000', false, '已切换到模拟器后端，请确认电脑 5000 端口服务已启动。');
+    this.applyConfig('http://10.0.2.2:5000', false, '已切换到真 Agent 后端，请确认电脑 5000 端口服务已启动。');
   }
 
   private useCustomBackend(): void {
@@ -105,7 +105,7 @@ struct ApiEnvironment {
             .width('100%').height(48).fontSize(15).fontColor('#FFFFFF').backgroundColor('#2563EB').borderRadius(12)
             .onClick(() => this.useOfflineDemo())
           Text('固定演示不依赖后端，可稳定展示 42 → 58 → Plan V2。').fontSize(12).fontColor('#667085').width('100%')
-          Button(!this.useFixture && this.baseUrl === 'http://10.0.2.2:5000' ? '✓ 当前：DevEco 模拟器' : '使用 DevEco 模拟器后端')
+          Button(!this.useFixture && this.baseUrl === 'http://10.0.2.2:5000' ? '✓ 当前：真 Agent 后端' : '使用真 Agent 后端（5000）')
             .width('100%').height(48).fontSize(15).fontColor('#2563EB').backgroundColor('#FFFFFF')
             .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => this.useEmulatorBackend())
           Column({ space: 10 }) {

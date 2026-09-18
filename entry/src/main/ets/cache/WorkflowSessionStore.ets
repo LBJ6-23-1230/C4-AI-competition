@@ -25,7 +25,7 @@ export class WorkflowSessionStore {
       ClientCache.cacheWorkflow({
         sessionId: sessionId,
         traceId: traceId,
-        status: store.getSync(WorkflowSessionStore.KEY_STATUS, 'running') as 'running' | 'completed' | 'failed' | 'fallback',
+        status: store.getSync(WorkflowSessionStore.KEY_STATUS, 'running') as 'running' | 'completed' | 'failed' | 'fallback' | 'error',
         currentStep: store.getSync(WorkflowSessionStore.KEY_CURRENT_STEP, '') as string,
         nextAction: store.getSync(WorkflowSessionStore.KEY_NEXT_ACTION, '') as string
       });

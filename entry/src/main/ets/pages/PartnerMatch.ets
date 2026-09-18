@@ -4,32 +4,30 @@ import { PartnerMatch as PartnerMatchType, MatchFactor, UserProfile, LearningPla
 import { LocalAgentService } from '../services/LocalAgentService';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AIFloatButton } from '../components/AIFloatButton';
+import { AgentApiClient } from '../api/AgentApiClient';
 
-let generatedPartner: PartnerMatchType | null =
-  LocalAgentService.matchBestPartner(appState.currentUser, appState.candidates);
+let generatedPartner: PartnerMatchType | null = null;
 
 interface CandidateMatchEntry {
   candidate: UserProfile;
   match: PartnerMatchType;
 }
 let otherCandidateMatches: CandidateMatchEntry[] = [];
-for (let i: number = 0; i < appState.candidates.length; i++) {
-  const c: UserProfile = appState.candidates[i];
-  if (generatedPartner === null || c.userId !== generatedPartner.userId) {
-    otherCandidateMatches.push({
-      candidate: c,
-      match: LocalAgentService.matchPartner(appState.currentUser, c)
-    });
-  }
-}
 
 @Entry
 @Component
 struct PartnerMatch {
   @State invitationSent: boolean = false;
+  @State realModeUnavailable: boolean = false;
   private collaborativeTaskId: string = '';
 
   aboutToAppear(): void {
+    this.realModeUnavailable = !AgentApiClient.getConfig().useFixture;
+    if (this.realModeUnavailable) {
+      generatedPartner = null;
+      otherCandidateMatches = [];
+      return;
+    }
     generatedPartner = LocalAgentService.matchBestPartner(appState.currentUser, appState.candidates);
     if (generatedPartner !== null && appState.latestPartner?.userId === generatedPartner.userId) {
       const previousTask: LearningPlanTask = LocalAgentService.createCollaborativeTask(generatedPartner, appState.currentUser);
@@ -153,6 +151,11 @@ Text(`${generatedPartner.score}%`).fontSize(28).fontWeight(FontWeight.Bold).font
 
           Text('基于课程、目标、知识结构、空闲时间智能匹配最佳学习伙伴')
             .fontSize(14).fontColor('#667085').lineHeight(21).width('100%')
+
+          if (this.realModeUnavailable) {
+            Text('真实模式下已禁用前端本地匹配结果。待后端提供搭子匹配契约后，本页再接入 ViewModel。')
+              .fontSize(13).fontColor('#B45309').lineHeight(20).width('100%').padding(12).backgroundColor('#FFFBEB').borderRadius(10)
+          }
 
           Text(appState.getChatTaskContext()).fontSize(12).fontColor('#2563EB')
             .width('100%').padding(10).backgroundColor('#EFF6FF').borderRadius(10)

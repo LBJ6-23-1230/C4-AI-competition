@@ -453,13 +453,13 @@ struct ChatMain {
       }
 
       Row({ space: 8 }) {
-        Button('🎤')
+        Button('🎤×')
           .fontSize(16)
-          .backgroundColor('#FFF7ED')
+          .backgroundColor('#E5E7EB')
           .width(40)
           .height(40)
           .borderRadius(8)
-          .onClick(() => this.startVoiceInput())
+          .enabled(false)
         Button('📷')
           .fontSize(16)
           .backgroundColor('#EAF2FF')

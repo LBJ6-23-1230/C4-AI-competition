@@ -79,6 +79,13 @@ function Scroll-UntilVisibleText([string]$Text, [int]$MaxSwipes = 5) {
     throw "Expected visible text did not become available: $Text"
 }
 
+function Scroll-ToTop([int]$MaxSwipes = 6) {
+    for ($attempt = 0; $attempt -lt $MaxSwipes; $attempt++) {
+        & $HdcPath shell uitest uiInput swipe 1105 650 1105 1900 500 | Out-Null
+        Start-Sleep -Milliseconds 350
+    }
+}
+
 function Back-ToIndex {
     & $HdcPath shell uitest uiInput keyEvent Back | Out-Null
     Start-Sleep -Milliseconds 700
@@ -93,6 +100,7 @@ $null = Assert-Page 'pages/ChatMain'
 Click-Text '工具'
 $null = Assert-Page 'pages/Index'
 
+Scroll-UntilVisibleText '查看全部计划 →'
 Click-Text '查看全部计划 →'
 $null = Assert-Page 'pages/StudyPlan'
 Back-ToIndex
@@ -119,10 +127,13 @@ Click-Text '我的'
 $null = Assert-Page 'pages/LearningHistory'
 Back-ToIndex
 
+Scroll-ToTop
+Scroll-UntilVisibleText '配置 →'
 Click-Text '配置 →'
 $null = Assert-Page 'pages/ApiEnvironment'
 Back-ToIndex
 
+Scroll-UntilVisibleText '返回对话'
 Click-Text '返回对话'
 $null = Assert-Page 'pages/ChatMain'
 

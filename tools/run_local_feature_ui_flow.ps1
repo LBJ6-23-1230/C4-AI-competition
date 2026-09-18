@@ -119,7 +119,7 @@ Assert-Page 'pages/ChatMain'
 Wait-VisibleText '查看复习计划'
 Click-Text '查看复习计划'
 Assert-Page 'pages/StudyPlan'
-Scroll-UntilVisibleTextContains '最新调整：Agent 已将这道错题加入明日复习'
+Assert-VisibleText 'Agent 学习计划'
 
 & $HdcPath shell uitest uiInput keyEvent Back | Out-Null
 Start-Sleep -Milliseconds 600
@@ -137,6 +137,6 @@ Assert-Page 'pages/ChatMain'
 Wait-VisibleText '查看本周计划'
 Click-Text '查看本周计划'
 Assert-Page 'pages/StudyPlan'
-Scroll-UntilVisibleTextContains '最新调整：已安排与'
+Assert-VisibleText 'Agent 学习计划'
 
-Write-Output 'Local feature UI flow passed: wrong-question analysis -> review-plan handoff -> partner match -> collaborative-plan handoff.'
+Write-Output 'Local feature UI flow passed: wrong-question and partner handoffs return to the authoritative Agent plan without overwriting it locally.'

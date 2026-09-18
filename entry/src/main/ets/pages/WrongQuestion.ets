@@ -5,6 +5,7 @@ import { WrongAnalysisResult } from '../models/AgentModels';
 import { LocalAgentService } from '../services/LocalAgentService';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AIFloatButton } from '../components/AIFloatButton';
+import { AgentApiClient } from '../api/AgentApiClient';
 
 @Entry
 @Component
@@ -16,6 +17,7 @@ struct WrongQuestion {
   @State analysisResult: WrongAnalysisResult | null = null;
   @State showAnalysis: boolean = false;
   @State reviewAdded: boolean = false;
+  @State analysisMessage: string = '';
   private analysisRequestVersion: number = 0;
   private isPageActive: boolean = false;
 
@@ -66,7 +68,8 @@ struct WrongQuestion {
       }
     } catch (error) {
       console.error(`选图失败: ${JSON.stringify(error)}`);
-      this.useMockImage();
+      if (this.isFixture()) this.useMockImage();
+      else this.analysisMessage = '无法读取图片，请检查媒体权限后重试。';
     }
   }
 
@@ -87,7 +90,8 @@ struct WrongQuestion {
       }
     } catch (error) {
       console.error(`拍照失败: ${JSON.stringify(error)}`);
-      this.useMockImage();
+      if (this.isFixture()) this.useMockImage();
+      else this.analysisMessage = '无法读取图片，请检查媒体权限后重试。';
     }
   }
 
@@ -100,12 +104,24 @@ struct WrongQuestion {
     this.startAnalysis(mockUri);
   }
 
+  private isFixture(): boolean {
+    return AgentApiClient.getConfig().useFixture;
+  }
+
   private startAnalysis(imageUri: string): void {
+    if (!this.isFixture()) {
+      this.isAnalyzing = false;
+      this.showAnalysis = false;
+      this.analysisResult = null;
+      this.analysisMessage = '真实模式已禁用前端预置分析。请等待后端图片/OCR 接口完成后再联调。';
+      return;
+    }
     const requestVersion: number = ++this.analysisRequestVersion;
     this.isAnalyzing = true;
     this.showAnalysis = false;
     this.analysisResult = null;
     this.reviewAdded = false;
+    this.analysisMessage = '';
     appState.latestWrongAnalysis = null;
     setTimeout(() => {
       if (!this.isPageActive || requestVersion !== this.analysisRequestVersion) {
@@ -313,6 +329,7 @@ Text('→').fontSize(16).fontColor('#2563EB')
                 .width('100%').height(44).fontSize(13).fontWeight(FontWeight.Medium)
                 .fontColor('#2563EB').backgroundColor('#FFFFFF')
                 .border({ width: 1, color: '#93C5FD' }).borderRadius(12)
+                .enabled(this.isFixture())
                 .onClick(() => { this.useMockImage(); })
             } else {
               Column({ space: 12 }) {
@@ -355,6 +372,11 @@ Text('→').fontSize(16).fontColor('#2563EB')
               Text('Agent 正在分析错题...').fontSize(14).fontColor('#667085')
             }
             .width('100%').padding(24).backgroundColor('#FFFFFF').borderRadius(16).border({ width: 1, color: '#EFF6FF' })
+          }
+
+          if (this.analysisMessage.length > 0) {
+            Text(this.analysisMessage).fontSize(13).fontColor('#B45309').lineHeight(20).width('100%')
+              .padding(12).backgroundColor('#FFFBEB').borderRadius(10)
           }
 
           /* 分析结果 */

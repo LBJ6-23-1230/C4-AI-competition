@@ -115,15 +115,19 @@ Click-Text '配置 →'
 $null = Assert-Page 'pages/ApiEnvironment'
 
 $environmentLayout = Get-Layout
-if (@(Find-TextNodes $environmentLayout '使用 DevEco 模拟器后端').Count -gt 0) {
-    Click-Text '使用 DevEco 模拟器后端'
+if (@(Find-TextNodes $environmentLayout '使用真 Agent 后端（5000）').Count -gt 0) {
+    Click-Text '使用真 Agent 后端（5000）'
 }
-Click-Text '使用离线 Fixture'
+$environmentLayout = Get-Layout
+if (@(Find-TextNodes $environmentLayout '使用离线 Fixture').Count -gt 0) {
+    Click-Text '使用离线 Fixture'
+}
 Assert-VisibleText '当前模式：Fixture 离线演示'
 
 & $HdcPath shell uitest uiInput keyEvent Back | Out-Null
 Start-Sleep -Milliseconds 500
 $null = Assert-Page 'pages/Index'
+Scroll-UntilVisibleText '返回对话'
 Click-Text '返回对话'
 $null = Assert-Page 'pages/ChatMain'
 

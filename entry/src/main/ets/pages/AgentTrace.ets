@@ -1,7 +1,7 @@
 import router from '@ohos.router';
 import { common } from '@kit.AbilityKit';
 import { AIFloatButton } from '../components/AIFloatButton';
-import { TraceEvent, TraceResponse, WorkflowResponse } from '../api/ApiModels';
+import { ExerciseSubmissionResult, TraceEvent, TraceResponse, WorkflowResponse } from '../api/ApiModels';
 import { TraceViewModel } from '../viewmodels/TraceViewModel';
 import { ClientCache } from '../cache/ClientCache';
 import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
@@ -25,8 +25,11 @@ struct AgentTrace {
   aboutToAppear(): void {
     this.isPageActive = true;
     const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
+    const assessment: ExerciseSubmissionResult | null = ClientCache.getAssessment();
     const cachedTrace: TraceResponse | null = ClientCache.getTrace();
-    if (workflow !== null) {
+    if (assessment?.traceId !== undefined) {
+      this.traceId = assessment.traceId;
+    } else if (workflow !== null) {
       this.traceId = workflow.traceId;
     } else if (cachedTrace !== null) {
       this.traceId = cachedTrace.traceId;
@@ -163,6 +166,8 @@ struct AgentTrace {
             Text('Agent 的决策过程').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
             Text('这里展示后端返回的决策记录，用于说明 Agent 为什么给出当前学习动作。')
               .fontSize(13).fontColor('#667085').lineHeight(19).width('100%')
+            Text('不记录模型思维链，只展示可复核的决策依据、工具调用与状态版本。')
+              .fontSize(12).fontColor('#0F766E').lineHeight(18).width('100%').padding(10).backgroundColor('#ECFDF5').borderRadius(10)
             Row() {
               Text(`Trace ID：${this.traceId}`).fontSize(12).fontColor('#64748B')
               Blank()

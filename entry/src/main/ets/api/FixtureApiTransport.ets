@@ -1,11 +1,12 @@
-import { DemoResetResponse, Evidence, ExerciseSetResponse, ExerciseSubmissionResult, KnowledgeMastery, LearningPlan, PlanDiff, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowStatusResponse } from './ApiModels';
+import { DecisionFactor, DemoResetResponse, Evidence, ExerciseSetResponse, ExerciseSubmissionResult, KnowledgeMastery, LearningPlan, PlanDiff, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { FixtureDemoStateStore } from './FixtureDemoStateStore';
 
-/** Success payloads mirror contracts/fixtures/*.json api-contract-v0.2. */
+/** Deterministic offline transport mirroring the api-contract-v0.3 payloads. */
 export class FixtureApiTransport {
   static async request<T>(method: string, path: string, body?: Object): Promise<ApiResult<T>> {
     if (method === 'POST' && path === '/api/v1/workflows') return apiSuccess<WorkflowResponse>(FixtureApiTransport.workflow(body as WorkflowCreateRequest), 'fixture') as ApiResult<T>;
+    if (method === 'POST' && path.indexOf('/api/v1/workflows/') === 0 && path.endsWith('/run')) return apiSuccess<WorkflowRunResponse>(FixtureApiTransport.workflowRun(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && path.indexOf('/api/v1/workflows/') === 0) return apiSuccess<WorkflowStatusResponse>(FixtureApiTransport.workflowStatus(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && path.indexOf('/api/v1/profile/') === 0) return apiSuccess<ProfileResponse>(FixtureApiTransport.profile(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && path === '/api/v1/plans/current') return apiSuccess<LearningPlan>(FixtureApiTransport.plan(), 'fixture') as ApiResult<T>;
@@ -36,7 +37,17 @@ export class FixtureApiTransport {
 
   private static plan(): LearningPlan {
     const replanned: boolean = FixtureDemoStateStore.isExerciseSubmitted();
-    return { planId: 'plan-demo-001', version: replanned ? 2 : 1, generatedFromProfileVersion: replanned ? 2 : 1, reason: replanned ? '掌握度仍低于巩固阈值，已自动重规划。' : '巩固二叉树后序遍历', tasks: [{ taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', durationMinutes: replanned ? 45 : 30, status: 'pending', priority: 'high' }] };
+    return { planId: 'plan-demo-001', version: replanned ? 2 : 1, generatedFromProfileVersion: replanned ? 2 : 1, reason: replanned ? '掌握度仍低于巩固阈值，已自动重规划。' : '巩固二叉树后序遍历', factors: FixtureApiTransport.factors(), tasks: [{ taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', durationMinutes: replanned ? 45 : 30, status: 'pending', priority: 'high' }] };
+  }
+
+  private static factors(): DecisionFactor[] {
+    return [
+      { name: '1-Mastery', value: 0.58, weight: 0.30, contribution: 0.174 },
+      { name: 'ErrorIntensity', value: 0.67, weight: 0.25, contribution: 0.168 },
+      { name: 'Importance', value: 0.90, weight: 0.20, contribution: 0.180 },
+      { name: 'Urgency', value: 0.53, weight: 0.15, contribution: 0.080 },
+      { name: 'PrerequisiteImpact', value: 0.20, weight: 0.10, contribution: 0.020 }
+    ];
   }
 
   private static workflow(request?: WorkflowCreateRequest): WorkflowResponse {
@@ -46,6 +57,13 @@ export class FixtureApiTransport {
   private static workflowStatus(): WorkflowStatusResponse {
     const exerciseSubmitted: boolean = FixtureDemoStateStore.isExerciseSubmitted();
     return { status: exerciseSubmitted ? 'completed' : 'running', currentAgent: exerciseSubmitted ? 'planner' : 'diagnosis', stateVersion: exerciseSubmitted ? 5 : 2, finalAction: exerciseSubmitted ? '查看 Plan V2' : null };
+  }
+
+  private static workflowRun(): WorkflowRunResponse {
+    const status: WorkflowStatusResponse = FixtureApiTransport.workflowStatus();
+    return { sessionId: 'session-demo-001', traceId: 'trace-demo-001', status: status.status,
+      currentStep: status.currentAgent ?? 'finish', currentAgent: status.currentAgent ?? 'finish',
+      stateVersion: status.stateVersion, finalAction: status.finalAction, state: {} };
   }
 
   private static exerciseSet(): ExerciseSetResponse {

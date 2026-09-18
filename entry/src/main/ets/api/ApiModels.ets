@@ -1,7 +1,7 @@
-/** DTOs mirrored from contracts/openapi.json (api-contract-v0.2). */
-export const API_CONTRACT_VERSION: string = 'api-contract-v0.2';
+/** DTOs mirrored from the authoritative Agent backend contract. */
+export const API_CONTRACT_VERSION: string = 'api-contract-v0.3';
 
-export type WorkflowStatus = 'running' | 'completed' | 'failed' | 'fallback';
+export type WorkflowStatus = 'running' | 'completed' | 'failed' | 'fallback' | 'error';
 export type PlanTaskStatus = 'pending' | 'in_progress' | 'completed';
 
 export interface Evidence {
@@ -70,6 +70,24 @@ export interface WorkflowStatusResponse {
   finalAction: string | null;
 }
 
+export interface WorkflowRunResponse {
+  sessionId: string;
+  traceId: string;
+  status: WorkflowStatus;
+  currentStep: string;
+  currentAgent: string;
+  stateVersion: number;
+  finalAction: string | null;
+  state?: Record<string, Object>;
+}
+
+export interface DecisionFactor {
+  name: string;
+  value: number;
+  weight: number;
+  contribution: number;
+}
+
 export interface PlanTask {
   taskId: string;
   knowledgePointId: string;
@@ -84,6 +102,7 @@ export interface LearningPlan {
   version: number;
   tasks: PlanTask[];
   reason?: string;
+  factors?: DecisionFactor[];
   generatedFromProfileVersion: number;
 }
 
@@ -155,6 +174,9 @@ export interface ExerciseSubmissionResult {
   needReplan: boolean;
   plan?: LearningPlan;
   planDiff?: PlanDiff;
+  traceId?: string;
+  evidenceIds?: string[];
+  replanDecision?: Record<string, Object>;
 }
 
 export interface TraceEvent {

@@ -4,6 +4,7 @@ export class ApiDisplayFormatter {
     if (value === 'running') return '进行中';
     if (value === 'completed') return '已完成';
     if (value === 'failed') return '执行失败';
+    if (value === 'error') return '执行出错';
     if (value === 'fallback') return '已降级处理';
     if (value === 'success') return '成功';
     return value;
