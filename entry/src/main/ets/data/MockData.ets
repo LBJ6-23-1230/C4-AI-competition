@@ -10,10 +10,11 @@ import {
   LearningReview,
   LearningBadge
 } from '../models/AgentModels';
+import { ApiDefaults } from '../api/ApiDefaults';
 
 /* ========== 当前用户 ========== */
 export const mockCurrentUser: UserProfile = {
-  userId: 'u001',
+  userId: ApiDefaults.DEMO_USER_ID,
   basicInfo: {
     name: '小明',
     grade: '大二',

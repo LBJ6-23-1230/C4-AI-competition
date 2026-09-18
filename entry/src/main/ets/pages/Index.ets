@@ -13,6 +13,7 @@ import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
 import { PlanViewModel } from '../viewmodels/PlanViewModel';
 import { ProactiveViewModel } from '../viewmodels/ProactiveViewModel';
+import { ApiDefaults } from '../api/ApiDefaults';
 
 @Entry
 @Component
@@ -192,7 +193,7 @@ struct Index {
   }
 
   private openProfile(): void {
-    router.pushUrl({ url: 'pages/LearningHistory' });
+    router.pushUrl({ url: 'pages/Account' });
   }
 
   private openApiEnvironment(): void {
@@ -210,7 +211,7 @@ struct Index {
   private apiEnvironmentLabel(): string {
     const config: ApiClientConfig = AgentApiClient.getConfig();
     if (config.useFixture) return 'Fixture';
-    return config.baseUrl === 'http://10.0.2.2:5000' ? '真 Agent 后端' : '自定义后端';
+    return config.baseUrl === ApiDefaults.EMULATOR_BASE_URL ? '真 Agent 后端' : '自定义后端';
   }
 
   private agentStatusTitle(): string {

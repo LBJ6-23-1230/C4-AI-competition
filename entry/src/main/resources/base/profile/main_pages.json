@@ -1,5 +1,7 @@
 {
   "src": [
+    "pages/Login",
+    "pages/Account",
     "pages/ChatMain",
     "pages/CourseImport",
     "pages/Index",

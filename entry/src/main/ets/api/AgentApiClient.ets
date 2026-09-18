@@ -3,6 +3,7 @@ import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseQuery, ExerciseSetResp
 import { ApiFailure, ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { FixtureApiTransport } from './FixtureApiTransport';
 import { ApiResponseValidator } from './ApiResponseValidator';
+import { ApiDefaults } from './ApiDefaults';
 
 export interface ApiClientConfig {
   baseUrl: string;
@@ -12,7 +13,11 @@ export interface ApiClientConfig {
 
 /** The single API entry point. Pages must use ViewModels instead of calling HTTP directly. */
 export class AgentApiClient {
-  private static config: ApiClientConfig = { baseUrl: 'http://10.0.2.2:5000', useFixture: false, timeoutMs: 8000 };
+  private static config: ApiClientConfig = {
+    baseUrl: ApiDefaults.EMULATOR_BASE_URL,
+    useFixture: false,
+    timeoutMs: ApiDefaults.DEFAULT_TIMEOUT_MS
+  };
 
   static getConfig(): ApiClientConfig {
     return { baseUrl: AgentApiClient.config.baseUrl, useFixture: AgentApiClient.config.useFixture, timeoutMs: AgentApiClient.config.timeoutMs };

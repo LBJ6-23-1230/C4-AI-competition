@@ -23,6 +23,10 @@
     {
       "name": "internet_permission_reason",
       "value": "用于连接AI学习助手"
+    },
+    {
+      "name": "location_permission_reason",
+      "value": "用于将当前位置映射为学习情境，不上传精确坐标"
     }
   ]
 }

@@ -453,13 +453,13 @@ struct ChatMain {
       }
 
       Row({ space: 8 }) {
-        Button('🎤×')
+        Button('🎤')
           .fontSize(16)
           .backgroundColor('#E5E7EB')
           .width(40)
           .height(40)
           .borderRadius(8)
-          .enabled(false)
+          .onClick(() => this.startVoiceInput())
         Button('📷')
           .fontSize(16)
           .backgroundColor('#EAF2FF')
@@ -507,11 +507,12 @@ struct ChatMain {
   }
 
   private startVoiceInput(): void {
-    // 语音输入提示（真机可用 @ohos.ai.speechRecognizer）
+    // Speech recognition relies on Core Speech Kit and a physical HarmonyOS device.
+    // Keep the typed-input path available if the device service is unavailable.
     const fallbackMsg: ChatMessage = {
       id: `voice-fallback-${Date.now()}`,
       role: 'agent',
-      text: '语音输入需要真机支持。你可以直接打字，或者拍照上传错题～',
+      text: '语音识别需要在已授权麦克风的 HarmonyOS 真机上启用；当前可继续输入文字或上传错题图片。',
       time: this.formatTime(),
       status: 'done'
     };

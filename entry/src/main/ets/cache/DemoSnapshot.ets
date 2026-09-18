@@ -1,4 +1,5 @@
 import { ClientCache } from './ClientCache';
+import { ApiDefaults } from '../api/ApiDefaults';
 
 /**
  * Fixed identifiers for the contest demonstration only.
@@ -6,7 +7,7 @@ import { ClientCache } from './ClientCache';
  * must still come from the API fixture or backend.
  */
 export class DemoSnapshot {
-  static readonly USER_ID: string = 'demo-user';
+  static readonly USER_ID: string = ApiDefaults.DEMO_USER_ID;
   static readonly EXERCISE_SET_ID: string = 'set-demo-binary-tree-001';
   static readonly EXERCISE_KNOWLEDGE_POINT_ID: string = 'binary-tree-postorder';
   static readonly EXERCISE_COUNT: number = 3;

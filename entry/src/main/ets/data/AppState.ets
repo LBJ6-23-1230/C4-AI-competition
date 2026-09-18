@@ -28,6 +28,7 @@ import {
   mockCandidates
 } from './MockData';
 import { DateHelper } from '../utils/DateHelper';
+import { AuthSession } from '../api/AuthModels';
 
 /**
  * AppState — 全局单例状态管理
@@ -41,6 +42,7 @@ export class AppState {
 
   /* ========== 用户 & 课程数据 ========== */
   public currentUser: UserProfile = mockCurrentUser;
+  public authSession: AuthSession | null = null;
   public courses: CourseInfo[] = [...mockCoursesList];
   public homeworkDDLs: HomeworkDDL[] = [...mockHomeworkDDLs];
   public candidates: UserProfile[] = mockCandidates;
@@ -275,6 +277,26 @@ export class AppState {
 
   public setFocusTask(task: FocusTask): void {
     this.activeFocusTask = task;
+  }
+
+  public applyIdentity(session: AuthSession): void {
+    this.authSession = session;
+    this.currentUser = {
+      userId: session.userId,
+      basicInfo: {
+        name: session.nickname,
+        grade: mockCurrentUser.basicInfo.grade,
+        major: mockCurrentUser.basicInfo.major
+      },
+      learningGoal: mockCurrentUser.learningGoal,
+      time: mockCurrentUser.time,
+      knowledge: mockCurrentUser.knowledge
+    };
+  }
+
+  public clearIdentity(): void {
+    this.authSession = null;
+    this.currentUser = mockCurrentUser;
   }
 
   public clearFocusTask(): void {

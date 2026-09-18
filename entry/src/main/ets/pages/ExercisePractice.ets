@@ -1,9 +1,11 @@
 import router from '@ohos.router';
+import { common } from '@kit.AbilityKit';
 import { AIFloatButton } from '../components/AIFloatButton';
 import { Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmissionResult } from '../api/ApiModels';
 import { DemoSnapshot } from '../cache/DemoSnapshot';
 import { PlanDiffCard } from '../components/PlanDiffCard';
 import { ExerciseViewModel } from '../viewmodels/ExerciseViewModel';
+import { ProactiveSurfaceService } from '../services/ProactiveSurfaceService';
 
 @Entry
 @Component
@@ -148,6 +150,7 @@ struct ExercisePractice {
     }
     this.warningMessage = this.viewModel.getWarningMessage();
     this.result = submissionResult;
+    ProactiveSurfaceService.refresh(getContext(this) as common.UIAbilityContext, true);
     this.scrollToTop();
   }
 

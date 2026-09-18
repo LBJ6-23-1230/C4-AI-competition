@@ -1,10 +1,12 @@
 import router from '@ohos.router';
+import { common } from '@kit.AbilityKit';
 import { appState } from '../data/AppState';
 import { AgentFeedback, FocusSelfAssessment, FocusSession, FocusTask } from '../models/AgentModels';
 import { LocalAgentService } from '../services/LocalAgentService';
 import { AIFloatButton } from '../components/AIFloatButton';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AgentApiClient } from '../api/AgentApiClient';
+import { ProactiveSurfaceService } from '../services/ProactiveSurfaceService';
 
 @Entry
 @Component
@@ -90,6 +92,7 @@ struct FocusResult {
     appState.clearFocusResultDraft();
     appState.clearFocusTask();
     this.saved = true;
+    ProactiveSurfaceService.refresh(getContext(this) as common.UIAbilityContext, true);
   }
 
   private returnToChat(): void {

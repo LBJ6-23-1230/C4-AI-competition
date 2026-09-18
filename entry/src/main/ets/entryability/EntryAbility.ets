@@ -4,6 +4,10 @@ import { window } from '@kit.ArkUI';
 import { ApiEnvironmentStore } from '../api/ApiEnvironmentStore';
 import { FixtureDemoStateStore } from '../api/FixtureDemoStateStore';
 import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
+import { ProactiveSurfaceService } from '../services/ProactiveSurfaceService';
+import { ProactiveSettingsStore } from '../services/ProactiveSettingsStore';
+import { AuthStore } from '../api/AuthStore';
+import { appState } from '../data/AppState';
 
 const DOMAIN = 0x0000;
 
@@ -29,8 +33,11 @@ export default class EntryAbility extends UIAbility {
     if (!WorkflowSessionStore.restore(this.context)) {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore workflow session.');
     }
+    ProactiveSettingsStore.restore(this.context);
+    const session = AuthStore.restore(this.context);
+    if (session !== null) appState.applyIdentity(session);
 
-    windowStage.loadContent('pages/ChatMain', (err) => {
+    windowStage.loadContent(session === null ? 'pages/Login' : 'pages/ChatMain', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;
@@ -47,10 +54,13 @@ export default class EntryAbility extends UIAbility {
   onForeground(): void {
     // Ability has brought to foreground
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground');
+    ProactiveSurfaceService.refresh(this.context, true);
   }
 
   onBackground(): void {
     // Ability has back to background
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
+    ProactiveSurfaceService.refresh(this.context, false);
   }
+
 }

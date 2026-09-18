@@ -2,6 +2,7 @@ import { AgentApiClient } from '../api/AgentApiClient';
 import { ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, WorkflowResponse, WorkflowRunResponse, WorkflowStatusResponse } from '../api/ApiModels';
 import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
+import { ApiDefaults } from '../api/ApiDefaults';
 
 /**
  * Prepares the exercise flow for the page. Scores and mastery are always
@@ -44,7 +45,7 @@ export class ExerciseViewModel {
     this.warningMessage = '';
     const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
     const request: ExerciseSubmission = {
-      userId: submission.userId ?? 'demo-user',
+      userId: submission.userId ?? ApiDefaults.DEMO_USER_ID,
       sessionId: submission.sessionId ?? workflow?.sessionId,
       idempotencyKey: submission.idempotencyKey,
       answers: submission.answers
