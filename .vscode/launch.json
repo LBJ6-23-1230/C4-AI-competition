@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "editor-browser",
+            "request": "launch",
+            "name": "打开统一后端服务自描述页",
+            "url": "http://localhost:5000",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "type": "editor-browser",
+            "request": "launch",
+            "name": "打开后端健康检查",
+            "url": "http://localhost:5000/health",
+            "webRoot": "${workspaceFolder}"
+        }
+    ]
+}

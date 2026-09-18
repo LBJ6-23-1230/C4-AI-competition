@@ -1,0 +1,41 @@
+# 行尾与编码纪律
+#
+# 为什么必须钉死：
+#   本工程的 .ps1 脚本是「UTF-8 **带 BOM** + 行尾」组合，
+#   Windows PowerShell 5.1 靠 BOM 才能正确解析中文，否则乱码。
+#   而 git 的 core.autocrlf 在不同机器上取值不同，
+#   不加约束时同一份脚本在 A 机器能跑、在 B 机器报错。
+#   显式声明后，克隆到任何机器结果都一致。
+
+# 默认：文本文件一律以 LF 入库
+* text=auto eol=lf
+
+# PowerShell 脚本：入库 LF，检出 CRLF（兼容 Windows PowerShell 5.1）
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+
+# 批处理：必须 CRLF，否则 cmd 解析异常
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# 明确按二进制处理，禁止任何转换
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.hap   binary
+*.so    binary
+*.dll   binary
+*.abc   binary
+*.ttf   binary
+
+# 契约与配置：LF，diff 友好
+*.json   text eol=lf
+*.json5  text eol=lf
+*.py     text eol=lf
+*.ets    text eol=lf
+*.ts     text eol=lf
+*.md     text eol=lf
+*.yaml   text eol=lf
+*.yml    text eol=lf

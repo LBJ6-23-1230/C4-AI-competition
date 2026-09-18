@@ -1,0 +1,28 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "知学搭子主模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "知学搭子应用入口"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "知学搭子"
+    },
+    {
+      "name": "microphone_permission_reason",
+      "value": "用于语音输入学习问题"
+    },
+    {
+      "name": "media_permission_reason",
+      "value": "用于上传错题图片"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "用于连接AI学习助手"
+    }
+  ]
+}

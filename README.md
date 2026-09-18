@@ -24,31 +24,32 @@ HarmonyOS 原生应用 · ArkTS 前端 + Python Agent 后端
 
 ### 分支布局
 
-| 分支 | 内容 | 文件数 |
+| 分支 | 内容 | 说明 |
 |---|---|---|
-| **`main`** | 本 README（项目总说明） | 2 |
-| **`backend`** | Python Agent 后端（`zhixue-agent-server/`）+ 契约 + 后端文档 | 79 |
-| **`frontend`** | ArkTS 前端工程 + 契约 + 文档 + 联调工具 | 147 |
+| **`main`** | ✅ **完整可运行工程** + 本 README | 用这个分支 |
+| `backend` | Python Agent 后端（早期独立分支） | 历史留档 |
+| `frontend` | ArkTS 前端工程（早期独立分支） | 历史留档 |
 
-**想跑起来，用这一条命令取到完整工程：**
+**想跑起来，一条命令取到完整工程：**
 
 ```bash
-git clone -b frontend --single-branch https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
+git clone https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
 cd zhixue-mate
 powershell -ExecutionPolicy Bypass -File tools\start_dev.ps1   # 启动后端
 # 再用 DevEco Studio 打开本目录
 ```
 
-> `frontend` 分支内已包含一份可直接运行的后端（`backend/`），
-> 因此**只克隆 `frontend` 就能跑通全部演示**，无需再拉 `backend`。
+> **`main` 分支根目录就是前后端合并后的完整工程**：
+> ArkTS 前端在 `entry/`，Python 后端在 `server/zhixue-agent-server/`。
+> 前端与后端在**同一目录树**内，不需要再拉别的分支。
 
-### 📌 版本差异须知（重要）
+### 📌 版本状态
 
-**本 README 描述的是「前后端合并后的最新工程」（18 页面 · 登录优先 · 5 个智能体 · 四标签去重）。**
+**`main` = 最新合并版**（18 页面 · 登录优先 · 5 个智能体 · 四标签去重 · 104 项自检）。
 
-而 GitHub 上的 `frontend` 分支**尚未同步**这批改动 —— 它停留在较早的版本：
+`backend` / `frontend` 两个分支**保留为早期独立版本的历史留档**，不再更新：
 
-| 能力 | README 描述 / 合并版 | `frontend` 分支现状 |
+| 能力 | `main`（当前） | `frontend` 分支（旧） |
 |---|---|---|
 | 页面数 | 18 | 16 |
 | 用户登录 / 账号页 | ✅ 已实现（免密昵称 + 长期 token） | ❌ 无 |
@@ -60,9 +61,8 @@ powershell -ExecutionPolicy Bypass -File tools\start_dev.ps1   # 启动后端
 | 联调自检 | **104** 项 | 无此脚本 |
 | ArkUI-X 构建插件 | ✅ 已切回标准插件 | ❌ **仍带 ArkUI-X，会导致 Sync 失败** |
 
-> **结论**：本 README 是**目标状态与项目全貌**的说明；
-> 若要拿到与之匹配的可运行代码，需团队把合并版工程推送到远端
-> （见文末「仓库结构现状与待办」）。
+> 详细的上手步骤、目录结构、演示主链与锁死数值，
+> 见 **[`docs/联调工程说明.md`](docs/联调工程说明.md)**。
 
 ---
 
@@ -282,7 +282,7 @@ powershell -ExecutionPolicy Bypass -File tools\start_dev.ps1
 **可选但强烈建议** —— 配置大模型，激活错题拍照识别：
 
 ```powershell
-cd backend
+cd server\zhixue-agent-server
 Copy-Item .env.example .env
 notepad .env      # 填入 DASHSCOPE_API_KEY=sk-xxxx
 ```

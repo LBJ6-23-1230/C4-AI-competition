@@ -1,0 +1,730 @@
+[
+  {
+    "group": "static-consistency",
+    "check": "前后端契约文件逐字节一致（无 v0.2/v0.3 漂移）",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "契约版本为 api-contract-v0.3",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "前端存在 ApiDefaults 单一真源文件",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "ApiDefaults 契约版本与后端一致",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "页面中无硬编码后端 IP（应统一引用 ApiDefaults）",
+    "ok": true,
+    "actual": "[]",
+    "expected": "[]"
+  },
+  {
+    "group": "static-consistency",
+    "check": "ApiModels 契约版本 = v0.3",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "后端存在鉴权领域模块",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "后端 DEMO_USER_ID = demo-user",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "前端 DEMO_USER_ID = demo-user",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "游客 userId 无散落硬编码（应统一引用 ApiDefaults）",
+    "ok": true,
+    "actual": "[]",
+    "expected": "[]"
+  },
+  {
+    "group": "static-consistency",
+    "check": "登录功能文件齐备（页面/模型/存储/客户端/接口/测试）",
+    "ok": true,
+    "actual": "[]",
+    "expected": "[]"
+  },
+  {
+    "group": "static-consistency",
+    "check": "Login / Account 已注册到 main_pages.json",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "契约声明 /api/v1/auth/register",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "契约声明 /api/v1/auth/login",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "契约声明 /api/v1/auth/me",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "契约声明 /api/v1/auth/logout",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "契约声明 /api/v1/auth/account",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "static-consistency",
+    "check": "契约声明 BearerAuth 安全方案",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "pytest",
+    "check": "pytest 全绿（退出码 0，无 failed/error）",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "GET /health -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "GET /api/agent/health -> 200（前端连通性探针）",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "llm_ready / model",
+    "ok": true,
+    "actual": "(False, 'qwen-vl-plus')",
+    "expected": "(observation)"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "POST /api/v1/demo/reset -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "profileVersion 初始 = 1",
+    "ok": true,
+    "actual": "1",
+    "expected": "1"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "mastery 初始 = 42",
+    "ok": true,
+    "actual": "42",
+    "expected": "42"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "plan version 初始 = 1",
+    "ok": true,
+    "actual": "1",
+    "expected": "1"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "V1 时长 = [30, 30]",
+    "ok": true,
+    "actual": "[30, 30]",
+    "expected": "[30, 30]"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "题集返回 3 道题",
+    "ok": true,
+    "actual": "3",
+    "expected": "3"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "题目 ID 正确",
+    "ok": true,
+    "actual": "['exercise-preorder-001', 'exercise-inorder-001', 'exercise-postorder-001']",
+    "expected": "['exercise-preorder-001', 'exercise-inorder-001', 'exercise-postorder-001']"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "题集不泄漏 answerKey",
+    "ok": true,
+    "actual": "False",
+    "expected": "False"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "POST submit -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "score = 66.67（√√×：2 对 1 错）",
+    "ok": true,
+    "actual": "66.67",
+    "expected": "66.67"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "oldMastery = 42",
+    "ok": true,
+    "actual": "42",
+    "expected": "42"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "suggestedNewMastery = 58",
+    "ok": true,
+    "actual": "58",
+    "expected": "58"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "needReplan = true",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "profileVersion 提交后 = 2",
+    "ok": true,
+    "actual": "2",
+    "expected": "2"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "mastery 写回 = 58",
+    "ok": true,
+    "actual": "58",
+    "expected": "58"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "plan V1 -> V2",
+    "ok": true,
+    "actual": "(1, 2)",
+    "expected": "(1, 2)"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "changedTasks 时长 = [45, 15]",
+    "ok": true,
+    "actual": "[45, 15]",
+    "expected": "[45, 15]"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "plan version 提交后 = 2",
+    "ok": true,
+    "actual": "2",
+    "expected": "2"
+  },
+  {
+    "group": "contract-main-chain",
+    "check": "V2 时长 = [45, 15]",
+    "ok": true,
+    "actual": "[45, 15]",
+    "expected": "[45, 15]"
+  },
+  {
+    "group": "regression-guards",
+    "check": "全对 score = 100.0（不再恒定 67）",
+    "ok": true,
+    "actual": "100.0",
+    "expected": "100.0"
+  },
+  {
+    "group": "regression-guards",
+    "check": "全错 score = 0.0（不再恒定 67）",
+    "ok": true,
+    "actual": "0.0",
+    "expected": "0.0"
+  },
+  {
+    "group": "regression-guards",
+    "check": "分数确实随答案变化",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "regression-guards",
+    "check": "全错后掌握度不上升（含下调）",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "regression-guards",
+    "check": "全错提交后 mastery（初始 42）",
+    "ok": true,
+    "actual": "38",
+    "expected": "(observation)"
+  },
+  {
+    "group": "regression-guards",
+    "check": "连续 3 次提交后的时长序列",
+    "ok": true,
+    "actual": "[[45, 15], [45, 15], [45, 15]]",
+    "expected": "(observation)"
+  },
+  {
+    "group": "regression-guards",
+    "check": "任务时长不漂移到 0（每次均 >= 15 分钟）",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "regression-guards",
+    "check": "第 2、3 次结果稳定一致（幂等锚定基线）",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "regression-guards",
+    "check": "同 key 重放响应逐字节一致",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "POST /api/v1/workflows -> 2xx",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "第一次 /run -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "第二次 /run 后 status = completed",
+    "ok": true,
+    "actual": "'completed'",
+    "expected": "'completed'"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "trace 事件数 / agent / tool",
+    "ok": true,
+    "actual": "(3, ['assessment', 'exercise', 'secretary'], ['grade_exercise', 'select_exercises', 'update_mastery'])",
+    "expected": "(observation)"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "单次 workflow 覆盖 >= 2 个 agent",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "单次 workflow 覆盖 >= 3 个 tool",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "trace 不含模型思维链字段",
+    "ok": true,
+    "actual": "False",
+    "expected": "False"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "无 LLM 下两次运行 agent 序列一致",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "POST /api/agent/chat -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "聊天响应字段 = {reply, intent, card}",
+    "ok": true,
+    "actual": "['card', 'intent', 'reply']",
+    "expected": "['card', 'intent', 'reply']"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "意图识别 analyze_wrong",
+    "ok": true,
+    "actual": "'analyze_wrong'",
+    "expected": "'analyze_wrong'"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "卡片含前端可跳转的 targetPage",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "第二类意图 get_suggestion",
+    "ok": true,
+    "actual": "'get_suggestion'",
+    "expected": "'get_suggestion'"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "回复非空",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "带 charset=utf-8 时中文意图不丢失",
+    "ok": true,
+    "actual": "'analyze_wrong'",
+    "expected": "'analyze_wrong'"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "POST /api/v1/agent/proactive -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "shouldNotify = true",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "含可解释的 factors 明细",
+    "ok": true,
+    "actual": "5",
+    "expected": "5"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "含 reason 文案",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "未知工作流 -> 404",
+    "ok": true,
+    "actual": "404",
+    "expected": "404"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "错误体使用 v0.3 errorCode 结构",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "GET /api/v1/experiments/snapshot -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "agent-loop-and-chat",
+    "check": "snapshot keys",
+    "ok": true,
+    "actual": "['evidences', 'generatedAt', 'planDiffs', 'snapshotVersion', 'submissions', 'summary', 'traces']",
+    "expected": "(observation)"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "POST /api/v1/auth/register -> 201",
+    "ok": true,
+    "actual": "201",
+    "expected": "201"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "下发 userId（u- 前缀）",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "下发 token",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "用户视图不含 token",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "用户视图不含 authSubject",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "新账号画像可读（预置空画像）",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "新账号初始掌握度 = 0",
+    "ok": true,
+    "actual": "0",
+    "expected": "0"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "新账号提交 -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "新账号判分同样为 66.67",
+    "ok": true,
+    "actual": "66.67",
+    "expected": "66.67"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "新账号掌握度 0 -> 16（判分规则对真实账号同样生效）",
+    "ok": true,
+    "actual": "16",
+    "expected": "16"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "GET /api/v1/auth/me 无 token -> 401",
+    "ok": true,
+    "actual": "401",
+    "expected": "401"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "GET /api/v1/auth/me 带 token -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "me 返回同一 userId",
+    "ok": true,
+    "actual": "'u-bf8f56890288'",
+    "expected": "'u-bf8f56890288'"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "token 不匹配 -> 401",
+    "ok": true,
+    "actual": "401",
+    "expected": "401"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "游客态 demo/reset -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "demo/reset 的 userId 仍是 demo-user",
+    "ok": true,
+    "actual": "'demo-user'",
+    "expected": "'demo-user'"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "演示基线掌握度仍为 42",
+    "ok": true,
+    "actual": "42",
+    "expected": "42"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "演示基线 Plan V1 时长仍为 [30, 30]",
+    "ok": true,
+    "actual": "[30, 30]",
+    "expected": "[30, 30]"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "游客演示提交仍为 66.67",
+    "ok": true,
+    "actual": "66.67",
+    "expected": "66.67"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "游客演示掌握度仍为 42 -> 58",
+    "ok": true,
+    "actual": "58",
+    "expected": "58"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "游客演示 Plan V2 仍为 [45, 15]",
+    "ok": true,
+    "actual": "[45, 15]",
+    "expected": "[45, 15]"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "带上登录 token 后 demo-user 画像不变",
+    "ok": true,
+    "actual": "True",
+    "expected": "True"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "无效 token 降级为游客（不 401）",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "POST /api/v1/auth/logout -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "退出后 me -> 401",
+    "ok": true,
+    "actual": "401",
+    "expected": "401"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "退出后不能用旧 token 重新登录 -> 401",
+    "ok": true,
+    "actual": "401",
+    "expected": "401"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "DELETE /api/v1/auth/account -> 200",
+    "ok": true,
+    "actual": "200",
+    "expected": "200"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "注销返回 deactivated",
+    "ok": true,
+    "actual": "'deactivated'",
+    "expected": "'deactivated'"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "注销后 me -> 401",
+    "ok": true,
+    "actual": "401",
+    "expected": "401"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "空昵称 -> 400",
+    "ok": true,
+    "actual": "400",
+    "expected": "400"
+  },
+  {
+    "group": "auth-and-baseline-guard",
+    "check": "非法年级 -> 400",
+    "ok": true,
+    "actual": "400",
+    "expected": "400"
+  }
+]
