@@ -156,9 +156,70 @@
           "500": { "$ref": "#/components/responses/InternalError" }
         }
       }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "summary": "注册账号（昵称 + 年级，无需密码）",
+        "description": "注册即下发 userId 与 token，并为新账号预置一份空画像与起始计划。演示身份 demo-user 无需注册。",
+        "operationId": "authRegister",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthRegisterRequest" } } } },
+        "responses": {
+          "201": { "description": "注册成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthSessionResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "用已保存的 userId + token 恢复登录态",
+        "operationId": "authLogin",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthLoginRequest" } } } },
+        "responses": {
+          "200": { "description": "登录成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthSessionResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "退出登录（仅吊销当前 token）",
+        "operationId": "authLogout",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "已退出", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthStatusResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "summary": "读取当前登录用户（前端启动时校验本地 token 是否仍有效）",
+        "operationId": "authMe",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "当前用户", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthUserResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/auth/account": {
+      "delete": {
+        "summary": "注销账号（合规要求：标记停用并清空全部会话）",
+        "operationId": "authDeleteAccount",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "账号已注销", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthStatusResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
     }
   },
   "components": {
+    "securitySchemes": {
+      "BearerAuth": { "type": "http", "scheme": "bearer", "description": "可选鉴权。/api/v1/** 不带 token 时按演示/游客身份（demo-user）处理，以保证演示主链不受影响。" }
+    },
     "parameters": {
       "WorkflowId": { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
       "UserId": { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } },
@@ -196,12 +257,19 @@
       "TraceEvent": { "type": "object", "required": ["agent", "toolCalls", "inputSummary", "outputSummary", "evidenceIds", "stateVersion", "timestamp", "status"], "properties": { "agent": { "type": "string" }, "toolCalls": { "type": "array", "items": { "type": "string" } }, "inputSummary": { "type": "string" }, "outputSummary": { "type": "string" }, "evidenceIds": { "type": "array", "items": { "type": "string" } }, "stateVersion": { "type": "integer" }, "timestamp": { "type": "string", "format": "date-time" }, "status": { "type": "string" } } },
       "TraceResponse": { "type": "object", "required": ["traceId", "events"], "properties": { "traceId": { "type": "string" }, "events": { "type": "array", "items": { "$ref": "#/components/schemas/TraceEvent" } } } },
       "DemoResetResponse": { "type": "object", "required": ["status", "userId", "profile", "plan", "traceId"], "properties": { "status": { "type": "string", "enum": ["reset"] }, "userId": { "type": "string", "example": "demo-user" }, "profile": { "$ref": "#/components/schemas/LearnerProfile" }, "plan": { "$ref": "#/components/schemas/LearningPlan" }, "traceId": { "type": "string" } } },
-      "ErrorResponse": { "type": "object", "required": ["errorCode", "message"], "properties": { "errorCode": { "type": "string", "enum": ["BAD_REQUEST", "NOT_FOUND", "CONFLICT", "VALIDATION_ERROR", "INTERNAL_ERROR", "LLM_FALLBACK"] }, "message": { "type": "string" }, "details": { "type": "object", "nullable": true } } }
+      "AuthRegisterRequest": { "type": "object", "required": ["nickname"], "properties": { "nickname": { "type": "string", "minLength": 1, "maxLength": 16, "description": "昵称，去除首尾空白后不能为空" }, "grade": { "type": "string", "nullable": true, "enum": ["大一", "大二", "大三", "大四", "大五", "研一", "研二", "研三", "博士"], "description": "年级，可选" } } },
+      "AuthLoginRequest": { "type": "object", "required": ["userId", "token"], "properties": { "userId": { "type": "string" }, "token": { "type": "string" } } },
+      "AuthUser": { "type": "object", "required": ["userId", "nickname"], "properties": { "userId": { "type": "string" }, "nickname": { "type": "string" }, "grade": { "type": "string" }, "authProvider": { "type": "string", "enum": ["local", "guest", "agc_phone", "agc_anonymous"], "description": "认证来源。local = 本服务免密注册；guest = 演示/游客身份（demo-user）" }, "createdAt": { "type": "string" }, "lastLoginAt": { "type": "string" } }, "description": "对外用户视图。绝不包含 token 或第三方 authSubject——手机号等敏感信息不落明文。" },
+      "AuthSessionResponse": { "type": "object", "required": ["user", "token", "expiresAt"], "properties": { "user": { "$ref": "#/components/schemas/AuthUser" }, "token": { "type": "string", "description": "长期会话票据（默认 30 天）。存设备 preferences，请求时放入 Authorization: Bearer" }, "expiresAt": { "type": "string", "format": "date-time" } } },
+      "AuthUserResponse": { "type": "object", "required": ["user"], "properties": { "user": { "$ref": "#/components/schemas/AuthUser" } } },
+      "AuthStatusResponse": { "type": "object", "required": ["status"], "properties": { "status": { "type": "string", "enum": ["ok", "deactivated"] }, "userId": { "type": "string" } } },
+      "ErrorResponse": { "type": "object", "required": ["errorCode", "message"], "properties": { "errorCode": { "type": "string", "enum": ["BAD_REQUEST", "NOT_FOUND", "CONFLICT", "VALIDATION_ERROR", "UNAUTHORIZED", "CONTRACT_VERSION_MISMATCH", "INTERNAL_ERROR", "LLM_FALLBACK"] }, "message": { "type": "string" }, "details": { "type": "object", "nullable": true } } }
     },
     "responses": {
       "BadRequest": { "description": "请求参数错误", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
       "NotFound": { "description": "资源不存在", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
       "Conflict": { "description": "幂等键冲突或状态冲突", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+      "Unauthorized": { "description": "未登录或登录已失效", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
       "InternalError": { "description": "服务内部错误", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
     }
   }
