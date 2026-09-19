@@ -410,6 +410,15 @@ struct ChatMain {
             .borderRadius(8)
         }
 
+        if (message.role === 'agent' && message.status === 'done' && message.llmUsed !== undefined) {
+          Text(message.llmUsed ? '大模型生成' : '本地规则兜底')
+            .fontSize(11)
+            .fontColor(message.llmUsed ? '#2563EB' : '#B45309')
+            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+            .backgroundColor(message.llmUsed ? '#EAF2FF' : '#FFF7ED')
+            .borderRadius(10)
+        }
+
         if (message.card !== undefined) {
           this.CardView(message.card)
         }
@@ -763,6 +772,7 @@ struct ChatMain {
         role: 'agent',
         text: response.reply,
         card: response.card,
+        llmUsed: response.llmUsed,
         time: this.formatTime(),
         status: 'done'
       };

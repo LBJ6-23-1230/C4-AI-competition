@@ -17,6 +17,10 @@ export default function proactiveContextTest() {
       expect(request.context.masteryScore === undefined).assertTrue();
       expect(request.context.errorIntensity === undefined).assertTrue();
       expect(request.context.importance === undefined).assertTrue();
+      expect(request.context.pendingTasks !== undefined).assertTrue();
+      expect(request.context.pendingTasks?.length).assertEqual(4);
+      expect(request.context.pendingTasks?.[0].daysLeft).assertEqual(2);
+      expect(request.context.pendingTasks?.[0].started).assertFalse();
     });
 
     it('uses the weakest cached mastery instead of a fixed demo score', 0, () => {

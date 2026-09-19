@@ -128,6 +128,7 @@ export class AgentBridge {
     const reply: string = AgentBridge.requiredString(data, 'reply');
     const intent: string = AgentBridge.requiredString(data, 'intent');
     const cardObj: Object | undefined = data['card'] as Object | undefined;
+    const rawLlmUsed: Object | undefined = data['llmUsed'] as Object | undefined;
 
     let card: ChatCard | undefined = undefined;
     if (cardObj !== undefined && cardObj !== null) {
@@ -137,7 +138,15 @@ export class AgentBridge {
       card = AgentBridge.parseCard(cardObj as Record<string, Object>);
     }
 
-    return { reply: reply, intent: intent, card: card };
+    let llmUsed: boolean | undefined = undefined;
+    if (rawLlmUsed !== undefined && rawLlmUsed !== null) {
+      if (typeof rawLlmUsed !== 'boolean') {
+        throw new Error('llmUsed must be a boolean.');
+      }
+      llmUsed = rawLlmUsed as boolean;
+    }
+
+    return { reply: reply, intent: intent, card: card, llmUsed: llmUsed };
   }
 
   static parseCard(cardObj: Record<string, Object>): ChatCard {
@@ -222,7 +231,8 @@ export class AgentBridge {
       return {
         reply: '图片已收到。你可以进入错题分析页，查看识别出的知识点、错误类型和补强建议。',
         intent: 'analyze_wrong',
-        card: AgentBridge.createLocalCard('wrong', '错题分析', '基于题目内容识别知识点和错误原因。', 'pages/WrongQuestion')
+        card: AgentBridge.createLocalCard('wrong', '错题分析', '基于题目内容识别知识点和错误原因。', 'pages/WrongQuestion'),
+        llmUsed: false
       };
     }
 
@@ -241,7 +251,8 @@ export class AgentBridge {
     return {
       reply: foundReply !== undefined ? foundReply : defaultReply,
       intent: intent,
-      card: AgentBridge.createLocalCardForIntent(intent)
+      card: AgentBridge.createLocalCardForIntent(intent),
+      llmUsed: false
     };
   }
 

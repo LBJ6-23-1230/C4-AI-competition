@@ -103,6 +103,15 @@ export interface ProactiveContext {
   errorIntensity?: number;
   daysLeft?: number;
   importance?: number;
+  pendingTasks?: PendingTaskSignal[];
+}
+
+export interface PendingTaskSignal {
+  taskId?: string;
+  title?: string;
+  status?: string;
+  started?: boolean;
+  daysLeft?: number;
 }
 
 export interface ProactiveRequest {

@@ -1,7 +1,9 @@
 import { AgentApiClient } from '../api/AgentApiClient';
-import { ProactiveRequest, ProactiveResponse, ProfileResponse } from '../api/ApiModels';
+import { PendingTaskSignal, ProactiveRequest, ProactiveResponse, ProfileResponse } from '../api/ApiModels';
 import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
+import { appState } from '../data/AppState';
+import { HomeworkDDL } from '../models/AgentModels';
 
 export interface ProactiveViewState {
   decision: ProactiveResponse | null;
@@ -30,6 +32,21 @@ export class ProactiveViewModel {
     };
     if (masteryScore !== undefined) request.context.masteryScore = masteryScore;
     if (lastStudyAt !== undefined && lastStudyAt.length > 0) request.context.lastStudyAt = lastStudyAt;
+    const urgentDDLs: HomeworkDDL[] = appState.getUrgentDDLs();
+    if (urgentDDLs.length > 0) {
+      const pendingTasks: PendingTaskSignal[] = [];
+      for (let index: number = 0; index < urgentDDLs.length; index++) {
+        const ddl: HomeworkDDL = urgentDDLs[index];
+        pendingTasks.push({
+          taskId: ddl.id,
+          title: ddl.title,
+          status: 'pending',
+          started: false,
+          daysLeft: ddl.daysLeft
+        });
+      }
+      request.context.pendingTasks = pendingTasks;
+    }
     return request;
   }
 

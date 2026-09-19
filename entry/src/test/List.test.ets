@@ -9,6 +9,7 @@ import partnerFlowTest from './PartnerFlow.test';
 import apiResponseValidatorTest from './ApiResponseValidator.test';
 import proactiveContextTest from './ProactiveContext.test';
 import learningCardTest from './LearningCard.test';
+import workflowViewModelTest from './WorkflowViewModel.test';
 
 export default function testsuite() {
   localUnitTest();
@@ -22,4 +23,5 @@ export default function testsuite() {
   apiResponseValidatorTest();
   proactiveContextTest();
   learningCardTest();
+  workflowViewModelTest();
 }

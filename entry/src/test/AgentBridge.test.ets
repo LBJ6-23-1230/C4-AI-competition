@@ -133,6 +133,23 @@ export default function agentBridgeTest() {
       expect(invalidCardRejected).assertTrue();
     });
 
+    it('parses llmUsed false as local-rule fallback', 0, () => {
+      const response = AgentBridge.parseResponse({
+        'reply': '本地规则回复',
+        'intent': 'get_suggestion',
+        'llmUsed': false
+      });
+      expect(response.llmUsed).assertFalse();
+    });
+
+    it('tolerates a missing llmUsed field for backward compatibility', 0, () => {
+      const response = AgentBridge.parseResponse({
+        'reply': '兼容旧服务端',
+        'intent': 'get_suggestion'
+      });
+      expect(response.llmUsed === undefined).assertTrue();
+    });
+
     it('uses the chat home as the fixed return destination', 0, () => {
       expect(ChatNavigation.chatHome()).assertEqual('pages/ChatMain');
     });

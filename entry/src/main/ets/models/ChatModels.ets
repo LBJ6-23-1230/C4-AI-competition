@@ -31,6 +31,8 @@ export interface ChatMessage {
   text: string;
   image?: string;
   card?: ChatCard;
+  /** true = 大模型生成，false = 本地确定性规则兜底。 */
+  llmUsed?: boolean;
   time: string;
   status: ChatStatus;
 }
@@ -50,6 +52,7 @@ export interface AgentResponse {
   reply: string;
   intent: string;
   card?: ChatCard;
+  llmUsed?: boolean;
 }
 
 export interface IntentChip {

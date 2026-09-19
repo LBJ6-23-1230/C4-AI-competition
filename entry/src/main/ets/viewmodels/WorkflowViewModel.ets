@@ -75,8 +75,18 @@ export class WorkflowViewModel {
       if (latest.status === 'completed' || latest.status === 'failed' || latest.status === 'fallback' || latest.status === 'error') {
         return latest;
       }
+      if (WorkflowViewModel.isAwaitingAnswers(latest)) {
+        // 等待用户作答是正常的交接点，不应继续空转，也不应显示错误。
+        this.errorMessage = '';
+        return latest;
+      }
     }
     this.errorMessage = `Agent 会话在 ${maxRuns} 步内尚未完成，可稍后继续推进。`;
     return latest;
+  }
+
+  static isAwaitingAnswers(status: WorkflowStatusResponse): boolean {
+    return status.currentAgent === 'exercise' && status.status !== 'completed' &&
+      status.status !== 'failed' && status.status !== 'fallback' && status.status !== 'error';
   }
 }
