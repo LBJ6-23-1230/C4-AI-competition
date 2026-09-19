@@ -7,6 +7,7 @@ struct LearningCard {
   @LocalStorageProp('taskName') taskName: string = '打开知学搭子，生成当前任务';
   @LocalStorageProp('reason') reason: string = '根据考试、薄弱点和可用时间，给出下一步行动。';
   @LocalStorageProp('durationText') durationText: string = '待生成';
+  @LocalStorageProp('durationMinutes') durationMinutes: number = 30;
   @LocalStorageProp('actionText') actionText: string = '打开应用';
   @LocalStorageProp('isCompact') isCompact: boolean = false;
 
@@ -18,7 +19,9 @@ struct LearningCard {
       abilityName: 'EntryAbility',
       params: {
         source: 'learning_card',
-        initialTab: 2
+        targetPage: 'pages/FocusSetup',
+        taskName: this.taskName,
+        durationMinutes: this.durationMinutes
       }
     });
   }

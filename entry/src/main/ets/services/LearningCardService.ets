@@ -12,6 +12,7 @@ export interface LearningCardData {
   taskName: string;
   reason: string;
   durationText: string;
+  durationMinutes: number;
   actionText: string;
 }
 
@@ -35,7 +36,8 @@ export class LearningCardService {
       taskName: '打开知学搭子，生成当前任务',
       reason: '根据考试、薄弱点和可用时间，给出下一步行动。',
       durationText: '待生成',
-      actionText: '打开应用'
+      durationMinutes: 30,
+      actionText: '开始专注'
     };
   }
 
@@ -89,7 +91,8 @@ export class LearningCardService {
       taskName: decision.cardData.taskName ?? decision.body,
       reason: decision.reason.length > 0 ? decision.reason : decision.body,
       durationText: minutes === undefined ? '按计划完成' : `${minutes} 分钟`,
-      actionText: '打开应用'
+      durationMinutes: minutes === undefined ? 30 : minutes,
+      actionText: '开始专注'
     };
   }
 
@@ -99,6 +102,7 @@ export class LearningCardService {
       taskName: data.taskName,
       reason: data.reason,
       durationText: data.durationText,
+      durationMinutes: data.durationMinutes ?? 30,
       actionText: data.actionText,
       isCompact: compact
     });

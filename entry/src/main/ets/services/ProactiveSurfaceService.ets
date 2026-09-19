@@ -7,6 +7,7 @@ import { ApiFailure } from '../api/ApiResult';
 import { appState } from '../data/AppState';
 import { ProactiveViewModel } from '../viewmodels/ProactiveViewModel';
 import { ProactiveSettingsStore } from './ProactiveSettingsStore';
+import { LearningCardService } from './LearningCardService';
 
 const DOMAIN: number = 0x5A01;
 const TAG: string = 'ProactiveSurface';
@@ -31,6 +32,9 @@ export class ProactiveSurfaceService {
       return;
     }
     const decision: ProactiveResponse = result.data;
+    // The same Agent decision drives both proactive surfaces. Updating the desktop card does not
+    // depend on notification permission or shouldNotify; only system notification delivery does.
+    await LearningCardService.saveDecision(context, decision);
     if (decision.shouldNotify && decision.channel === 'reminder') {
       await ProactiveSurfaceService.publish(context, decision);
     }

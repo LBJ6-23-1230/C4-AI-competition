@@ -1,4 +1,5 @@
 import router from '@ohos.router';
+import { abilityAccessCtrl, common, Permissions } from '@kit.AbilityKit';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { appState } from '../data/AppState';
 import { ChatAction, ChatCard, ChatHandoff, ChatMessage, IntentChip } from '../models/ChatModels';
@@ -7,6 +8,7 @@ import { ClientCache } from '../cache/ClientCache';
 import { WorkflowResponse, WorkflowStatusResponse } from '../api/ApiModels';
 import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
+import { VoiceInputCallbacks, VoiceInputService } from '../services/VoiceInputService';
 
 /**
  * 对话页顶部的六个意图快捷按钮。
@@ -59,10 +61,13 @@ struct ChatMain {
   @State workflowStateVersion: number = 0;
   @State isWorkflowLoading: boolean = false;
   @State workflowMessage: string = '';
+  @State isListening: boolean = false;
+  @State voiceMessage: string = '';
   private messageScroller: Scroller = new Scroller();
   private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
   private workflowRequestVersion: number = 0;
   private isPageActive: boolean = false;
+  private voiceInputService: VoiceInputService = new VoiceInputService();
 
   aboutToAppear(): void {
     this.isPageActive = true;
@@ -95,6 +100,8 @@ struct ChatMain {
     this.isPageActive = false;
     this.workflowRequestVersion++;
     this.isWorkflowLoading = false;
+    this.isListening = false;
+    void this.voiceInputService.dispose();
   }
 
   private scrollToLatestMessage(): void {
@@ -560,6 +567,18 @@ struct ChatMain {
   @Builder
   private InputBar() {
     Column({ space: 8 }) {
+      if (this.voiceMessage.length > 0) {
+        Row({ space: 8 }) {
+          Text(this.isListening ? '●' : 'i')
+            .fontSize(11).fontColor(this.isListening ? '#DC2626' : '#2563EB')
+          Text(this.voiceMessage).fontSize(12).fontColor('#475569').layoutWeight(1)
+          if (this.isListening) {
+            Text('完成').fontSize(12).fontWeight(FontWeight.Bold).fontColor('#DC2626')
+              .onClick(() => { void this.stopVoiceInput(); })
+          }
+        }.width('100%').padding({ left: 10, right: 10, top: 7, bottom: 7 })
+          .backgroundColor(this.isListening ? '#FEF2F2' : '#EFF6FF').borderRadius(8)
+      }
       if (this.pendingImage.length > 0) {
         Row({ space: 10 }) {
           Image(this.pendingImage)
@@ -584,13 +603,15 @@ struct ChatMain {
       }
 
       Row({ space: 8 }) {
-        Button('🎤×')
+        Button(this.isListening ? '■' : '🎤')
           .fontSize(16)
-          .backgroundColor('#E5E7EB')
+          .fontColor(this.isListening ? '#FFFFFF' : '#2563EB')
+          .backgroundColor(this.isListening ? '#DC2626' : '#EAF2FF')
           .width(40)
           .height(40)
           .borderRadius(8)
-          .enabled(false)
+          .enabled(!this.isSending)
+          .onClick(() => { void this.toggleVoiceInput(); })
         Button('📷')
           .fontSize(16)
           .backgroundColor('#EAF2FF')
@@ -637,16 +658,49 @@ struct ChatMain {
     appState.chatMessages = '';
   }
 
-  private startVoiceInput(): void {
-    // 语音输入提示（真机可用 @ohos.ai.speechRecognizer）
-    const fallbackMsg: ChatMessage = {
-      id: `voice-fallback-${Date.now()}`,
-      role: 'agent',
-      text: '语音输入需要真机支持。你可以直接打字，或者拍照上传错题～',
-      time: this.formatTime(),
-      status: 'done'
-    };
-    this.messages = [...this.messages, fallbackMsg];
+  private async toggleVoiceInput(): Promise<void> {
+    if (this.isListening) {
+      await this.stopVoiceInput();
+      return;
+    }
+    await this.startVoiceInput();
+  }
+
+  private async startVoiceInput(): Promise<void> {
+    this.voiceMessage = '';
+    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    const permissions: Permissions[] = ['ohos.permission.MICROPHONE'];
+    try {
+      const result = await abilityAccessCtrl.createAtManager().requestPermissionsFromUser(context, permissions);
+      if (result.authResults.length === 0 || result.authResults[0] !== 0) {
+        this.voiceMessage = '麦克风权限未开启，可在系统设置中允许后重试。';
+        return;
+      }
+    } catch (error) {
+      this.voiceMessage = '无法申请麦克风权限，请在系统设置中检查权限。';
+      return;
+    }
+
+    const callbacks: VoiceInputCallbacks = new VoiceInputCallbacks(
+      (listening: boolean): void => {
+        this.isListening = listening;
+        if (listening) this.voiceMessage = '正在聆听，点击红色停止按钮后生成文字。';
+      },
+      (text: string, isFinal: boolean): void => {
+        this.inputText = text;
+        this.voiceMessage = isFinal ? '已转换为文字，可修改后发送。' : '正在识别…';
+      },
+      (message: string): void => {
+        this.isListening = false;
+        this.voiceMessage = message;
+      }
+    );
+    await this.voiceInputService.start(callbacks);
+  }
+
+  private async stopVoiceInput(): Promise<void> {
+    this.voiceMessage = '正在整理识别结果…';
+    await this.voiceInputService.stop(true);
   }
 
   private async pickImage(): Promise<void> {

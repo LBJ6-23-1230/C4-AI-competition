@@ -153,11 +153,26 @@ Text(`${generatedPartner.score}%`).fontSize(28).fontWeight(FontWeight.Bold).font
             .fontSize(14).fontColor('#667085').lineHeight(21).width('100%')
 
           if (this.realModeUnavailable) {
-            Text('真实模式下已禁用前端本地匹配结果。待后端提供搭子匹配契约后，本页再接入 ViewModel。')
-              .fontSize(13).fontColor('#B45309').lineHeight(20).width('100%').padding(12).backgroundColor('#FFFBEB').borderRadius(10)
-          }
-
-          Text(appState.getChatTaskContext()).fontSize(12).fontColor('#2563EB')
+            Column({ space: 12 }) {
+              Text('联机模式暂不生成搭子结果')
+                .fontSize(18).fontWeight(FontWeight.Bold).fontColor('#92400E').width('100%')
+              Text('当前后端尚未提供学习搭子匹配接口。为避免把本地规则结果伪装成在线 Agent 结果，本页不会展示虚构候选人。')
+                .fontSize(13).fontColor('#78350F').lineHeight(21).width('100%')
+              Text('你可以切换到离线 Fixture 查看完整匹配演示；切回联机模式后，课程、错题和学习计划仍继续使用真实接口。')
+                .fontSize(12).fontColor('#92400E').lineHeight(19).width('100%')
+              Button('前往环境设置')
+                .width('100%').height(44).fontSize(14).fontWeight(FontWeight.Bold)
+                .fontColor('#FFFFFF').backgroundColor('#B45309').borderRadius(12)
+                .onClick(() => router.pushUrl({ url: 'pages/ApiEnvironment' }))
+              Button('返回对话')
+                .width('100%').height(42).fontSize(14).fontColor('#92400E')
+                .backgroundColor('#FFFBEB').border({ width: 1, color: '#F59E0B' }).borderRadius(12)
+                .onClick(() => ChatNavigation.returnToChat())
+            }
+            .width('100%').padding(18).backgroundColor('#FFFBEB').borderRadius(16)
+            .border({ width: 1, color: '#FDE68A' })
+          } else {
+            Text(appState.getChatTaskContext()).fontSize(12).fontColor('#2563EB')
             .width('100%').padding(10).backgroundColor('#EFF6FF').borderRadius(10)
 
           // Agent数据来源标识
@@ -288,6 +303,7 @@ Column() {
           }
           .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
           .shadow({ radius: 8, color: '#10000000', offsetX: 0, offsetY: 3 })
+          }
         }
         .width('100%').padding({ left: 20, right: 20, top: 16, bottom: 40 })
       }

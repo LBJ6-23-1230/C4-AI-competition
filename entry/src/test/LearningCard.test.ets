@@ -22,6 +22,7 @@ export default function learningCardTest() {
       const data: LearningCardData = LearningCardService.fromDecision(decision('二叉树遍历', 25, 40));
       expect(data.taskName).assertEqual('二叉树遍历');
       expect(data.durationText).assertEqual('25 分钟');
+      expect(data.durationMinutes).assertEqual(25);
       expect(data.reason).assertEqual('考试临近且该知识点掌握度较低');
     });
 
@@ -29,7 +30,8 @@ export default function learningCardTest() {
       const data: LearningCardData = LearningCardService.fromDecision(decision(undefined, undefined, 15));
       expect(data.taskName).assertEqual('完成今日复习');
       expect(data.durationText).assertEqual('15 分钟');
-      expect(data.actionText).assertEqual('打开应用');
+      expect(data.durationMinutes).assertEqual(15);
+      expect(data.actionText).assertEqual('开始专注');
     });
   });
 }

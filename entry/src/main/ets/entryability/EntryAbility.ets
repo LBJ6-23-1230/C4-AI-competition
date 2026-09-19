@@ -15,8 +15,12 @@ import { ProactiveSettingsStore } from '../services/ProactiveSettingsStore';
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends UIAbility {
+  private activeWindowStage: window.WindowStage | null = null;
+  private pendingLaunchWant: Want | null = null;
+
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+    this.pendingLaunchWant = want;
   }
 
   onDestroy(): void {
@@ -25,6 +29,7 @@ export default class EntryAbility extends UIAbility {
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
+    this.activeWindowStage = windowStage;
 
     if (!ApiEnvironmentStore.restore(this.context)) {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore API environment, using defaults.');
@@ -48,7 +53,9 @@ export default class EntryAbility extends UIAbility {
     // ★ 启动进入**对话页**（而不是工作台）。
     // 产品定位是"对话式学习秘书"：进来就能直接说话，不用先读一遍功能清单。
     // 先加载对话页、再异步判断是否要去登录页，这样即使校验慢也不会白屏。
-    windowStage.loadContent('pages/ChatMain', (err) => {
+    const fromLearningCard: boolean = this.prepareLearningCardLaunch(this.pendingLaunchWant);
+    const initialPage: string = fromLearningCard ? 'pages/FocusSetup' : 'pages/ChatMain';
+    windowStage.loadContent(initialPage, (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;
@@ -56,7 +63,14 @@ export default class EntryAbility extends UIAbility {
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
     });
 
-    void this.restoreIdentity(windowStage);
+    void this.restoreIdentity(windowStage, fromLearningCard);
+  }
+
+  onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    this.pendingLaunchWant = want;
+    if (this.activeWindowStage !== null && this.prepareLearningCardLaunch(want)) {
+      this.activeWindowStage.loadContent('pages/FocusSetup');
+    }
   }
 
   /**
@@ -75,11 +89,12 @@ export default class EntryAbility extends UIAbility {
    * ⚠️ 「校验失败降级为游客」是刻意的：评审过程中一个过期 token
    * 不该让整个 App 不可用。这条纪律优先于安全洁癖。
    */
-  private async restoreIdentity(windowStage: window.WindowStage): Promise<void> {
+  private async restoreIdentity(windowStage: window.WindowStage, allowGuestLaunch: boolean = false): Promise<void> {
     try {
       // 规则 1：没有登录态 → 先看登录页（离线模式也走这里）
       if (!AuthStore.isSignedIn()) {
         appState.applyLogout();
+        if (allowGuestLaunch) return;
         await windowStage.loadContent('pages/Login');
         return;
       }
@@ -111,6 +126,7 @@ export default class EntryAbility extends UIAbility {
 
   onWindowStageDestroy(): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageDestroy');
+    this.activeWindowStage = null;
   }
 
   onForeground(): void {
@@ -120,6 +136,27 @@ export default class EntryAbility extends UIAbility {
   onBackground(): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
     void ProactiveSurfaceService.refresh(this.context, false);
+  }
+
+  /** Converts card parameters into the same FocusTask consumed by FocusSetup. */
+  private prepareLearningCardLaunch(want: Want | null): boolean {
+    if (want === null || want.parameters === undefined) return false;
+    const source: Object | undefined = want.parameters['source'];
+    if (`${source ?? ''}` !== 'learning_card') return false;
+    const taskValue: Object | undefined = want.parameters['taskName'];
+    const durationValue: Object | undefined = want.parameters['durationMinutes'];
+    const taskName: string = `${taskValue ?? ''}`.trim();
+    const parsedMinutes: number = Number(durationValue ?? 30);
+    const durationMinutes: number = parsedMinutes >= 1 && parsedMinutes <= 180 ? parsedMinutes : 30;
+    appState.setFocusTask({
+      course: appState.getHighPriorityCourse().courseName,
+      task: taskName.length > 0 ? taskName : '完成今日学习建议',
+      plannedMinutes: durationMinutes,
+      source: 'agent',
+      mode: 'normal',
+      timerType: 'countdown'
+    });
+    return true;
   }
 
 }
