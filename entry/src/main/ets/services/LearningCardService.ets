@@ -15,6 +15,11 @@ export interface LearningCardData {
   actionText: string;
 }
 
+interface RegisteredForm {
+  id: string;
+  compact: boolean;
+}
+
 /**
  * Persists the last useful Agent decision and pushes it to every installed service card.
  * The card extension must not perform network work, so it always renders this local snapshot.
@@ -49,18 +54,18 @@ export class LearningCardService {
     }
   }
 
-  static registerForm(context: common.Context, formId: string): void {
+  static registerForm(context: common.Context, formId: string, compact: boolean): void {
     if (formId.length === 0) return;
-    const ids: string[] = LearningCardService.readFormIds(context);
-    if (ids.indexOf(formId) >= 0) return;
-    ids.push(formId);
-    LearningCardService.writeFormIds(context, ids);
+    const registrations: RegisteredForm[] = LearningCardService.readForms(context)
+      .filter((item: RegisteredForm) => item.id !== formId);
+    registrations.push({ id: formId, compact: compact });
+    LearningCardService.writeForms(context, registrations);
   }
 
   static unregisterForm(context: common.Context, formId: string): void {
-    const ids: string[] = LearningCardService.readFormIds(context)
-      .filter((item: string) => item !== formId);
-    LearningCardService.writeFormIds(context, ids);
+    const registrations: RegisteredForm[] = LearningCardService.readForms(context)
+      .filter((item: RegisteredForm) => item.id !== formId);
+    LearningCardService.writeForms(context, registrations);
   }
 
   static async saveDecision(context: common.Context, decision: ProactiveResponse): Promise<void> {
@@ -88,55 +93,71 @@ export class LearningCardService {
     };
   }
 
-  static bindingData(data: LearningCardData): formBindingData.FormBindingData {
+  static bindingData(data: LearningCardData, compact: boolean = false): formBindingData.FormBindingData {
     return formBindingData.createFormBindingData({
       cardTitle: data.title,
       taskName: data.taskName,
       reason: data.reason,
       durationText: data.durationText,
-      actionText: data.actionText
+      actionText: data.actionText,
+      isCompact: compact
     });
   }
 
   static async updateForm(context: common.Context, formId: string): Promise<void> {
     if (formId.length === 0) return;
     try {
-      await formProvider.updateForm(formId, LearningCardService.bindingData(LearningCardService.read(context)));
+      const registration: RegisteredForm | undefined = LearningCardService.readForms(context)
+        .find((item: RegisteredForm) => item.id === formId);
+      await formProvider.updateForm(formId, LearningCardService.bindingData(
+        LearningCardService.read(context), registration?.compact ?? false));
     } catch (error) {
       hilog.warn(DOMAIN, TAG, '%{public}s', `Update form failed: ${JSON.stringify(error)}`);
     }
   }
 
   private static async updateRegisteredForms(context: common.Context, data: LearningCardData): Promise<void> {
-    const ids: string[] = LearningCardService.readFormIds(context);
-    const binding: formBindingData.FormBindingData = LearningCardService.bindingData(data);
-    for (let index: number = 0; index < ids.length; index++) {
+    const registrations: RegisteredForm[] = LearningCardService.readForms(context);
+    for (let index: number = 0; index < registrations.length; index++) {
       try {
-        await formProvider.updateForm(ids[index], binding);
+        const registration: RegisteredForm = registrations[index];
+        await formProvider.updateForm(registration.id,
+          LearningCardService.bindingData(data, registration.compact));
       } catch (error) {
-        hilog.warn(DOMAIN, TAG, '%{public}s', `Update ${ids[index]} failed: ${JSON.stringify(error)}`);
+        hilog.warn(DOMAIN, TAG, '%{public}s',
+          `Update ${registrations[index].id} failed: ${JSON.stringify(error)}`);
       }
     }
   }
 
-  private static readFormIds(context: common.Context): string[] {
+  private static readForms(context: common.Context): RegisteredForm[] {
     try {
       const store: preferences.Preferences = preferences.getPreferencesSync(context, {
         name: LearningCardService.STORE_NAME
       });
       const raw: string = store.getSync(LearningCardService.KEY_FORM_IDS, '[]') as string;
-      return JSON.parse(raw) as string[];
+      const parsed: Object[] = JSON.parse(raw) as Object[];
+      const registrations: RegisteredForm[] = [];
+      for (let index: number = 0; index < parsed.length; index++) {
+        const item: Object = parsed[index];
+        if (typeof item === 'string') {
+          registrations.push({ id: item as string, compact: false });
+        } else {
+          registrations.push(item as RegisteredForm);
+        }
+      }
+      return registrations;
     } catch (error) {
       return [];
     }
   }
 
-  private static writeFormIds(context: common.Context, ids: string[]): void {
+  private static writeForms(context: common.Context, registrations: RegisteredForm[]): void {
     try {
       const store: preferences.Preferences = preferences.getPreferencesSync(context, {
         name: LearningCardService.STORE_NAME
       });
-      store.putSync(LearningCardService.KEY_FORM_IDS, JSON.stringify(ids));
+      store.putSync(LearningCardService.KEY_FORM_IDS, JSON.stringify(registrations));
       store.flushSync();
     } catch (error) {
       hilog.warn(DOMAIN, TAG, '%{public}s', `Persist form ids failed: ${JSON.stringify(error)}`);
