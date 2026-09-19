@@ -92,11 +92,19 @@ def llm_base_url() -> str:
     return os.getenv("LLM_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
 
 
+def llm_timeout_seconds() -> float:
+    try:
+        return max(1.0, float(os.getenv("LLM_TIMEOUT_SECONDS", "30")))
+    except ValueError:
+        return 30.0
+
+
 # --------------------------------------------------------------------------- LLM 调用
 def _client():
     import openai  # 延迟导入：未安装 openai 时不影响确定性接口
     return openai.OpenAI(
-        api_key=os.getenv("DASHSCOPE_API_KEY", "").strip(), base_url=llm_base_url())
+        api_key=os.getenv("DASHSCOPE_API_KEY", "").strip(), base_url=llm_base_url(),
+        timeout=llm_timeout_seconds())
 
 
 def _call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.7,

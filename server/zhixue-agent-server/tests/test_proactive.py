@@ -147,3 +147,21 @@ def test_proactive_does_not_notify_for_started_ddl_or_healthy_exam_context():
 
     assert result["shouldNotify"] is False
     assert result["channel"] == "silent"
+
+
+def test_proactive_notifies_for_exam_with_mastery_below_80():
+    result = proactive_decision({"context": {
+        "now": "2026-09-16T21:10:00+08:00", "daysLeft": 7, "masteryScore": 79,
+        "lastStudyAt": "2026-09-16T20:30:00+08:00",
+    }})
+
+    assert result["shouldNotify"] is True
+    assert "exam_within_7d_low_mastery" in result["contextTags"]
+
+
+def test_proactive_never_returns_actionable_notification_when_suppressed():
+    result = proactive_decision({"context": {"daysLeft": 2, "masteryScore": 20, "foreground": True}})
+
+    assert result["shouldNotify"] is False
+    assert result["channel"] == "silent"
+    assert result["action"]["type"] == "none"

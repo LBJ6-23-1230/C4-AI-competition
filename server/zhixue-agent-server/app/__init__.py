@@ -9,6 +9,7 @@ from app.api.chat import chat_api
 from app.api.exercises import exercises_api
 from app.api.experiments import experiments_api
 from app.api.plans import plans_api
+from app.api.partner_match import partner_match_api
 from app.api.profile import profile_api
 from app.api.proactive import proactive_api
 from app.api.traces import traces_api
@@ -33,6 +34,7 @@ def create_app(repository_path: str | Path | None = None) -> Flask:
     app.register_blueprint(chat_api)
     app.register_blueprint(profile_api)
     app.register_blueprint(plans_api)
+    app.register_blueprint(partner_match_api)
     app.register_blueprint(exercises_api)
     app.register_blueprint(experiments_api)
     app.register_blueprint(traces_api)

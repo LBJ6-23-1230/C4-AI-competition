@@ -27,6 +27,7 @@ $requiredPaths = @(
     '/api/agent/chat',
     '/api/v1/experiments/snapshot',
     '/api/v1/agent/proactive',
+    '/api/v1/agent/partner-match',
     '/api/v1/workflows',
     '/api/v1/workflows/{id}',
     '/api/v1/workflows/{id}/run',

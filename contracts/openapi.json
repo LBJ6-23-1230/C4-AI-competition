@@ -42,6 +42,17 @@
         }
       }
     },
+    "/api/v1/agent/partner-match": {
+      "post": {
+        "summary": "使用确定性规则匹配学习搭子",
+        "operationId": "partnerMatch",
+        "requestBody": { "required": false, "content": { "application/json": { "schema": { "type": "object", "properties": { "userId": { "type": "string" }, "user": { "type": "object" }, "candidates": { "type": "array", "items": { "type": "object" } } } } } } },
+        "responses": {
+          "200": { "description": "搭子匹配结果", "content": { "application/json": { "schema": { "type": "object", "required": ["userId", "matchedCandidate", "candidates", "generatedAt", "realModeUnavailable"], "properties": { "userId": { "type": "string" }, "matchedCandidate": { "type": "object", "nullable": true }, "candidates": { "type": "array", "items": { "type": "object" } }, "generatedAt": { "type": "string", "format": "date-time" }, "realModeUnavailable": { "type": "boolean", "enum": [false] } } } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
     "/api/v1/workflows": {
       "post": {
         "summary": "创建或继续学习工作流",

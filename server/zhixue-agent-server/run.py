@@ -17,6 +17,7 @@
     DASHSCOPE_API_KEY   DashScope Key；不配置则聊天层降级为确定性规则（不会伪装成 LLM 输出）
     LLM_BASE_URL        默认 https://dashscope.aliyuncs.com/compatible-mode/v1
     LLM_MODEL           默认 qwen-vl-plus
+	LLM_TIMEOUT_SECONDS LLM 请求超时秒数，默认 30
     PORT                默认 5000
 """
 
@@ -28,6 +29,7 @@ import sys
 def _load_env_file(path: str) -> None:
 	"""极简 .env 解析：不覆盖已存在的真实环境变量。"""
 	if not os.path.exists(path):
+		print("no such path")
 		return
 	with open(path, "r", encoding="utf-8") as stream:
 		for line in stream:
@@ -75,7 +77,7 @@ if __name__ == "__main__":
 	parser.add_argument("--check", action="store_true", help="只做配置自检，不启动服务")
 	parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "5000")))
 	args = parser.parse_args()
-
+ 
 	os.environ["PORT"] = str(args.port)
 	application = create_app()
 	_banner(application)

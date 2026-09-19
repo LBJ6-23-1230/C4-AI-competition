@@ -109,7 +109,7 @@ def proactive_decision(payload: dict[str, Any]) -> dict[str, Any]:
 
     ddl_due = _pending_ddl_due(context, days_left)
     study_gap = has_study_signal and gap_days >= 2
-    exam_weak = has_exam_signal and days_left <= 7 and mastery_score < 60
+    exam_weak = has_exam_signal and days_left <= 7 and mastery_score < 80
     trigger_reasons = []
     if ddl_due:
         trigger_reasons.append("pending_ddl_within_2d")
