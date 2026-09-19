@@ -14,6 +14,8 @@ import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
 import { PlanViewModel } from '../viewmodels/PlanViewModel';
 import { ProactiveViewModel } from '../viewmodels/ProactiveViewModel';
+import { common } from '@kit.AbilityKit';
+import { LearningCardService } from '../services/LearningCardService';
 
 @Entry
 @Component
@@ -95,6 +97,10 @@ struct Index {
     if (!this.isPageActive || requestVersion !== this.proactiveRequestVersion) return;
     this.proactiveDecision = state.decision;
     this.proactiveMessage = state.errorMessage;
+    if (state.decision !== null) {
+      const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      void LearningCardService.saveDecision(context, state.decision);
+    }
     this.isProactiveLoading = false;
   }
 

@@ -3,7 +3,7 @@ param(
     [string]$TestHapPath = (Join-Path (Split-Path -Parent $PSScriptRoot) 'entry\build\default\outputs\ohosTest\entry-ohosTest-unsigned.hap'),
     [string]$BundleName = 'com.zhixue.mate',
     [string]$TestModule = 'entry_test',
-    [int]$ExpectedTests = 35,
+    [int]$ExpectedTests = 37,
     [int]$MaxAttempts = 4
 )
 

@@ -23,6 +23,14 @@
     {
       "name": "internet_permission_reason",
       "value": "用于连接AI学习助手"
+    },
+    {
+      "name": "learning_card_display_name",
+      "value": "今日学习建议"
+    },
+    {
+      "name": "learning_card_description",
+      "value": "在桌面查看知学搭子生成的下一项学习任务"
     }
   ]
 }

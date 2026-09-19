@@ -53,6 +53,21 @@
           }
         ]
       }
+    ],
+    "extensionAbilities": [
+      {
+        "name": "LearningCardFormAbility",
+        "srcEntry": "./ets/entryformability/LearningCardFormAbility.ets",
+        "label": "$string:learning_card_display_name",
+        "description": "$string:learning_card_description",
+        "type": "form",
+        "metadata": [
+          {
+            "name": "ohos.extension.form",
+            "resource": "$profile:form_config"
+          }
+        ]
+      }
     ]
   }
 }
