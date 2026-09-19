@@ -1,9 +1,11 @@
 import { http } from '@kit.NetworkKit';
 import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiFailure, ApiResult, apiFailure, apiSuccess } from './ApiResult';
+import { ApiDefaults } from './ApiDefaults';
+import { AuthLoginRequest, AuthRegisterRequest, AuthSessionResponse, AuthStatusResponse, AuthUserResponse } from './AuthModels';
+import { AuthStore } from './AuthStore';
 import { FixtureApiTransport } from './FixtureApiTransport';
 import { ApiResponseValidator } from './ApiResponseValidator';
-import { ApiDefaults } from './ApiDefaults';
 
 export interface ApiClientConfig {
   baseUrl: string;
@@ -11,11 +13,18 @@ export interface ApiClientConfig {
   timeoutMs: number;
 }
 
-/** The single API entry point. Pages must use ViewModels instead of calling HTTP directly. */
+/**
+ * The single API entry point. Pages must use ViewModels instead of calling HTTP directly.
+ *
+ * 联调收敛后只有一个 baseUrl：聊天层 `/api/agent/chat` 与结构化工作流层 `/api/v1/**`
+ * 由同一个后端进程、同一个端口提供，不再出现"chat 打 B1、学习流打 B2"的双后端不同源问题。
+ *
+ * 默认地址集中定义在 `ApiDefaults.DEFAULT_BASE_URL`，页面里不得再各写一份 IP。
+ */
 export class AgentApiClient {
   private static config: ApiClientConfig = {
-    baseUrl: ApiDefaults.EMULATOR_BASE_URL,
-    useFixture: false,
+    baseUrl: ApiDefaults.DEFAULT_BASE_URL,
+    useFixture: ApiDefaults.DEFAULT_USE_FIXTURE,
     timeoutMs: ApiDefaults.DEFAULT_TIMEOUT_MS
   };
 
@@ -96,15 +105,54 @@ export class AgentApiClient {
     return AgentApiClient.request<ProactiveResponse>(http.RequestMethod.POST, '/api/v1/agent/proactive', request);
   }
 
+  // ------------------------------------------------------------------ 鉴权
+  static async authRegister(request: AuthRegisterRequest): Promise<ApiResult<AuthSessionResponse>> {
+    return AgentApiClient.request<AuthSessionResponse>(http.RequestMethod.POST, '/api/v1/auth/register', request);
+  }
+
+  static async authLogin(request: AuthLoginRequest): Promise<ApiResult<AuthSessionResponse>> {
+    return AgentApiClient.request<AuthSessionResponse>(http.RequestMethod.POST, '/api/v1/auth/login', request);
+  }
+
+  static async authMe(): Promise<ApiResult<AuthUserResponse>> {
+    return AgentApiClient.request<AuthUserResponse>(http.RequestMethod.GET, '/api/v1/auth/me');
+  }
+
+  static async authLogout(): Promise<ApiResult<AuthStatusResponse>> {
+    return AgentApiClient.request<AuthStatusResponse>(http.RequestMethod.POST, '/api/v1/auth/logout');
+  }
+
+  static async authDeleteAccount(): Promise<ApiResult<AuthStatusResponse>> {
+    return AgentApiClient.request<AuthStatusResponse>(http.RequestMethod.DELETE, '/api/v1/auth/account');
+  }
+
   private static async request<T>(method: http.RequestMethod, path: string, body?: Object): Promise<ApiResult<T>> {
-    const methodName: string = method === http.RequestMethod.GET ? 'GET' : 'POST';
+    const methodName: string = AgentApiClient.methodName(method);
     if (AgentApiClient.config.useFixture) return FixtureApiTransport.request<T>(methodName, path, body);
 
     const httpRequest: http.HttpRequest = http.createHttp();
     try {
-      const requestOptions: http.HttpRequestOptions = body === undefined
-        ? { method: method, header: { 'Accept': 'application/json', 'X-API-Contract-Version': API_CONTRACT_VERSION }, expectDataType: http.HttpDataType.STRING, connectTimeout: AgentApiClient.config.timeoutMs, readTimeout: AgentApiClient.config.timeoutMs }
-        : { method: method, header: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-API-Contract-Version': API_CONTRACT_VERSION }, extraData: JSON.stringify(body), expectDataType: http.HttpDataType.STRING, connectTimeout: AgentApiClient.config.timeoutMs, readTimeout: AgentApiClient.config.timeoutMs };
+      const header: Record<string, string> = {
+        'Accept': 'application/json',
+        'X-API-Contract-Version': API_CONTRACT_VERSION
+      };
+      if (body !== undefined) {
+        header['Content-Type'] = 'application/json';
+      }
+      // 已登录时带上凭据。游客 / 离线演示不带 Authorization，
+      // 后端按 demo-user 处理，演示主链数值完全不受影响。
+      const token: string = AuthStore.getToken();
+      if (token.length > 0) {
+        header['Authorization'] = `Bearer ${token}`;
+      }
+      const requestOptions: http.HttpRequestOptions = {
+        method: method,
+        header: header,
+        extraData: body === undefined ? undefined : JSON.stringify(body),
+        expectDataType: http.HttpDataType.STRING,
+        connectTimeout: AgentApiClient.config.timeoutMs,
+        readTimeout: AgentApiClient.config.timeoutMs
+      };
       const response: http.HttpResponse =
         await httpRequest.request(`${AgentApiClient.config.baseUrl}${path}`, requestOptions);
       if (response.responseCode < 200 || response.responseCode >= 300) {
@@ -126,6 +174,14 @@ export class AgentApiClient {
     } finally {
       httpRequest.destroy();
     }
+  }
+
+  /** 把 http.RequestMethod 映射成字符串，供 Fixture 路由与响应校验使用。 */
+  private static methodName(method: http.RequestMethod): string {
+    if (method === http.RequestMethod.GET) return 'GET';
+    if (method === http.RequestMethod.DELETE) return 'DELETE';
+    if (method === http.RequestMethod.PUT) return 'PUT';
+    return 'POST';
   }
 
   private static normalizeBaseUrl(baseUrl: string): string {

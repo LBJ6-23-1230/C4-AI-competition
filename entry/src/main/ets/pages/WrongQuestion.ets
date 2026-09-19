@@ -2,6 +2,7 @@ import router from '@ohos.router';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { appState } from '../data/AppState';
 import { WrongAnalysisResult } from '../models/AgentModels';
+import { FollowUpCard } from '../components/FollowUpCard';
 import { LocalAgentService } from '../services/LocalAgentService';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AIFloatButton } from '../components/AIFloatButton';
@@ -226,43 +227,47 @@ Text('✅ 分析完成')
     .shadow({ radius: 14, color: '#14000000', offsetX: 0, offsetY: 6 })
   }
 
+  /**
+   * 诊断完成后收口「下一步」。
+   *
+   * 重构前的两个问题：
+   *   1. 只给「加入明日复习」与「继续上传错题」，**没有通向专项练习**——
+   *      诊断出了薄弱点却不让你立刻练，Agent 的第 4/5 层（行动/输出）等于断了；
+   *   2. 自建了一套导航块样式，与其他页面不一致。
+   * 现在统一用 FollowUpCard，主行动是**去练这个知识点**（闭环最短路径），
+   * 复盘排期与继续上传降级为次要行动。
+   */
   @Builder
   NavButtons() {
-    Column({ space: 8 }) {
-      Text('接下来想做什么？').fontSize(14).fontWeight(FontWeight.Bold).fontColor('#172033').width('100%')
-
-      Button() {
-        Row({ space: 8 }) {
-          Text(this.reviewAdded ? '已加入明日复习' : '加入明日复习').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
-Text('→').fontSize(16).fontColor('#FFFFFF')
-        }.width('100%').padding({ left: 16, right: 16 })
-      }
-      .width('100%').height(48).backgroundColor(this.reviewAdded ? '#94A3B8' : '#2563EB').borderRadius(14)
-      .enabled(!this.reviewAdded)
-      .onClick(() => this.addToTomorrowPlan())
-
-      Button() {
-        Row({ space: 8 }) {
-          Text('📸').fontSize(18)
-          Text('继续上传错题').fontSize(15).fontWeight(FontWeight.Medium).fontColor('#2563EB')
-Text('→').fontSize(16).fontColor('#2563EB')
-        }.width('100%').padding({ left: 16, right: 16 })
-      }
-      .width('100%').height(46).backgroundColor('#EFF6FF').border({ width: 1, color: '#93C5FD' }).borderRadius(14)
-      .onClick(() => {
-        this.hasPhoto = false;
-        this.showAnalysis = false;
-        this.analysisResult = null;
-        this.selectedImageUri = '';
-        this.selectedImageName = '';
-        this.reviewAdded = false;
-        this.analysisRequestVersion++;
-        this.isAnalyzing = false;
-        appState.clearCurrentWrongQuestionDraft();
+    Column({ space: 12 }) {
+      FollowUpCard({
+        title: '接下来',
+        reason: this.analysisResult !== null && this.analysisResult.knowledge.length > 0
+          ? `已经定位到「${this.analysisResult.knowledge[0]}」的薄弱点。立刻做几道同类题，掌握度才会真正更新。`
+          : '立刻做几道同类题，掌握度才会真正更新。',
+        primaryText: '做 3 道同类专项题',
+        primaryTarget: 'pages/ExercisePractice',
+        secondaryText: this.reviewAdded ? '已加入明日复习' : '加入明日复习',
+        showAgentTraceLink: true,
+        onSecondary: (): void => { this.addToTomorrowPlan(); }
       })
+
+      Button('📸 继续上传错题')
+        .width('100%').height(44).fontSize(14).fontColor('#2563EB')
+        .backgroundColor('#FFFFFF').border({ width: 1, color: '#BFDBFE' }).borderRadius(12)
+        .onClick(() => {
+          this.hasPhoto = false;
+          this.showAnalysis = false;
+          this.analysisResult = null;
+          this.selectedImageUri = '';
+          this.selectedImageName = '';
+          this.reviewAdded = false;
+          this.analysisRequestVersion++;
+          this.isAnalyzing = false;
+          appState.clearCurrentWrongQuestionDraft();
+        })
     }
-    .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
-    .shadow({ radius: 8, color: '#10000000', offsetX: 0, offsetY: 3 })
+    .width('100%')
   }
 
   build() {
@@ -272,7 +277,7 @@ Text('→').fontSize(16).fontColor('#2563EB')
         Text('← 返回').fontSize(14).fontColor('#64748B').fontWeight(FontWeight.Medium)
           .onClick(() => { router.back(); })
         Blank()
-        Text('错题分析').fontSize(14).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+        Text('错题诊断').fontSize(14).fontWeight(FontWeight.Bold).fontColor('#2563EB')
           .backgroundColor('#EFF6FF').borderRadius(16).padding({ left: 12, right: 12, top: 6, bottom: 6 })
       }
       .width('100%').padding({ left: 20, right: 20, top: 12, bottom: 12 })
@@ -280,7 +285,7 @@ Text('→').fontSize(16).fontColor('#2563EB')
 
       Scroll() {
         Column({ space: 16 }) {
-          Text('错题分析')
+          Text('错题诊断')
             .fontSize(26).fontWeight(FontWeight.Bold).fontColor('#172033').width('100%')
 
           Text('拍照或从相册上传错题，AI 自动识别知识点、判断错误类型并生成补强建议')

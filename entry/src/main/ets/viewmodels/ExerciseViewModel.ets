@@ -1,8 +1,8 @@
 import { AgentApiClient } from '../api/AgentApiClient';
+import { ApiDefaults } from '../api/ApiDefaults';
 import { ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, WorkflowResponse, WorkflowRunResponse, WorkflowStatusResponse } from '../api/ApiModels';
 import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
-import { ApiDefaults } from '../api/ApiDefaults';
 
 /**
  * Prepares the exercise flow for the page. Scores and mastery are always

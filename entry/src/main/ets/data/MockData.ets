@@ -13,10 +13,19 @@ import {
 import { ApiDefaults } from '../api/ApiDefaults';
 
 /* ========== 当前用户 ========== */
+/**
+ * 演示身份的默认用户。
+ *
+ * ⚠️ `userId` 必须等于 `ApiDefaults.DEMO_USER_ID`（= 'demo-user'）——
+ * 后端所有演示数据（画像 mastery=42、Plan V1、trace）都挂在这个 ID 上。
+ * 曾经这里写死 'u001'，而 `ExerciseViewModel` 兜底与后端都是 'demo-user'，
+ * 导致首页按 u001 查画像、画像页按 demo-user 读写，一旦后端按 userId 分片就会自相矛盾。
+ * 现统一引用单一真源，改动只需动 `ApiDefaults`。
+ */
 export const mockCurrentUser: UserProfile = {
   userId: ApiDefaults.DEMO_USER_ID,
   basicInfo: {
-    name: '小明',
+    name: ApiDefaults.DEMO_USER_NAME,
     grade: '大二',
     major: '计算机科学与技术'
   },

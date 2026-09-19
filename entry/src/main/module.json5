@@ -29,14 +29,6 @@
       {
         "name": "ohos.permission.INTERNET",
         "reason": "$string:internet_permission_reason"
-      },
-      {
-        "name": "ohos.permission.APPROXIMATELY_LOCATION",
-        "reason": "$string:location_permission_reason",
-        "usedScene": {
-          "abilities": ["EntryAbility"],
-          "when": "inuse"
-        }
       }
     ],
     "pages": "$profile:main_pages",

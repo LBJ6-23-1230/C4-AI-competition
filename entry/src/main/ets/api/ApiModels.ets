@@ -1,7 +1,5 @@
-import { ApiDefaults } from './ApiDefaults';
-
 /** DTOs mirrored from the authoritative Agent backend contract. */
-export const API_CONTRACT_VERSION: string = ApiDefaults.CONTRACT_VERSION;
+export const API_CONTRACT_VERSION: string = 'api-contract-v0.3';
 
 export type WorkflowStatus = 'running' | 'completed' | 'failed' | 'fallback' | 'error';
 export type PlanTaskStatus = 'pending' | 'in_progress' | 'completed';

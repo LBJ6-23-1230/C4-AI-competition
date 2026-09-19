@@ -1,12 +1,12 @@
 import router from '@ohos.router';
 import { common } from '@kit.AbilityKit';
 import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
+import { ApiDefaults } from '../api/ApiDefaults';
 import { ApiEnvironmentStore } from '../api/ApiEnvironmentStore';
 import { FixtureDemoStateStore } from '../api/FixtureDemoStateStore';
 import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
 import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
-import { ApiDefaults } from '../api/ApiDefaults';
 
 @Entry
 @Component
@@ -59,7 +59,8 @@ struct ApiEnvironment {
   }
 
   private useEmulatorBackend(): void {
-    this.applyConfig(ApiDefaults.EMULATOR_BASE_URL, false, '已切换到真 Agent 后端，请确认电脑 5000 端口服务已启动。');
+    this.applyConfig(ApiDefaults.DEFAULT_BASE_URL, false,
+      `已切换到真 Agent 后端（${ApiDefaults.DEFAULT_BASE_URL}），请确认电脑 5000 端口服务已启动。`);
   }
 
   private useCustomBackend(): void {
@@ -106,12 +107,15 @@ struct ApiEnvironment {
             .width('100%').height(48).fontSize(15).fontColor('#FFFFFF').backgroundColor('#2563EB').borderRadius(12)
             .onClick(() => this.useOfflineDemo())
           Text('固定演示不依赖后端，可稳定展示 42 → 58 → Plan V2。').fontSize(12).fontColor('#667085').width('100%')
-          Button(!this.useFixture && this.baseUrl === ApiDefaults.EMULATOR_BASE_URL ? '✓ 当前：真 Agent 后端' : '使用真 Agent 后端（5000）')
+          Button(!this.useFixture && this.baseUrl === ApiDefaults.DEFAULT_BASE_URL ? '✓ 当前：真 Agent 后端' : '使用真 Agent 后端（5000）')
             .width('100%').height(48).fontSize(15).fontColor('#2563EB').backgroundColor('#FFFFFF')
             .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => this.useEmulatorBackend())
           Column({ space: 10 }) {
             Text('真机 / 自定义后端').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#1F2937').width('100%')
-            Text('手机和电脑需在同一网络，例如 http://192.168.1.23:5000。').fontSize(13).fontColor('#667085').lineHeight(19).width('100%')
+            // 真机联调：手机与本机需在同一 WiFi，用 ipconfig 取本机 IPv4 地址后按
+            // http://<本机IP>:5000 填写（详见项目根 README.md 的「联调地址速查」）。
+            Text('真机联调：手机与电脑需在同一 WiFi，填入电脑的局域网地址（含 5000 端口）。')
+              .fontSize(13).fontColor('#667085').lineHeight(19).width('100%')
             TextInput({ placeholder: 'http://192.168.x.x:5000', text: this.baseUrl })
               .width('100%').height(44).fontSize(14).backgroundColor('#F8FAFC').borderRadius(10)
               .onChange((value: string) => this.baseUrl = value)

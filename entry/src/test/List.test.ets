@@ -7,6 +7,7 @@ import wrongQuestionPlanTest from './WrongQuestionPlan.test';
 import focusLogicTest from './FocusLogic.test';
 import partnerFlowTest from './PartnerFlow.test';
 import apiResponseValidatorTest from './ApiResponseValidator.test';
+import proactiveContextTest from './ProactiveContext.test';
 
 export default function testsuite() {
   localUnitTest();
@@ -18,4 +19,5 @@ export default function testsuite() {
   focusLogicTest();
   partnerFlowTest();
   apiResponseValidatorTest();
+  proactiveContextTest();
 }

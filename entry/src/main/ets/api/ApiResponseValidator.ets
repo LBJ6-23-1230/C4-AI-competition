@@ -73,7 +73,40 @@ export class ApiResponseValidator {
         ApiResponseValidator.hasArray(data, 'factors') &&
         ApiResponseValidator.isRecordField(data, 'cardData');
     }
+    // ---- 鉴权（/api/v1/auth/*）----
+    if (method === 'POST' && path === '/api/v1/auth/register') {
+      return ApiResponseValidator.isAuthSession(data);
+    }
+    if (method === 'POST' && path === '/api/v1/auth/login') {
+      return ApiResponseValidator.isAuthSession(data);
+    }
+    if (method === 'POST' && path === '/api/v1/auth/logout') {
+      return ApiResponseValidator.hasString(data, 'status');
+    }
+    if (method === 'GET' && path === '/api/v1/auth/me') {
+      return ApiResponseValidator.isAuthUserField(data, 'user');
+    }
+    if (method === 'DELETE' && path === '/api/v1/auth/account') {
+      return ApiResponseValidator.hasString(data, 'status');
+    }
     return false;
+  }
+
+  /** 会话响应：{ user, token, expiresAt }。 */
+  private static isAuthSession(data: Record<string, Object>): boolean {
+    return ApiResponseValidator.isAuthUserField(data, 'user') &&
+      ApiResponseValidator.hasString(data, 'token') &&
+      ApiResponseValidator.hasString(data, 'expiresAt');
+  }
+
+  /** 用户视图：userId 与 nickname 必须是非空字符串。 */
+  private static isAuthUserField(data: Record<string, Object>, key: string): boolean {
+    if (!ApiResponseValidator.isRecordField(data, key)) {
+      return false;
+    }
+    const user: Record<string, Object> = data[key] as Record<string, Object>;
+    return ApiResponseValidator.hasString(user, 'userId') &&
+      ApiResponseValidator.hasString(user, 'nickname');
   }
 
   private static isPlan(data: Record<string, Object>): boolean {

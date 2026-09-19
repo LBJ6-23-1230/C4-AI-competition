@@ -206,12 +206,13 @@ export class AgentBridge {
     return 'pages/StudySuggestion';
   }
 
+  /** 卡片底部按钮文案：统一说"查看哪个页面"，与 chip 名称同一套口径。 */
   static getActionLabel(cardType: string): string {
-    if (cardType === 'weakness') { return '查看薄弱诊断'; }
-    if (cardType === 'partner') { return '查看搭子详情'; }
-    if (cardType === 'tasks') { return '查看任务清单'; }
-    if (cardType === 'wrong') { return '查看错题分析'; }
-    return '查看详情';
+    if (cardType === 'weakness') { return '查看学情画像'; }
+    if (cardType === 'partner') { return '查看学习搭子'; }
+    if (cardType === 'tasks') { return '查看今日任务'; }
+    if (cardType === 'wrong') { return '查看错题诊断'; }
+    return '查看今日学习建议';
   }
 
   static createDemoResponse(message: string, image: string | undefined): AgentResponse {
@@ -226,15 +227,15 @@ export class AgentBridge {
     }
 
     const replyMap: Map<ChatIntent, string> = new Map<ChatIntent, string>();
-    replyMap.set('query_tasks', '我已根据当前演示数据整理好近期任务，你可以打开学习计划查看优先级。');
-    replyMap.set('analyze_weakness', '我已读取当前演示画像，你可以查看薄弱知识点、掌握度和学习证据。');
-    replyMap.set('get_suggestion', '我已根据课程紧迫度和薄弱点生成今日建议，先从最高优先级任务开始。');
-    replyMap.set('match_partner', '我已按课程、目标和空闲时间完成搭子匹配，你可以查看匹配结果。');
+    replyMap.set('query_tasks', '我已按当前课程与作业 DDL 整理出今日任务，可以打开学习计划查看优先级。');
+    replyMap.set('analyze_weakness', '我已读取当前学情画像，你可以查看薄弱知识点、掌握度和学习证据。');
+    replyMap.set('get_suggestion', '我已按课程紧迫度、近期复习状态与薄弱点算好今日学习建议，先从最高优先级任务开始。');
+    replyMap.set('match_partner', '我已按课程、目标、知识互补与空闲时间完成学习搭子匹配，可以查看匹配因子明细。');
     replyMap.set('analyze_wrong', '请上传或选择一道错题，我会展示知识点、错误原因和补强建议。');
-    replyMap.set('update_profile', '当前处于固定离线演示，画像更新请通过诊断练习完成。');
-    replyMap.set('free_chat', '你可以问我今日建议、薄弱点和学习计划，也可以上传错题或匹配学习搭子。');
+    replyMap.set('update_profile', '离线演示下画像由诊断练习自动更新：去「练习智能体」做一组专项题，掌握度会随之变化。');
+    replyMap.set('free_chat', '你可以问我今日学习建议、学情画像、今日任务或学习搭子，也可以上传错题。');
 
-    const defaultReply: string = '你可以问我今日建议、薄弱点、学习计划或搭子匹配。';
+    const defaultReply: string = '你可以问我今日学习建议、学情画像、今日任务或学习搭子。';
     const foundReply: string | undefined = replyMap.get(intent);
 
     return {
@@ -244,19 +245,53 @@ export class AgentBridge {
     };
   }
 
-  /** Fixture mode uses the same navigation card structure as the real Agent response. */
+  /**
+   * 离线 Fixture 模式下，每个意图各自对应一张卡片。
+   *
+   * ⚠️ **一个意图一张卡，一个按钮一个页面**。
+   *
+   * 修正来源：原实现把 `get_suggestion` 与 `query_tasks` 合并进同一个分支
+   * （`intent === 'query_tasks' || intent === 'get_suggestion'`，都返回
+   * "学习计划" → `pages/StudyPlan`），而 `update_profile` 直接落到末尾
+   * `return undefined` ——**没有任何卡片**。后果是：
+   *   · 顶部"今日建议"和"查任务"两个按钮点出**同一个结果**；
+   *   · "更新信息"点下去**什么都不给**。
+   * 六个按钮有三个是失真的，用户自然会觉得"名字和功能对不上"。
+   *
+   * 现在按后端 `chat_llm.INTENT_CARDS` 的权威口径逐个对齐：
+   *   get_suggestion → 学习建议   → pages/StudySuggestion
+   *   analyze_wrong  → 错题分析   → pages/WrongQuestion
+   *   analyze_weakness → 学情画像 → pages/StudyTags
+   *   match_partner  → 学习搭子   → pages/PartnerMatch
+   *   query_tasks    → 今日任务   → pages/StudyPlan
+   *   update_profile → 学习画像   → pages/StudyTags
+   *
+   * 卡片标题一律用**页面标题**，而不是内部术语，保证"按钮名 = 落地页名"。
+   */
   static createLocalCardForIntent(intent: ChatIntent): ChatCard | undefined {
-    if (intent === 'analyze_weakness') {
-      return AgentBridge.createLocalCard('weakness', '知识画像', '查看当前薄弱知识点、掌握度和学习证据。', 'pages/StudyTags');
+    if (intent === 'get_suggestion') {
+      return AgentBridge.createLocalCard('suggestion', '今日学习建议',
+        '按课程紧迫度、近期复习状态与薄弱点算出的下一步动作。', 'pages/StudySuggestion');
     }
     if (intent === 'analyze_wrong') {
-      return AgentBridge.createLocalCard('wrong', '错题分析', '上传或选择一道错题，获取错误原因和补强建议。', 'pages/WrongQuestion');
+      return AgentBridge.createLocalCard('wrong', '错题诊断',
+        '上传或选择一道错题，获取错误原因和补强建议。', 'pages/WrongQuestion');
     }
-    if (intent === 'query_tasks' || intent === 'get_suggestion') {
-      return AgentBridge.createLocalCard('tasks', '学习计划', '查看近期学习任务和优先级安排。', 'pages/StudyPlan');
+    if (intent === 'analyze_weakness') {
+      return AgentBridge.createLocalCard('weakness', '学情画像',
+        '查看当前薄弱知识点、掌握度和学习证据。', 'pages/StudyTags');
     }
     if (intent === 'match_partner') {
-      return AgentBridge.createLocalCard('partner', '学习搭子', '查看基于课程、目标和时间的匹配结果。', 'pages/PartnerMatch');
+      return AgentBridge.createLocalCard('partner', '学习搭子',
+        '查看基于课程、目标和时间的匹配结果。', 'pages/PartnerMatch');
+    }
+    if (intent === 'query_tasks') {
+      return AgentBridge.createLocalCard('tasks', '今日任务',
+        '查看近期学习任务和优先级安排。', 'pages/StudyPlan');
+    }
+    if (intent === 'update_profile') {
+      return AgentBridge.createLocalCard('weakness', '学习画像',
+        '更新掌握情况后，画像与后续推荐会同步重算。', 'pages/StudyTags');
     }
     return undefined;
   }

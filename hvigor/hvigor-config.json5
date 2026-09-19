@@ -1,8 +1,6 @@
 {
   "modelVersion": "6.1.1",
-  "dependencies": {
-    "@ohos/hvigor-ohos-arkui-x-plugin": "4.26.1"
-  },
+  "dependencies": {},
   "execution": {
     // "analyze": "normal",                     /* Define the build analyze mode. Value: [ "normal" | "advanced" | "ultrafine" | false ]. Default: "normal" */
     // "daemon": true,                          /* Enable daemon compilation. Value: [ true | false ]. Default: true */

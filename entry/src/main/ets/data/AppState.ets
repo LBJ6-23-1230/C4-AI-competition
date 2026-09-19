@@ -21,6 +21,8 @@ import {
   PlanTaskStatus
 } from '../models/AgentModels';
 import { ChatHandoff } from '../models/ChatModels';
+import { ApiDefaults } from '../api/ApiDefaults';
+import { AuthSource, AuthUser } from '../api/AuthModels';
 import {
   mockCurrentUser,
   mockCoursesList,
@@ -28,7 +30,6 @@ import {
   mockCandidates
 } from './MockData';
 import { DateHelper } from '../utils/DateHelper';
-import { AuthSession } from '../api/AuthModels';
 
 /**
  * AppState — 全局单例状态管理
@@ -42,7 +43,6 @@ export class AppState {
 
   /* ========== 用户 & 课程数据 ========== */
   public currentUser: UserProfile = mockCurrentUser;
-  public authSession: AuthSession | null = null;
   public courses: CourseInfo[] = [...mockCoursesList];
   public homeworkDDLs: HomeworkDDL[] = [...mockHomeworkDDLs];
   public candidates: UserProfile[] = mockCandidates;
@@ -54,6 +54,18 @@ export class AppState {
   public importedCourseCount: number = 0;
   /** 导入的 DDL 数量 */
   public importedDDLCount: number = 0;
+
+  /* ========== 登录态 ========== */
+  /**
+   * 是否处于**真实登录**态（游客 / 一键体验 / 离线 Fixture 都是 false）。
+   * 注意：`currentUser.userId` 在游客态下是 `demo-user`，
+   * 因此判断"是否登录"必须看这个标志，不能看 userId 是否为空。
+   */
+  public isSignedIn: boolean = false;
+  /** 身份来源，用于「我的」页与首页标注。 */
+  public authSource: AuthSource = 'guest';
+  /** 当前展示用的昵称（游客态为演示昵称）。 */
+  public authNickname: string = ApiDefaults.DEMO_USER_NAME;
 
   /* ========== 对话持久化 ========== */
   public chatMessages: string = '';  // JSON 序列化的消息列表
@@ -103,6 +115,63 @@ export class AppState {
       AppState.instance = new AppState();
     }
     return AppState.instance;
+  }
+
+  /* ========== 登录态 ========== */
+
+  /**
+   * 应用当前登录身份。
+   *
+   * 登录只做两件事：① 把 `currentUser.userId` 换成真实身份；② 记录登录来源供界面标注。
+   * **不改动** `courses` / `homeworkDDLs` 等业务数据——那些由数据导入流程管理，
+   * 与身份解耦，避免"登录一次把演示数据清空"这类副作用。
+   *
+   * 游客身份传入 `ApiDefaults.DEMO_USER_ID`，与后端演示数据天然对齐。
+   *
+   * `user` 允许为 null（防御式）：调用方若因异常拿到空用户，这里直接退化为体验身份，
+   * 而不是把 null 写进 `currentUser` 引发后续一连串空指针。
+   */
+  public applyLogin(user: AuthUser | null, source: AuthSource): void {
+    if (user === null) {
+      this.applyLogout();
+      return;
+    }
+    this.currentUser = {
+      userId: user.userId,
+      basicInfo: {
+        name: user.nickname,
+        grade: user.grade.length > 0 ? user.grade : this.currentUser.basicInfo.grade,
+        major: this.currentUser.basicInfo.major
+      },
+      learningGoal: this.currentUser.learningGoal,
+      time: this.currentUser.time,
+      knowledge: this.currentUser.knowledge
+    };
+    this.authSource = source;
+    this.authNickname = user.nickname;
+    this.isSignedIn = source === 'local' || source === 'restored';
+  }
+
+  /**
+   * 退出登录 → 回到演示身份。
+   *
+   * 必须**回到 demo-user**而不是清空：否则退出登录后首页会去查一个不存在的画像而报 404。
+   */
+  public applyLogout(): void {
+    this.currentUser = {
+      userId: ApiDefaults.DEMO_USER_ID,
+      basicInfo: {
+        name: ApiDefaults.DEMO_USER_NAME,
+        grade: mockCurrentUser.basicInfo.grade,
+        major: mockCurrentUser.basicInfo.major
+      },
+      learningGoal: mockCurrentUser.learningGoal,
+      time: mockCurrentUser.time,
+      knowledge: mockCurrentUser.knowledge
+    };
+    this.authSource = 'guest';
+    this.authNickname = ApiDefaults.DEMO_USER_NAME;
+    this.isSignedIn = false;
   }
 
   public startChatTask(taskName: string): void {
@@ -277,26 +346,6 @@ export class AppState {
 
   public setFocusTask(task: FocusTask): void {
     this.activeFocusTask = task;
-  }
-
-  public applyIdentity(session: AuthSession): void {
-    this.authSession = session;
-    this.currentUser = {
-      userId: session.userId,
-      basicInfo: {
-        name: session.nickname,
-        grade: mockCurrentUser.basicInfo.grade,
-        major: mockCurrentUser.basicInfo.major
-      },
-      learningGoal: mockCurrentUser.learningGoal,
-      time: mockCurrentUser.time,
-      knowledge: mockCurrentUser.knowledge
-    };
-  }
-
-  public clearIdentity(): void {
-    this.authSession = null;
-    this.currentUser = mockCurrentUser;
   }
 
   public clearFocusTask(): void {

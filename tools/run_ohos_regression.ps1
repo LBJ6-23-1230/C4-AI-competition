@@ -1,9 +1,9 @@
 param(
     [string]$HdcPath = 'D:\develop\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe',
-    [string]$TestHapPath = 'D:\project\zhixue_Mate\entry\build\default\outputs\ohosTest\entry-ohosTest-unsigned.hap',
+    [string]$TestHapPath = (Join-Path (Split-Path -Parent $PSScriptRoot) 'entry\build\default\outputs\ohosTest\entry-ohosTest-unsigned.hap'),
     [string]$BundleName = 'com.zhixue.mate',
     [string]$TestModule = 'entry_test',
-    [int]$ExpectedTests = 33,
+    [int]$ExpectedTests = 35,
     [int]$MaxAttempts = 4
 )
 

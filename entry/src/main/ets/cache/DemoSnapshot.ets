@@ -5,6 +5,9 @@ import { ApiDefaults } from '../api/ApiDefaults';
  * Fixed identifiers for the contest demonstration only.
  * It is not an offline business engine: score, mastery and replan results
  * must still come from the API fixture or backend.
+ *
+ * USER_ID 引用 `ApiDefaults.DEMO_USER_ID`（单一真源），与后端
+ * `app/auth/service.DEMO_USER_ID` 及 `app/api/demo.py` 预置的演示数据保持一致。
  */
 export class DemoSnapshot {
   static readonly USER_ID: string = ApiDefaults.DEMO_USER_ID;

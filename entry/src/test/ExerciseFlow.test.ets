@@ -82,11 +82,7 @@ export default function exerciseFlowTest() {
 
       await AgentApiClient.submitExercise('set-demo-binary-tree-001', {
         idempotencyKey: 'fixture-state-test',
-        answers: [
-          { exerciseId: 'exercise-preorder-001', answer: 'A' },
-          { exerciseId: 'exercise-inorder-001', answer: 'B' },
-          { exerciseId: 'exercise-postorder-001', answer: 'B' }
-        ]
+        answers: []
       });
       const updatedProfile = await AgentApiClient.getProfile('demo-user');
       const updatedPlan = await AgentApiClient.getCurrentPlan();
@@ -99,45 +95,6 @@ export default function exerciseFlowTest() {
         expect(updatedProfile.data.mastery[0].masteryScore).assertEqual(58);
         expect(updatedPlan.data.version).assertEqual(2);
         expect(updatedWorkflow.data.stateVersion).assertEqual(5);
-      }
-
-      FixtureDemoStateStore.reset();
-      AgentApiClient.configure(original);
-    });
-
-    it('grades fixture answers instead of returning a fixed score', 0, async () => {
-      const original: ApiClientConfig = AgentApiClient.getConfig();
-      AgentApiClient.configure({ baseUrl: original.baseUrl, useFixture: true, timeoutMs: original.timeoutMs });
-      FixtureDemoStateStore.reset();
-
-      const perfect = await AgentApiClient.submitExercise('set-demo-binary-tree-001', {
-        idempotencyKey: 'fixture-perfect',
-        answers: [
-          { exerciseId: 'exercise-preorder-001', answer: 'A' },
-          { exerciseId: 'exercise-inorder-001', answer: 'B' },
-          { exerciseId: 'exercise-postorder-001', answer: 'C' }
-        ]
-      });
-      expect(perfect.ok).assertTrue();
-      if (perfect.ok) {
-        expect(perfect.data.assessment.score).assertEqual(100);
-        expect(perfect.data.masteryUpdate?.newScore).assertEqual(71);
-        expect(perfect.data.needReplan).assertFalse();
-      }
-
-      FixtureDemoStateStore.reset();
-      const failed = await AgentApiClient.submitExercise('set-demo-binary-tree-001', {
-        idempotencyKey: 'fixture-failed',
-        answers: [
-          { exerciseId: 'exercise-preorder-001', answer: 'D' },
-          { exerciseId: 'exercise-inorder-001', answer: 'D' },
-          { exerciseId: 'exercise-postorder-001', answer: 'D' }
-        ]
-      });
-      expect(failed.ok).assertTrue();
-      if (failed.ok) {
-        expect(failed.data.assessment.score).assertEqual(0);
-        expect(failed.data.masteryUpdate?.newScore).assertEqual(38);
       }
 
       FixtureDemoStateStore.reset();

@@ -1,10 +1,23 @@
 import { DecisionFactor, DemoResetResponse, Evidence, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeMastery, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiResult, apiFailure, apiSuccess } from './ApiResult';
-import { FixtureDemoStateStore } from './FixtureDemoStateStore';
 import { ApiDefaults } from './ApiDefaults';
+import { FixtureDemoStateStore } from './FixtureDemoStateStore';
 
 /** Deterministic offline transport mirroring the api-contract-v0.3 payloads. */
 export class FixtureApiTransport {
+  /**
+   * 离线 Fixture 的标准答案键 —— 必须与后端 `server/zhixue-agent-server/data/question_bank.json`
+   * 逐字一致，否则"在线 / 离线"两种模式的分数会对不上，演示自相矛盾。
+   *
+   * ⚠️ 这三个值是锁死的：preorder=A、inorder=B、postorder=C。
+   * 演示提交 √√×（A / B / A）才是 2 对 1 错 = 66.67。
+   */
+  private static readonly ANSWER_KEYS: Record<string, string> = {
+    'exercise-preorder-001': 'A',
+    'exercise-inorder-001': 'B',
+    'exercise-postorder-001': 'C'
+  };
+
   static async request<T>(method: string, path: string, body?: Object): Promise<ApiResult<T>> {
     if (method === 'POST' && path === '/api/v1/workflows') return apiSuccess<WorkflowResponse>(FixtureApiTransport.workflow(body as WorkflowCreateRequest), 'fixture') as ApiResult<T>;
     if (method === 'POST' && path.indexOf('/api/v1/workflows/') === 0 && path.endsWith('/run')) return apiSuccess<WorkflowRunResponse>(FixtureApiTransport.workflowRun(body as WorkflowRunRequest), 'fixture') as ApiResult<T>;
@@ -13,10 +26,9 @@ export class FixtureApiTransport {
     if (method === 'GET' && path === '/api/v1/plans/current') return apiSuccess<LearningPlan>(FixtureApiTransport.plan(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && path.indexOf('/api/v1/exercises/') === 0 && !path.endsWith('/submit')) return apiSuccess<ExerciseSetResponse>(FixtureApiTransport.exerciseSet(), 'fixture') as ApiResult<T>;
     if (method === 'POST' && path.indexOf('/api/v1/exercises/') === 0 && path.endsWith('/submit')) {
-      const result: ExerciseSubmissionResult = FixtureApiTransport.assessment(body as ExerciseSubmission);
-      FixtureDemoStateStore.markExerciseSubmitted(result.assessment.score,
-        result.masteryUpdate === null ? 42 : result.masteryUpdate.newScore);
-      return apiSuccess<ExerciseSubmissionResult>(result, 'fixture') as ApiResult<T>;
+      FixtureDemoStateStore.markExerciseSubmitted();
+      return apiSuccess<ExerciseSubmissionResult>(
+        FixtureApiTransport.assessment((body as ExerciseSubmission)?.answers), 'fixture') as ApiResult<T>;
     }
     if (method === 'GET' && path.indexOf('/api/v1/plans/') === 0 && path.endsWith('/diff')) return apiSuccess<PlanDiff>(FixtureApiTransport.planDiff(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && path.indexOf('/api/v1/traces/') === 0) return apiSuccess<TraceResponse>(FixtureApiTransport.trace(), 'fixture') as ApiResult<T>;
@@ -30,8 +42,50 @@ export class FixtureApiTransport {
     return apiFailure('FIXTURE_ROUTE_NOT_FOUND', `未找到 fixture 路由：${method} ${path}`, false, 'fixture') as ApiResult<T>;
   }
 
+  /**
+   * 与后端 `app/tools/assessment_tools.grade_exercise` 同一条确定性规则：
+   * 只统计有效题目，score = 正确数 / 有效题数 × 100（保留两位小数）。
+   * 这样离线演示时改答案分数也会变，不会出现"随便选都是 67"的穿帮。
+   */
+  private static grade(answers?: ExerciseAnswer[]): number {
+    if (answers === undefined || answers.length === 0) {
+      return 66.67;
+    }
+    let valid: number = 0;
+    let correct: number = 0;
+    for (let index: number = 0; index < answers.length; index++) {
+      const expected: string | undefined = FixtureApiTransport.ANSWER_KEYS[answers[index].exerciseId];
+      if (expected === undefined) {
+        continue;
+      }
+      valid++;
+      if (answers[index].answer.trim().toUpperCase() === expected) {
+        correct++;
+      }
+    }
+    if (valid === 0) {
+      return 0;
+    }
+    return Math.round((correct / valid) * 10000) / 100;
+  }
+
+  /** 与后端 `update_mastery` 同一条分档规则（保持 66.67 → 42→58 的演示基线）。 */
+  private static nextMastery(oldScore: number, score: number): number {
+    let delta: number;
+    if (score === 100) {
+      delta = 29;
+    } else if (score >= 60) {
+      delta = 16;
+    } else if (score >= 40) {
+      delta = 4;
+    } else {
+      delta = -4;
+    }
+    return Math.max(0, Math.min(100, oldScore + delta));
+  }
+
   private static evidence(): Evidence {
-    return { id: 'evidence-demo-001', sourceType: 'exercise', sourceId: 'set-demo-binary-tree-001', knowledgePointId: 'binary-tree-postorder', metric: 'perKnowledgeAccuracy', value: FixtureDemoStateStore.getScore(), timestamp: '2026-09-02T09:30:00Z', reliability: 1 };
+    return { id: 'evidence-demo-001', sourceType: 'exercise', sourceId: 'set-demo-binary-tree-001', knowledgePointId: 'binary-tree-postorder', metric: 'perKnowledgeAccuracy', value: 0.67, timestamp: '2026-09-02T09:30:00Z', reliability: 1 };
   }
 
   private static profile(): ProfileResponse {
@@ -43,8 +97,10 @@ export class FixtureApiTransport {
 
   private static plan(): LearningPlan {
     const replanned: boolean = FixtureDemoStateStore.isExerciseSubmitted();
-    if (replanned) return FixtureApiTransport.planForMastery(FixtureDemoStateStore.getMasteryScore());
-    return { planId: 'plan-demo-001', version: 1, generatedFromProfileVersion: 1, reason: '巩固二叉树后序遍历', factors: FixtureApiTransport.factors(), tasks: [{ taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', durationMinutes: 30, status: 'pending', priority: 'high' }, { taskId: 'task-graph', knowledgePointId: 'graph-traversal', knowledgePointName: '图遍历', durationMinutes: 30, status: 'pending', priority: 'medium' }] };
+    return { planId: 'plan-demo-001', version: replanned ? 2 : 1, generatedFromProfileVersion: replanned ? 2 : 1, reason: replanned ? '掌握度仍低于巩固阈值，已自动重规划。' : '巩固二叉树后序遍历', factors: FixtureApiTransport.factors(), tasks: [
+      { taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', durationMinutes: replanned ? 45 : 30, status: 'pending', priority: 'high' },
+      { taskId: 'task-graph', knowledgePointId: 'graph-traversal', knowledgePointName: '图算法遍历', durationMinutes: replanned ? 15 : 30, status: 'pending', priority: 'medium' }
+    ] };
   }
 
   private static factors(): DecisionFactor[] {
@@ -106,47 +162,13 @@ export class FixtureApiTransport {
     ] };
   }
 
-  private static assessment(submission?: ExerciseSubmission): ExerciseSubmissionResult {
-    const answers: ExerciseAnswer[] = submission === undefined ? [] : submission.answers;
-    const answerKeys: Record<string, string> = {
-      'exercise-preorder-001': 'A',
-      'exercise-inorder-001': 'B',
-      'exercise-postorder-001': 'C'
-    };
-    let correct: number = 0;
-    let valid: number = 0;
-    for (let index: number = 0; index < answers.length; index++) {
-      const expected: string | undefined = answerKeys[answers[index].exerciseId];
-      if (expected !== undefined) {
-        valid++;
-        if (answers[index].answer.trim().toUpperCase() === expected) correct++;
-      }
-    }
-    const score: number = Math.round(correct / Math.max(1, valid) * 10000) / 100;
-    const newMastery: number = score === 100 ? 71 : score >= 60 ? 58 : score >= 40 ? 46 : 38;
-    const needReplan: boolean = newMastery < 60;
-    return { userId: submission?.userId ?? ApiDefaults.DEMO_USER_ID,
-      submissionId: `${submission?.userId ?? ApiDefaults.DEMO_USER_ID}:set-demo-binary-tree-001:${submission?.idempotencyKey ?? 'fixture-submission'}`,
-      assessment: { score: score, perKnowledgeAccuracy: { 'binary-tree-postorder': score },
-        errorTypes: correct < valid ? ['后序遍历顺序混淆'] : [], oldMastery: 42, suggestedNewMastery: newMastery },
-      masteryUpdate: { knowledgePointId: 'binary-tree-postorder', oldScore: 42, newScore: newMastery },
-      needReplan: needReplan, plan: FixtureApiTransport.planForMastery(newMastery),
-      planDiff: needReplan ? FixtureApiTransport.planDiffForMastery(newMastery) : undefined };
-  }
-
-  private static planForMastery(mastery: number): LearningPlan {
-    const duration: number = mastery < 60 ? 45 : 20;
-    return { planId: 'plan-demo-001', version: 2, generatedFromProfileVersion: 2,
-      reason: mastery < 60 ? '掌握度仍低于巩固阈值，已自动重规划。' : '掌握度已达标，调整为轻量巩固。',
-      factors: FixtureApiTransport.factors(), tasks: [{ taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder',
-        knowledgePointName: '二叉树后序遍历', durationMinutes: duration, status: 'pending', priority: mastery < 60 ? 'high' : 'medium' }] };
-  }
-
-  private static planDiffForMastery(mastery: number): PlanDiff {
-    return { planId: 'plan-demo-001', oldVersion: 1, newVersion: 2,
-      changedTasks: [{ taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', durationMinutes: 45, change: '+15' },
-        { taskId: 'task-graph', knowledgePointId: 'graph-traversal', durationMinutes: 15, change: '-15' }],
-      adjustmentReason: `二叉树后序遍历 mastery=${mastery}，低于巩固阈值60`, triggerEvidence: ['evidence-demo-001'] };
+  private static assessment(answers?: ExerciseAnswer[]): ExerciseSubmissionResult {
+    const score: number = FixtureApiTransport.grade(answers);
+    const newMastery: number = FixtureApiTransport.nextMastery(42, score);
+    FixtureDemoStateStore.setMasteryScore(newMastery);
+    const perKnowledge: Record<string, number> = {};
+    perKnowledge['binary-tree-postorder'] = score;
+    return { userId: ApiDefaults.DEMO_USER_ID, submissionId: ApiDefaults.DEMO_USER_ID + ':set-demo-binary-tree-001:fixture-submission', assessment: { score: score, perKnowledgeAccuracy: perKnowledge, errorTypes: score < 100 ? ['后序遍历顺序混淆'] : [], oldMastery: 42, suggestedNewMastery: newMastery }, masteryUpdate: { knowledgePointId: 'binary-tree-postorder', oldScore: 42, newScore: newMastery }, needReplan: score < 80, plan: FixtureApiTransport.plan(), planDiff: FixtureApiTransport.planDiff() };
   }
 
   private static planDiff(): PlanDiff {

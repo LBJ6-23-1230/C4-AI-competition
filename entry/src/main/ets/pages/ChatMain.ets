@@ -8,13 +8,32 @@ import { WorkflowResponse, WorkflowStatusResponse } from '../api/ApiModels';
 import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
 
+/**
+ * 对话页顶部的六个意图快捷按钮。
+ *
+ * ⚠️ 三条纪律（改动前务必读完）：
+ *
+ * 1. **`intent` 不能改** —— 这六个值是前后端契约（`api-contract-v0.3`）里
+ *    意图识别的枚举，后端 `chat_llm.INTENT_CARDS` 与 `KNOWN_INTENTS`
+ *    都按这六个键取值。改 key 会直接打断意图路由。
+ *
+ * 2. **`label` 必须等于用户点下去之后真正会看到的页面/卡片名字**。
+ *    原来写的是"今日建议 / 薄弱诊断 / 查任务 / 更新信息"这类**内部叫法**，
+ *    而落地页标题是"今日学习建议 / 学情画像 / Agent 学习计划"——
+ *    按钮说什么、点进去看到什么，两边对不上，用户会怀疑点错了。
+ *    现在一律以页面标题为准。
+ *
+ * 3. **一个按钮只能落到一个页面**。原实现在离线 Fixture 下把
+ *    `get_suggestion` 与 `query_tasks` 合并成同一张"学习计划"卡，
+ *    导致两个不同按钮点出同一个结果（见 `AgentBridge.createLocalCardForIntent`）。
+ */
 const INTENT_CHIPS: IntentChip[] = [
-  { intent: 'get_suggestion', label: '今日建议', prompt: '今天我应该先学什么？' },
-  { intent: 'analyze_weakness', label: '薄弱诊断', prompt: '帮我分析最近的学习薄弱点' },
-  { intent: 'analyze_wrong', label: '错题分析', prompt: '帮我分析这道错题' },
-  { intent: 'match_partner', label: '匹配搭子', prompt: '帮我匹配一个学习搭子' },
-  { intent: 'query_tasks', label: '查任务', prompt: '最近有什么任务要交？' },
-  { intent: 'update_profile', label: '更新信息', prompt: '帮我更新我的学习信息' },
+  { intent: 'get_suggestion', label: '今日学习建议', prompt: '今天我应该先学什么？' },
+  { intent: 'analyze_wrong', label: '错题诊断', prompt: '帮我诊断这道错题' },
+  { intent: 'analyze_weakness', label: '学情画像', prompt: '帮我看看我的薄弱知识点' },
+  { intent: 'match_partner', label: '学习搭子', prompt: '帮我匹配一个学习搭子' },
+  { intent: 'query_tasks', label: '今日任务', prompt: '今天有哪些任务要交？' },
+  { intent: 'update_profile', label: '学习画像', prompt: '我掌握了二叉树遍历，帮我更新画像' },
 ];
 
 const WELCOME_MESSAGE: ChatMessage = {
@@ -32,6 +51,8 @@ struct ChatMain {
   @State inputText: string = '';
   @State pendingImage: string = '';
   @State selectedIntent: string = 'get_suggestion';
+  /** 当前标签：对话页自身固定为 0，仅用于驱动底部标签栏高亮。 */
+  @State activeTab: number = 0;
   @State isSending: boolean = false;
   @State workflowTitle: string = '';
   @State workflowDetail: string = '';
@@ -45,16 +66,20 @@ struct ChatMain {
 
   aboutToAppear(): void {
     this.isPageActive = true;
-    // 恢复之前的对话，没有才显示欢迎消息
+    // 恢复之前的对话；**没有历史时保持为空**，由 WelcomeBlock 呈现"纯对话界面"。
+    //
+    // ⚠️ 修正来源：原实现在无历史时种入一条 WELCOME_MESSAGE 气泡，
+    // 结果 `messages.length === 0` 永远不成立，欢迎引导（问候语 + 输入框）
+    // 从来没显示过，首屏看起来就是"一条机器人寒暄"，不是想要的对话界面。
     if (appState.hasActiveChat && appState.chatMessages.length > 0) {
       try {
         const saved: ChatMessage[] = JSON.parse(appState.chatMessages) as ChatMessage[];
         this.messages = saved;
       } catch (e) {
-        this.messages = [WELCOME_MESSAGE];
+        this.messages = [];
       }
     } else {
-      this.messages = [WELCOME_MESSAGE];
+      this.messages = [];
     }
     // 从其他页面跳回时预填 prompt
     if (appState.pendingChatPrompt.length > 0) {
@@ -92,10 +117,67 @@ struct ChatMain {
       this.IntentBar()
       this.MessageList()
       this.InputBar()
+      this.TabBar()
     }
     .width('100%')
     .height('100%')
     .backgroundColor('#F3F6FA')
+  }
+
+  /**
+   * 底部标签栏（与「我的智能体」页保持一致的四标签语义）。
+   *
+   * ⚠️ 必须无参，高亮在内部读 `this.activeTab`——原因见 Index.ets 的同名注释：
+   * ArkTS 的 `@Builder` 参数按值传递，把状态当参数传会导致高亮不刷新。
+   */
+  @Builder
+  private TabBar() {
+    Row({ space: 4 }) {
+      this.TabItem('◈', '对话', 0)
+      this.TabItem('▦', '智能体', 1)
+      this.TabItem('▤', '学习', 2)
+      this.TabItem('◉', '我的', 3)
+    }
+    .width('100%').padding({ left: 12, right: 12, top: 8, bottom: 10 })
+    .backgroundColor('#FFFFFF').border({ width: { top: 1 }, color: '#EAECF0' })
+  }
+
+  @Builder
+  private TabItem(icon: string, label: string, index: number) {
+    Column({ space: 3 }) {
+      Text(icon).fontSize(19)
+        .fontColor(this.activeTab === index ? '#2563EB' : '#667085')
+      Text(label).fontSize(11)
+        .fontWeight(this.activeTab === index ? FontWeight.Bold : FontWeight.Medium)
+        .fontColor(this.activeTab === index ? '#2563EB' : '#667085')
+    }
+    .layoutWeight(1).height(58).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+    .backgroundColor(this.activeTab === index ? '#EFF6FF' : '#FFFFFF').borderRadius(12)
+    .onClick(() => this.switchTab(index))
+  }
+
+  /**
+   * 标签切换。对话页自身是 0 号标签，其余三个跳转到工作台页。
+   *
+   * 用 `replaceUrl` 而不是 `pushUrl`：标签是**同级导航**，
+   * 若用 pushUrl 会让页面栈随每次切换不断增长（用户在标签间来回点几次就退不出去了）。
+   *
+   * 「智能体」与「学习」都在 `pages/Index` 里（同一页的不同标签），
+   * 用路由参数 `initialTab` 指定落地标签；`Index.aboutToAppear` 会读取它。
+   */
+  private switchTab(index: number): void {
+    if (index === 0) {
+      return;
+    }
+    if (index === 1) {
+      router.replaceUrl({ url: 'pages/Index', params: { initialTab: 1 } });
+      return;
+    }
+    if (index === 2) {
+      router.replaceUrl({ url: 'pages/Index', params: { initialTab: 2 } });
+      return;
+    }
+    router.replaceUrl({ url: 'pages/Index', params: { initialTab: 3 } });
   }
 
   private syncWorkflowSummary(status: WorkflowStatusResponse | null): void {
@@ -167,7 +249,7 @@ struct ChatMain {
   private Header() {
     Row() {
       Column({ space: 4 }) {
-        Text('知学搭子')
+        Text('知学 Mate')
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
           .fontColor('#111827')
@@ -232,6 +314,13 @@ struct ChatMain {
   @Builder
   private MessageList() {
     List({ space: 2, scroller: this.messageScroller }) {
+      // 消息为空时展示欢迎引导：对齐参考设计「问候语 + 一句话价值 + 输入框」的首屏。
+      // 用 ListItem 承载是为了能跟着列表一起滚动，不与既有 List 结构冲突。
+      if (this.messages.length === 0) {
+        ListItem() {
+          this.WelcomeBlock()
+        }
+      }
       ForEach(this.messages, (item: ChatMessage) => {
         ListItem() {
           this.MessageBubble(item)
@@ -241,6 +330,41 @@ struct ChatMain {
     .layoutWeight(1)
     .padding({ top: 8, bottom: 8 })
     .backgroundColor('#F3F6FA')
+  }
+
+  /** 按当前时间给出问候语（早上好 / 下午好 / 晚上好）。 */
+  private greetingText(): string {
+    const hour: number = new Date().getHours();
+    if (hour < 6) return '夜深了';
+    if (hour < 12) return '早上好';
+    if (hour < 18) return '下午好';
+    return '晚上好';
+  }
+
+  /**
+   * 首次进入的欢迎区。
+   *
+   * 参考设计的首屏是「大号问候 + 一句话说明产品做什么 + 输入框」，
+   * 这套结构比一上来就弹一排功能按钮更清楚：先让人知道**能对它说什么**。
+   */
+  @Builder
+  private WelcomeBlock() {
+    Column({ space: 10 }) {
+      Text('ZHI XUE MATE  ·  LEARNING AGENT')
+        .fontSize(10).fontWeight(FontWeight.Bold).fontColor('#94A3B8')
+        .letterSpacing(1.5).width('100%')
+      Text(`${this.greetingText()}，`)
+        .fontSize(26).fontWeight(FontWeight.Bold).fontColor('#0F172A').width('100%')
+      Text('从今天最该做的一件事开始。')
+        .fontSize(26).fontWeight(FontWeight.Bold).fontColor('#0F172A').width('100%')
+      Divider().color('#CBD5E1').width(160).margin({ top: 6, bottom: 2 })
+      Text('我已经读取你的课程、考试倒计时与错题记录。你可以直接说想做什么，')
+        .fontSize(13).fontColor('#64748B').lineHeight(20).width('100%')
+      Text('也可以点下面的能力，或去「智能体」页看看我全部会做的事。')
+        .fontSize(13).fontColor('#64748B').lineHeight(20).width('100%')
+    }
+    .width('100%').alignItems(HorizontalAlign.Start)
+    .padding({ left: 20, right: 20, top: 28, bottom: 18 })
   }
 
   @Builder
@@ -352,20 +476,27 @@ struct ChatMain {
     })
   }
 
+  /**
+   * 卡片类型 → 卡片上的名称标签。
+   *
+   * ⚠️ 这里的文案必须与下面 `INTENT_CHIPS` 的 `label` **同一套口径**，
+   * 否则会出现"按钮写学情画像、点进去卡片写薄弱诊断"的错位。
+   * 统一规则：一律用页面标题（今日学习建议 / 学情画像 / 学习搭子 / 今日任务 / 错题诊断）。
+   */
   private getCardLabel(card: ChatCard): string {
     if (card.type === 'weakness') {
-      return '薄弱诊断';
+      return '学情画像';
     }
     if (card.type === 'partner') {
       return '学习搭子';
     }
     if (card.type === 'tasks') {
-      return '任务清单';
+      return '今日任务';
     }
     if (card.type === 'wrong') {
-      return '错题分析';
+      return '错题诊断';
     }
-    return '学习建议';
+    return '今日学习建议';
   }
 
   private openAction(action: ChatAction): void {
@@ -453,13 +584,13 @@ struct ChatMain {
       }
 
       Row({ space: 8 }) {
-        Button('🎤')
+        Button('🎤×')
           .fontSize(16)
           .backgroundColor('#E5E7EB')
           .width(40)
           .height(40)
           .borderRadius(8)
-          .onClick(() => this.startVoiceInput())
+          .enabled(false)
         Button('📷')
           .fontSize(16)
           .backgroundColor('#EAF2FF')
@@ -507,12 +638,11 @@ struct ChatMain {
   }
 
   private startVoiceInput(): void {
-    // Speech recognition relies on Core Speech Kit and a physical HarmonyOS device.
-    // Keep the typed-input path available if the device service is unavailable.
+    // 语音输入提示（真机可用 @ohos.ai.speechRecognizer）
     const fallbackMsg: ChatMessage = {
       id: `voice-fallback-${Date.now()}`,
       role: 'agent',
-      text: '语音识别需要在已授权麦克风的 HarmonyOS 真机上启用；当前可继续输入文字或上传错题图片。',
+      text: '语音输入需要真机支持。你可以直接打字，或者拍照上传错题～',
       time: this.formatTime(),
       status: 'done'
     };

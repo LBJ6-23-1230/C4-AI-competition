@@ -1,11 +1,10 @@
 import router from '@ohos.router';
-import { common } from '@kit.AbilityKit';
 import { AIFloatButton } from '../components/AIFloatButton';
 import { Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmissionResult } from '../api/ApiModels';
 import { DemoSnapshot } from '../cache/DemoSnapshot';
 import { PlanDiffCard } from '../components/PlanDiffCard';
+import { FollowUpCard } from '../components/FollowUpCard';
 import { ExerciseViewModel } from '../viewmodels/ExerciseViewModel';
-import { ProactiveSurfaceService } from '../services/ProactiveSurfaceService';
 
 @Entry
 @Component
@@ -57,6 +56,20 @@ struct ExercisePractice {
   aboutToDisappear(): void {
     this.isPageActive = false;
     this.requestVersion++;
+  }
+
+  /**
+   * 页面内重开一轮练习。
+   *
+   * 为什么不用 `router.pushUrl` 跳回自身：那会把 ExercisePractice 反复压进页面栈，
+   * 用户按返回要退好几层。这里就地清空结果并强制重新取题，等价于"再来一组"。
+   * `loadExercises(true)` 内部会重置 answers 并换一个新的 idempotencyKey，
+   * 因此不会与上一轮的提交记录冲突。
+   */
+  private restartPractice(): void {
+    this.result = null;
+    this.warningMessage = '';
+    this.loadExercises(true);
   }
 
   private async loadExercises(forceRefresh: boolean = false): Promise<void> {
@@ -150,7 +163,6 @@ struct ExercisePractice {
     }
     this.warningMessage = this.viewModel.getWarningMessage();
     this.result = submissionResult;
-    ProactiveSurfaceService.refresh(getContext(this) as common.UIAbilityContext, true);
     this.scrollToTop();
   }
 
@@ -225,15 +237,27 @@ struct ExercisePractice {
         PlanDiffCard({ value: value.planDiff })
       }
 
-      Button('查看更新后的知识画像')
-        .width('100%').height(46).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
-        .backgroundColor('#2563EB').borderRadius(12).onClick(() => router.pushUrl({ url: 'pages/StudyTags' }))
-      Button('查看 Agent 决策过程')
-        .width('100%').height(44).fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
-        .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => router.pushUrl({ url: 'pages/AgentTrace' }))
+      // ★ 核心闭环收口。
+      // 重构前这里只有「查看画像 / 看决策过程 / 返回首页」三个平级跳转，
+      // 而**恰恰没有「再练一次」** —— 于是「练习 → 判分 → 掌握度更新 → 重规划」
+      // 这条 Agent 主链在最后一格断掉了：用户看到分数变了，却不知道该干嘛。
+      // 现在把「继续练这个知识点」立为唯一主行动，其余降级为次要。
+      FollowUpCard({
+        title: '接下来',
+        reason: value.needReplan
+          ? `掌握度 ${value.assessment.oldMastery} → ${value.assessment.suggestedNewMastery}，Agent 已据此重排计划。再练一轮可以继续拉高掌握度。`
+          : `掌握度 ${value.assessment.oldMastery} → ${value.assessment.suggestedNewMastery}，保持这个节奏。`,
+        primaryText: '再练一组同类题',
+        secondaryText: '看更新后的知识画像',
+        secondaryTarget: 'pages/StudyTags',
+        showAgentTraceLink: true,
+        onPrimary: (): void => { this.restartPractice(); }
+      })
+
       Button('返回首页')
         .width('100%').height(44).fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
-        .border({ width: 1, color: '#BFDBFE' }).borderRadius(12).onClick(() => router.pushUrl({ url: 'pages/Index' }))
+        .border({ width: 1, color: '#BFDBFE' }).borderRadius(12)
+        .onClick(() => router.pushUrl({ url: 'pages/Index' }))
     }.width('100%')
   }
 

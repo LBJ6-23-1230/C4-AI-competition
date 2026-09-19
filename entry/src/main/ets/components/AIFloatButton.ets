@@ -30,7 +30,9 @@ export struct AIFloatButton {
     this.messages = [{
       id: 'float-welcome',
       role: 'agent',
-      text: '你好！我是知学搭子 AI 助手。\n\n可以问我：\n• 今日学习建议\n• 薄弱知识点诊断\n• 错题分析\n• 学习搭子匹配\n• 任务查询',
+      // 这里列的六项与 `ChatMain.INTENT_CHIPS` 一一对应，且用**页面标题**口径，
+      // 保证"浮标里看到的"与"对话页按钮上写的"是同一套名字。
+      text: '你好！我是知学 Mate 助手。\n\n可以问我：\n• 今日学习建议\n• 学情画像\n• 错题诊断\n• 学习搭子\n• 今日任务\n• 学习画像更新',
       time: '',
       status: 'done'
     }];

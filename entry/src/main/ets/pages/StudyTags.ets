@@ -9,6 +9,7 @@ import { ProfileViewModel } from '../viewmodels/ProfileViewModel';
 import { WorkflowViewModel } from '../viewmodels/WorkflowViewModel';
 import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
 import { ApiDisplayFormatter } from '../utils/ApiDisplayFormatter';
+import { FollowUpCard } from '../components/FollowUpCard';
 
 @Entry
 @Component
@@ -29,6 +30,24 @@ struct StudyTags {
   @State chartTarget: number[] = [];
   @State chartWeak: number[] = [];
   @State chartStrong: number[] = [];
+
+  /**
+   * 把"最弱的那个知识点"翻译成一句人话，作为「接下来」卡片的理由。
+   * 取掌握度最低的一项；没有数据时给保守兜底文案，不留空白。
+   */
+  private weaknessSummary(): string {
+    if (this.mastery.length === 0) {
+      return '还没有足够的学情数据。先做一轮诊断练习，Agent 才能算出你的薄弱点。';
+    }
+    let weakest: KnowledgeMastery = this.mastery[0];
+    for (let index: number = 1; index < this.mastery.length; index++) {
+      if (this.mastery[index].masteryScore < weakest.masteryScore) {
+        weakest = this.mastery[index];
+      }
+    }
+    return `当前最薄弱的是「${weakest.knowledgePointName}」，掌握度 ${weakest.masteryScore}。`
+      + '专项练习是拉高它最快的路径。';
+  }
   private viewModel: ProfileViewModel = new ProfileViewModel();
   private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
   private profileRequestVersion: number = 0;
@@ -282,6 +301,18 @@ struct StudyTags {
                 .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
               }
 
+              // ★ 画像是"诊断"，不是终点。
+              // 重构前这一页只给「刷新画像」和「开始诊断练习」，看完雷达图就没了下文；
+              // 用户知道了自己哪里弱，却拿不到一个"现在就去补"的动作。
+              FollowUpCard({
+                title: '接下来',
+                reason: this.weaknessSummary(),
+                primaryText: '按薄弱点开始专项练习',
+                primaryTarget: 'pages/ExercisePractice',
+                secondaryText: '看 Agent 如何重排计划',
+                secondaryTarget: 'pages/StudyPlan'
+              })
+
               Button('刷新画像')
                 .fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
                 .border({ width: 1, color: '#BFDBFE' }).height(44).borderRadius(12).width('100%')
@@ -293,8 +324,9 @@ struct StudyTags {
                   .width('100%').padding(12).backgroundColor('#FFFBEB').borderRadius(10)
               }
 
-              Button(this.isStartingWorkflow ? '正在启动 Agent 会话…' : '开始诊断练习')
-                .fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF').backgroundColor('#2563EB')
+              Button(this.isStartingWorkflow ? '正在启动 Agent 会话…' : '启动 Agent 诊断会话')
+                .fontSize(15).fontWeight(FontWeight.Bold).fontColor('#2563EB').backgroundColor('#FFFFFF')
+                .border({ width: 1, color: '#BFDBFE' })
                 .height(46).borderRadius(12).width('100%').enabled(!this.isStartingWorkflow)
                 .onClick(() => this.startDiagnosis())
 
