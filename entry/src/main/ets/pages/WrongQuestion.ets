@@ -74,28 +74,6 @@ struct WrongQuestion {
     }
   }
 
-  private async takePhoto(): Promise<void> {
-    try {
-      const photoPicker = new photoAccessHelper.PhotoViewPicker();
-      const result = await photoPicker.select({
-        MIMEType: photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE,
-        maxSelectNumber: 1
-      });
-      if (result.photoUris.length > 0) {
-        const uri: string = result.photoUris[0];
-        this.selectedImageUri = uri;
-        this.selectedImageName = `camera_${Date.now()}.jpg`;
-        this.hasPhoto = true;
-        appState.addWrongQuestionImage(uri, this.selectedImageName);
-        this.startAnalysis(uri);
-      }
-    } catch (error) {
-      console.error(`拍照失败: ${JSON.stringify(error)}`);
-      if (this.isFixture()) this.useMockImage();
-      else this.analysisMessage = '无法读取图片，请检查媒体权限后重试。';
-    }
-  }
-
   private useMockImage(): void {
     const mockUri: string = `mock_${Date.now()}.jpg`;
     this.selectedImageUri = mockUri;
@@ -304,24 +282,12 @@ Text('✅ 分析完成')
                 Row({ space: 10 }) {
                   Text('📷').fontSize(28)
                   Column({ space: 4 }) {
-                    Text('拍照识别').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
-                    Text('使用相机拍摄错题').fontSize(12).fontColor('#BFDBFE')
+                    Text('上传错题图片').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+                    Text('从手机相册选取清晰的错题照片').fontSize(12).fontColor('#BFDBFE')
                   }.alignItems(HorizontalAlign.Start)
                 }.width('100%').padding({ left: 16, top: 14, bottom: 14 })
               }
               .width('100%').backgroundColor('#2563EB').borderRadius(16)
-              .onClick(() => { this.takePhoto(); })
-
-              Button() {
-                Row({ space: 10 }) {
-                  Text('🖼️').fontSize(28)
-                  Column({ space: 4 }) {
-                    Text('从相册选择').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#2563EB')
-                    Text('从手机相册选取错题图片').fontSize(12).fontColor('#3B82F6')
-                  }.alignItems(HorizontalAlign.Start)
-                }.width('100%').padding({ left: 16, top: 14, bottom: 14 })
-              }
-              .width('100%').backgroundColor('#EFF6FF').border({ width: 1.5, color: '#93C5FD' }).borderRadius(16)
               .onClick(() => { this.pickFromGallery(); })
 
               Row({ space: 12 }) {
@@ -347,23 +313,25 @@ Text('✅ 分析完成')
                     }.alignItems(HorizontalAlign.Start).layoutWeight(1)
                   }.width('100%')
 
-                  Column() {
-                    Text('📝').fontSize(48)
-                    Text('错题图片预览').fontSize(13).fontColor('#667085')
+                  if (this.selectedImageUri.startsWith('mock_')) {
+                    Column({ space: 6 }) {
+                      Text('📝').fontSize(48)
+                      Text('模拟错题图片').fontSize(13).fontColor('#667085')
+                    }
+                    .width('100%').height(160).justifyContent(FlexAlign.Center)
+                    .backgroundColor('#EFF6FF').borderRadius(12)
+                  } else {
+                    Image(this.selectedImageUri)
+                      .width('100%').height(160).objectFit(ImageFit.Contain)
+                      .backgroundColor('#EFF6FF').borderRadius(12)
                   }
-                  .width('100%').height(120).justifyContent(FlexAlign.Center)
-                  .backgroundColor('#EFF6FF').borderRadius(12).border({ width: 1, color: '#93C5FD' })
                 }
                 .width('100%').padding(14).backgroundColor('#FFFFFF').borderRadius(16).border({ width: 1, color: '#EFF6FF' })
 
-                Row({ space: 10 }) {
-                  Button('📷 重拍').layoutWeight(1).height(42).fontSize(13).fontWeight(FontWeight.Medium)
-                    .fontColor('#2563EB').backgroundColor('#EFF6FF').border({ width: 1, color: '#93C5FD' }).borderRadius(12)
-                    .onClick(() => { this.takePhoto(); })
-                  Button('🖼️ 重选').layoutWeight(1).height(42).fontSize(13).fontWeight(FontWeight.Medium)
-                    .fontColor('#2563EB').backgroundColor('#EFF6FF').border({ width: 1, color: '#93C5FD' }).borderRadius(12)
-                    .onClick(() => { this.pickFromGallery(); })
-                }.width('100%')
+                Button('🖼️ 重新选择图片').width('100%').height(42).fontSize(13).fontWeight(FontWeight.Medium)
+                  .fontColor('#2563EB').backgroundColor('#EFF6FF')
+                  .border({ width: 1, color: '#93C5FD' }).borderRadius(12)
+                  .onClick(() => { this.pickFromGallery(); })
               }.width('100%')
             }
           }

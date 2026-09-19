@@ -41,8 +41,8 @@ export default function agentBridgeTest() {
       const partner = await AgentBridge.callAgent('匹配搭子', undefined, []);
       AgentApiClient.configure(original);
 
-      expect(suggestion.card?.type).assertEqual('tasks');
-      expect(suggestion.card?.targetPage).assertEqual('pages/StudyPlan');
+      expect(suggestion.card?.type).assertEqual('suggestion');
+      expect(suggestion.card?.targetPage).assertEqual('pages/StudySuggestion');
       expect(suggestion.reply.indexOf('LLM') === -1).assertTrue();
       expect(weakness.card?.type).assertEqual('wrong');
       expect(weakness.card?.targetPage).assertEqual('pages/WrongQuestion');
