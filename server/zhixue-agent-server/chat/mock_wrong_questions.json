@@ -1,0 +1,169 @@
+[
+  {
+    "questionId": "q001",
+    "userId": "u001",
+    "input": {
+      "image": "img001",
+      "myAnswer": "A",
+      "correctAnswer": "C"
+    },
+    "AIAnalysis": {
+      "course": "数据结构",
+      "knowledge": [
+        {
+          "name": "二叉树遍历",
+          "confidence": 0.92
+        }
+      ],
+      "wrongType": "概念混淆",
+      "reason": "未理解中序遍历访问顺序",
+      "Tag": [
+        "二叉树薄弱"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "二叉树遍历",
+          "task": "复习二叉树的前序、中序、后序遍历方法，理解每种遍历的访问顺序和应用场景。"
+        }
+      ]
+    }
+  },
+  {
+    "questionId": "u001_7d8f9a0b-1c2d-3e4f-5g6h-7i8j9k0l1m2n",
+    "userId": "u001",
+    "input": {
+      "image": null,
+      "myAnswer": "B",
+      "correctAnswer": "D"
+    },
+    "AIAnalysis": {
+      "course": "高等数学",
+      "knowledge": [
+        {
+          "name": "等价无穷小",
+          "confidence": 0.95
+        },
+        {
+          "name": "极限计算",
+          "confidence": 0.9
+        }
+      ],
+      "wrongType": "概念混淆",
+      "reason": "用户混淆了等价无穷小的使用条件，错误地认为1-cosx在x→0时直接等于0，而实际上1-cosx与x²/2是等价无穷小。",
+      "Tag": [
+        "等价无穷小薄弱",
+        "极限计算易错"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "等价无穷小",
+          "task": "重新学习等价无穷小的定义及其适用条件，完成教材中关于等价无穷小的例题5道，并总结常见等价无穷小公式。"
+        },
+        {
+          "studyTag": "极限计算",
+          "task": "重点练习利用等价无穷小求极限的题目，每天完成3道相关习题，逐步掌握技巧。"
+        }
+      ]
+    },
+    "createdAt": "2026-07-22T10:11:53.965873"
+  },
+  {
+    "questionId": "u001_7e8f9a0b-1c2d-3e4f-5g6h-7i8j9k0l1m2n",
+    "userId": "u001",
+    "input": {
+      "image": null,
+      "myAnswer": "B",
+      "correctAnswer": "D"
+    },
+    "AIAnalysis": {
+      "course": "高等数学",
+      "knowledge": [
+        {
+          "name": "等价无穷小",
+          "confidence": 0.95
+        },
+        {
+          "name": "极限计算",
+          "confidence": 0.9
+        }
+      ],
+      "wrongType": "概念混淆",
+      "reason": "用户混淆了等价无穷小的使用条件，错误地将1-cosx直接代入为0，而未意识到其与x²/2在x→0时是等价无穷小关系。",
+      "Tag": [
+        "等价无穷小薄弱",
+        "极限计算易错"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "等价无穷小",
+          "task": "复习等价无穷小的定义及其适用条件，完成教材中关于等价无穷小的例题3道，并总结常见等价无穷小公式。"
+        },
+        {
+          "studyTag": "极限计算",
+          "task": "重新学习极限计算的基本方法，重点掌握洛必达法则和泰勒展开的应用，完成课后习题5道。"
+        }
+      ]
+    },
+    "createdAt": "2026-07-22T11:38:56.365178"
+  },
+  {
+    "questionId": "u001_20260722164206",
+    "userId": "u001",
+    "input": {
+      "image": null,
+      "myAnswer": null,
+      "correctAnswer": null
+    },
+    "AIAnalysis": {
+      "course": "数据结构",
+      "knowledge": [
+        {
+          "name": "二叉树遍历",
+          "confidence": 0.95
+        }
+      ],
+      "wrongType": "概念混淆",
+      "reason": "用户可能混淆了二叉树的中序遍历与后序遍历，错误地将中序的访问顺序套用到了后序上。",
+      "Tag": [
+        "二叉树遍历薄弱"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "二叉树遍历",
+          "task": "重新学习二叉树的前序、中序、后序遍历定义，并手动画出给定二叉树，写出三种遍历序列，对比差异。"
+        }
+      ]
+    },
+    "createdAt": "2026-07-22T16:42:09.508034"
+  },
+  {
+    "questionId": "u001_20260722173255",
+    "userId": "u001",
+    "input": {
+      "image": null,
+      "myAnswer": null,
+      "correctAnswer": null
+    },
+    "AIAnalysis": {
+      "course": "数据结构",
+      "knowledge": [
+        {
+          "name": "二叉树遍历",
+          "confidence": 0.95
+        }
+      ],
+      "wrongType": "概念混淆",
+      "reason": "用户可能混淆了二叉树的前序、中序和后序遍历顺序，导致选择错误答案。",
+      "Tag": [
+        "二叉树遍历薄弱"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "二叉树遍历",
+          "task": "重新学习二叉树的前序、中序、后序遍历定义，并手动画出给定二叉树，写出三种遍历序列，对比差异。"
+        }
+      ]
+    },
+    "createdAt": "2026-07-22T17:33:00.187993"
+  }
+]

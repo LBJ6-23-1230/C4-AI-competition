@@ -1,0 +1,32 @@
+{
+  "setId": "set-demo-binary-tree-001",
+  "exercises": [
+    {
+      "exerciseId": "exercise-preorder-001",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "difficulty": "easy",
+      "stem": "以下哪项是给定二叉树的前序遍历结果？",
+      "options": ["A. 根-左-右", "B. 左-右-根", "C. 左-根-右", "D. 根-右-左"],
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-inorder-001",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "difficulty": "easy",
+      "stem": "二叉树中序遍历访问节点的顺序是什么？",
+      "options": ["A. 根-左-右", "B. 左-根-右", "C. 左-右-根", "D. 根-右-左"],
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-postorder-001",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "difficulty": "medium",
+      "stem": "二叉树后序遍历访问节点的顺序是什么？",
+      "options": ["A. 根-左-右", "B. 左-根-右", "C. 左-右-根", "D. 根-右-左"],
+      "source": "demo"
+    }
+  ]
+}

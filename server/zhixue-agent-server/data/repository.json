@@ -1,0 +1,4783 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 2,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 58,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-19T01:58:07.448771+00:00"
+        }
+      ],
+      "history": [
+        {
+          "oldScore": 42,
+          "newScore": 58,
+          "evidenceIds": [
+            "evidence-submit-regression-10-1789783087445"
+          ],
+          "source": "assessment",
+          "timestamp": "2026-09-19T01:58:07.448771+00:00"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence-submit-regression-10-1789783087445",
+          "sourceType": "assessment",
+          "sourceId": "demo-user:set-demo-binary-tree-001:regression-10-1789783087445",
+          "knowledgePointId": "binary-tree-postorder",
+          "metric": "accuracy",
+          "value": 0.6667000000000001,
+          "timestamp": "2026-09-19T01:58:07.448771+00:00",
+          "reliability": 1.0
+        }
+      ]
+    },
+    "u-541d7fcb429b": {
+      "userId": "u-541d7fcb429b",
+      "goal": "验收账号140的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 2,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 16,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-18T14:02:20.128072+00:00"
+        }
+      ],
+      "history": [
+        {
+          "oldScore": 0,
+          "newScore": 16,
+          "evidenceIds": [
+            "evidence-submit-auth-verify-1789740140"
+          ],
+          "source": "assessment",
+          "timestamp": "2026-09-18T14:02:20.128072+00:00"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence-submit-auth-verify-1789740140",
+          "sourceType": "assessment",
+          "sourceId": "u-541d7fcb429b:set-demo-binary-tree-001:auth-verify-1789740140",
+          "knowledgePointId": "binary-tree-postorder",
+          "metric": "accuracy",
+          "value": 0.6667000000000001,
+          "timestamp": "2026-09-18T14:02:20.128072+00:00",
+          "reliability": 1.0
+        }
+      ]
+    },
+    "u-7707005a0e55": {
+      "userId": "u-7707005a0e55",
+      "goal": "待注销账号的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 0,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-18T14:02:20.354481+00:00"
+        }
+      ]
+    },
+    "u-bf8f56890288": {
+      "userId": "u-bf8f56890288",
+      "goal": "验收账号4639的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 2,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 16,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-18T15:17:19.857176+00:00"
+        }
+      ],
+      "history": [
+        {
+          "oldScore": 0,
+          "newScore": 16,
+          "evidenceIds": [
+            "evidence-submit-auth-verify-1789744639"
+          ],
+          "source": "assessment",
+          "timestamp": "2026-09-18T15:17:19.857176+00:00"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence-submit-auth-verify-1789744639",
+          "sourceType": "assessment",
+          "sourceId": "u-bf8f56890288:set-demo-binary-tree-001:auth-verify-1789744639",
+          "knowledgePointId": "binary-tree-postorder",
+          "metric": "accuracy",
+          "value": 0.6667000000000001,
+          "timestamp": "2026-09-18T15:17:19.857176+00:00",
+          "reliability": 1.0
+        }
+      ]
+    },
+    "u-ec6aa5818303": {
+      "userId": "u-ec6aa5818303",
+      "goal": "待注销账号的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 0,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-18T15:17:20.325450+00:00"
+        }
+      ]
+    },
+    "u-accdc5128f34": {
+      "userId": "u-accdc5128f34",
+      "goal": "验收账号8518的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 2,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 16,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-18T16:21:58.707537+00:00"
+        }
+      ],
+      "history": [
+        {
+          "oldScore": 0,
+          "newScore": 16,
+          "evidenceIds": [
+            "evidence-submit-auth-verify-1789748518"
+          ],
+          "source": "assessment",
+          "timestamp": "2026-09-18T16:21:58.707537+00:00"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence-submit-auth-verify-1789748518",
+          "sourceType": "assessment",
+          "sourceId": "u-accdc5128f34:set-demo-binary-tree-001:auth-verify-1789748518",
+          "knowledgePointId": "binary-tree-postorder",
+          "metric": "accuracy",
+          "value": 0.6667000000000001,
+          "timestamp": "2026-09-18T16:21:58.707537+00:00",
+          "reliability": 1.0
+        }
+      ]
+    },
+    "u-a74ac30033d2": {
+      "userId": "u-a74ac30033d2",
+      "goal": "待注销账号的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 0,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-18T16:21:59.074803+00:00"
+        }
+      ]
+    },
+    "u-e00ad034044f": {
+      "userId": "u-e00ad034044f",
+      "goal": "验收账号8682的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 2,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 16,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-18T16:24:42.646186+00:00"
+        }
+      ],
+      "history": [
+        {
+          "oldScore": 0,
+          "newScore": 16,
+          "evidenceIds": [
+            "evidence-submit-auth-verify-1789748682"
+          ],
+          "source": "assessment",
+          "timestamp": "2026-09-18T16:24:42.646186+00:00"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence-submit-auth-verify-1789748682",
+          "sourceType": "assessment",
+          "sourceId": "u-e00ad034044f:set-demo-binary-tree-001:auth-verify-1789748682",
+          "knowledgePointId": "binary-tree-postorder",
+          "metric": "accuracy",
+          "value": 0.6667000000000001,
+          "timestamp": "2026-09-18T16:24:42.646186+00:00",
+          "reliability": 1.0
+        }
+      ]
+    },
+    "u-67630c8d8521": {
+      "userId": "u-67630c8d8521",
+      "goal": "待注销账号的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 0,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-18T16:24:43.159065+00:00"
+        }
+      ]
+    },
+    "u-8fbdfa7b7f67": {
+      "userId": "u-8fbdfa7b7f67",
+      "goal": "验收账号2977的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 2,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 16,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-19T01:56:17.416717+00:00"
+        }
+      ],
+      "history": [
+        {
+          "oldScore": 0,
+          "newScore": 16,
+          "evidenceIds": [
+            "evidence-submit-auth-verify-1789782977"
+          ],
+          "source": "assessment",
+          "timestamp": "2026-09-19T01:56:17.416717+00:00"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence-submit-auth-verify-1789782977",
+          "sourceType": "assessment",
+          "sourceId": "u-8fbdfa7b7f67:set-demo-binary-tree-001:auth-verify-1789782977",
+          "knowledgePointId": "binary-tree-postorder",
+          "metric": "accuracy",
+          "value": 0.6667000000000001,
+          "timestamp": "2026-09-19T01:56:17.416717+00:00",
+          "reliability": 1.0
+        }
+      ]
+    },
+    "u-1becb5b90ca1": {
+      "userId": "u-1becb5b90ca1",
+      "goal": "待注销账号的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 0,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-19T01:56:17.695654+00:00"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 2,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 15,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 2,
+      "reason": "根据练习结果重规划"
+    },
+    "plan-u-541d7fcb429b": {
+      "planId": "plan-u-541d7fcb429b",
+      "version": 2,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 2,
+      "reason": "根据练习结果重规划"
+    },
+    "plan-u-7707005a0e55": {
+      "planId": "plan-u-7707005a0e55",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "新账号起始计划：从二叉树后序遍历开始",
+      "userId": "u-7707005a0e55"
+    },
+    "plan-u-bf8f56890288": {
+      "planId": "plan-u-bf8f56890288",
+      "version": 2,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 2,
+      "reason": "根据练习结果重规划"
+    },
+    "plan-u-ec6aa5818303": {
+      "planId": "plan-u-ec6aa5818303",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "新账号起始计划：从二叉树后序遍历开始",
+      "userId": "u-ec6aa5818303"
+    },
+    "plan-u-accdc5128f34": {
+      "planId": "plan-u-accdc5128f34",
+      "version": 2,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 2,
+      "reason": "根据练习结果重规划"
+    },
+    "plan-u-a74ac30033d2": {
+      "planId": "plan-u-a74ac30033d2",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "新账号起始计划：从二叉树后序遍历开始",
+      "userId": "u-a74ac30033d2"
+    },
+    "plan-u-e00ad034044f": {
+      "planId": "plan-u-e00ad034044f",
+      "version": 2,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 2,
+      "reason": "根据练习结果重规划"
+    },
+    "plan-u-67630c8d8521": {
+      "planId": "plan-u-67630c8d8521",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "新账号起始计划：从二叉树后序遍历开始",
+      "userId": "u-67630c8d8521"
+    },
+    "plan-u-8fbdfa7b7f67": {
+      "planId": "plan-u-8fbdfa7b7f67",
+      "version": 2,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 2,
+      "reason": "根据练习结果重规划"
+    },
+    "plan-u-1becb5b90ca1": {
+      "planId": "plan-u-1becb5b90ca1",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "新账号起始计划：从二叉树后序遍历开始",
+      "userId": "u-1becb5b90ca1"
+    }
+  },
+  "workflows": {
+    "session-2554194c08e3": {
+      "sessionId": "session-2554194c08e3",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-2554194c08e3",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 3,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 3,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-2554194c08e3",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 74,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 58,
+          "suggestedNewMastery": 74,
+          "exerciseResultId": "workflow:session-2554194c08e3"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-2554194c08e3"
+        ],
+        "planDiff": {
+          "oldVersion": 2,
+          "newVersion": 3,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-2554194c08e3"
+          ],
+          "timestamp": "2026-09-18T14:02:19.770267+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-2554194c08e3",
+      "nextAction": "学习流程已完成"
+    },
+    "session-9765e62d6673": {
+      "sessionId": "session-9765e62d6673",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-9765e62d6673",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 74,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 4,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 4,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 74,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-9765e62d6673",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 90,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 74,
+          "suggestedNewMastery": 90,
+          "exerciseResultId": "workflow:session-9765e62d6673"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-9765e62d6673"
+        ],
+        "planDiff": {
+          "oldVersion": 3,
+          "newVersion": 4,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-9765e62d6673"
+          ],
+          "timestamp": "2026-09-18T14:02:19.833325+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-9765e62d6673",
+      "nextAction": "学习流程已完成"
+    },
+    "session-f3339166d871": {
+      "sessionId": "session-f3339166d871",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-f3339166d871",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 90,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 5,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 5,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 90,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-f3339166d871",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 100,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 90,
+          "suggestedNewMastery": 100,
+          "exerciseResultId": "workflow:session-f3339166d871"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-f3339166d871"
+        ],
+        "planDiff": {
+          "oldVersion": 4,
+          "newVersion": 5,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-f3339166d871"
+          ],
+          "timestamp": "2026-09-18T14:02:19.910711+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-f3339166d871",
+      "nextAction": "学习流程已完成"
+    },
+    "session-2c5f023f5c76": {
+      "sessionId": "session-2c5f023f5c76",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-2c5f023f5c76",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 3,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 3,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-2c5f023f5c76",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 74,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 58,
+          "suggestedNewMastery": 74,
+          "exerciseResultId": "workflow:session-2c5f023f5c76"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-2c5f023f5c76"
+        ],
+        "planDiff": {
+          "oldVersion": 2,
+          "newVersion": 3,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-2c5f023f5c76"
+          ],
+          "timestamp": "2026-09-18T15:17:19.379597+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-2c5f023f5c76",
+      "nextAction": "学习流程已完成"
+    },
+    "session-d18b0541b1de": {
+      "sessionId": "session-d18b0541b1de",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-d18b0541b1de",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 74,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 4,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 4,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 74,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-d18b0541b1de",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 90,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 74,
+          "suggestedNewMastery": 90,
+          "exerciseResultId": "workflow:session-d18b0541b1de"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-d18b0541b1de"
+        ],
+        "planDiff": {
+          "oldVersion": 3,
+          "newVersion": 4,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-d18b0541b1de"
+          ],
+          "timestamp": "2026-09-18T15:17:19.413998+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-d18b0541b1de",
+      "nextAction": "学习流程已完成"
+    },
+    "session-ceb887215b55": {
+      "sessionId": "session-ceb887215b55",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-ceb887215b55",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 90,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 5,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 5,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 90,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-ceb887215b55",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 100,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 90,
+          "suggestedNewMastery": 100,
+          "exerciseResultId": "workflow:session-ceb887215b55"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-ceb887215b55"
+        ],
+        "planDiff": {
+          "oldVersion": 4,
+          "newVersion": 5,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-ceb887215b55"
+          ],
+          "timestamp": "2026-09-18T15:17:19.549408+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-ceb887215b55",
+      "nextAction": "学习流程已完成"
+    },
+    "session-f54cbc7a012b": {
+      "sessionId": "session-f54cbc7a012b",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-f54cbc7a012b",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 3,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 3,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-f54cbc7a012b",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 74,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 58,
+          "suggestedNewMastery": 74,
+          "exerciseResultId": "workflow:session-f54cbc7a012b"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-f54cbc7a012b"
+        ],
+        "planDiff": {
+          "oldVersion": 2,
+          "newVersion": 3,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-f54cbc7a012b"
+          ],
+          "timestamp": "2026-09-18T16:21:58.298284+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-f54cbc7a012b",
+      "nextAction": "学习流程已完成"
+    },
+    "session-4aea30ab16b7": {
+      "sessionId": "session-4aea30ab16b7",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-4aea30ab16b7",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 74,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 4,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 4,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 74,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-4aea30ab16b7",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 90,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 74,
+          "suggestedNewMastery": 90,
+          "exerciseResultId": "workflow:session-4aea30ab16b7"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-4aea30ab16b7"
+        ],
+        "planDiff": {
+          "oldVersion": 3,
+          "newVersion": 4,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-4aea30ab16b7"
+          ],
+          "timestamp": "2026-09-18T16:21:58.368530+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-4aea30ab16b7",
+      "nextAction": "学习流程已完成"
+    },
+    "session-69a22f89232b": {
+      "sessionId": "session-69a22f89232b",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-69a22f89232b",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 90,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 5,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 5,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 90,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-69a22f89232b",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 100,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 90,
+          "suggestedNewMastery": 100,
+          "exerciseResultId": "workflow:session-69a22f89232b"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-69a22f89232b"
+        ],
+        "planDiff": {
+          "oldVersion": 4,
+          "newVersion": 5,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-69a22f89232b"
+          ],
+          "timestamp": "2026-09-18T16:21:58.483967+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-69a22f89232b",
+      "nextAction": "学习流程已完成"
+    },
+    "session-d064d4a0147b": {
+      "sessionId": "session-d064d4a0147b",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-d064d4a0147b",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 3,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 3,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-d064d4a0147b",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 74,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 58,
+          "suggestedNewMastery": 74,
+          "exerciseResultId": "workflow:session-d064d4a0147b"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-d064d4a0147b"
+        ],
+        "planDiff": {
+          "oldVersion": 2,
+          "newVersion": 3,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-d064d4a0147b"
+          ],
+          "timestamp": "2026-09-18T16:24:41.890235+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-d064d4a0147b",
+      "nextAction": "学习流程已完成"
+    },
+    "session-ab444a1cfcd4": {
+      "sessionId": "session-ab444a1cfcd4",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-ab444a1cfcd4",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 74,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 4,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 4,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 74,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-ab444a1cfcd4",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 90,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 74,
+          "suggestedNewMastery": 90,
+          "exerciseResultId": "workflow:session-ab444a1cfcd4"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-ab444a1cfcd4"
+        ],
+        "planDiff": {
+          "oldVersion": 3,
+          "newVersion": 4,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-ab444a1cfcd4"
+          ],
+          "timestamp": "2026-09-18T16:24:42.077902+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-ab444a1cfcd4",
+      "nextAction": "学习流程已完成"
+    },
+    "session-e59569ff349c": {
+      "sessionId": "session-e59569ff349c",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-e59569ff349c",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 90,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 5,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 5,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 90,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-e59569ff349c",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 100,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 90,
+          "suggestedNewMastery": 100,
+          "exerciseResultId": "workflow:session-e59569ff349c"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-e59569ff349c"
+        ],
+        "planDiff": {
+          "oldVersion": 4,
+          "newVersion": 5,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-e59569ff349c"
+          ],
+          "timestamp": "2026-09-18T16:24:42.326455+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-e59569ff349c",
+      "nextAction": "学习流程已完成"
+    },
+    "session-d28b5b21c4ef": {
+      "sessionId": "session-d28b5b21c4ef",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-d28b5b21c4ef",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 3,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 3,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-d28b5b21c4ef",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 74,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 58,
+          "suggestedNewMastery": 74,
+          "exerciseResultId": "workflow:session-d28b5b21c4ef"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-d28b5b21c4ef"
+        ],
+        "planDiff": {
+          "oldVersion": 2,
+          "newVersion": 3,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-d28b5b21c4ef"
+          ],
+          "timestamp": "2026-09-19T01:56:17.060125+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-d28b5b21c4ef",
+      "nextAction": "学习流程已完成"
+    },
+    "session-7dd683ab21fe": {
+      "sessionId": "session-7dd683ab21fe",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-7dd683ab21fe",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 74,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 4,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 4,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 74,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-7dd683ab21fe",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 90,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 74,
+          "suggestedNewMastery": 90,
+          "exerciseResultId": "workflow:session-7dd683ab21fe"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-7dd683ab21fe"
+        ],
+        "planDiff": {
+          "oldVersion": 3,
+          "newVersion": 4,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-7dd683ab21fe"
+          ],
+          "timestamp": "2026-09-19T01:56:17.161830+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-7dd683ab21fe",
+      "nextAction": "学习流程已完成"
+    },
+    "session-8e7c078a40df": {
+      "sessionId": "session-8e7c078a40df",
+      "goal": "数据结构考试80+",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-8e7c078a40df",
+        "userId": "demo-user",
+        "goal": "数据结构考试80+",
+        "oldMastery": 90,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 5,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 5,
+          "reason": "repeated_error"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 90,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "answers": [
+          {
+            "exerciseId": "exercise-preorder-001",
+            "answer": "A"
+          },
+          {
+            "exerciseId": "exercise-inorder-001",
+            "answer": "B"
+          },
+          {
+            "exerciseId": "exercise-postorder-001",
+            "answer": "A"
+          }
+        ],
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-8e7c078a40df",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 100,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 90,
+          "suggestedNewMastery": 100,
+          "exerciseResultId": "workflow:session-8e7c078a40df"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-8e7c078a40df"
+        ],
+        "planDiff": {
+          "oldVersion": 4,
+          "newVersion": 5,
+          "changedTasks": [],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-8e7c078a40df"
+          ],
+          "timestamp": "2026-09-19T01:56:17.274464+00:00"
+        },
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-8e7c078a40df",
+      "nextAction": "学习流程已完成"
+    },
+    "session-0c613d7a5217": {
+      "sessionId": "session-0c613d7a5217",
+      "goal": "?????????",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 2,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-0c613d7a5217",
+        "userId": "demo-user",
+        "goal": "?????????",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:regression-1-1789783085579"
+        },
+        "needReplan": false,
+        "pendingSubmission": false,
+        "assessmentPersisted": true,
+        "submissionId": "demo-user:set-demo-binary-tree-001:regression-1-1789783085579",
+        "evidenceIds": [
+          "evidence-submit-regression-1-1789783085579"
+        ],
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-0c613d7a5217",
+      "nextAction": "学习流程已完成"
+    },
+    "session-160c6a67739a": {
+      "sessionId": "session-160c6a67739a",
+      "goal": "?????????",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 2,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-160c6a67739a",
+        "userId": "demo-user",
+        "goal": "?????????",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:regression-2-1789783085784"
+        },
+        "needReplan": false,
+        "pendingSubmission": false,
+        "assessmentPersisted": true,
+        "submissionId": "demo-user:set-demo-binary-tree-001:regression-2-1789783085784",
+        "evidenceIds": [
+          "evidence-submit-regression-2-1789783085784"
+        ],
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-160c6a67739a",
+      "nextAction": "学习流程已完成"
+    },
+    "session-6b59559c2f40": {
+      "sessionId": "session-6b59559c2f40",
+      "goal": "?????????",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 2,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-6b59559c2f40",
+        "userId": "demo-user",
+        "goal": "?????????",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:regression-3-1789783085966"
+        },
+        "needReplan": false,
+        "pendingSubmission": false,
+        "assessmentPersisted": true,
+        "submissionId": "demo-user:set-demo-binary-tree-001:regression-3-1789783085966",
+        "evidenceIds": [
+          "evidence-submit-regression-3-1789783085966"
+        ],
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-6b59559c2f40",
+      "nextAction": "学习流程已完成"
+    },
+    "session-e0b75a7c2d44": {
+      "sessionId": "session-e0b75a7c2d44",
+      "goal": "?????????",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 2,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-e0b75a7c2d44",
+        "userId": "demo-user",
+        "goal": "?????????",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:regression-4-1789783086160"
+        },
+        "needReplan": false,
+        "pendingSubmission": false,
+        "assessmentPersisted": true,
+        "submissionId": "demo-user:set-demo-binary-tree-001:regression-4-1789783086160",
+        "evidenceIds": [
+          "evidence-submit-regression-4-1789783086160"
+        ],
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-e0b75a7c2d44",
+      "nextAction": "学习流程已完成"
+    },
+    "session-371871171d24": {
+      "sessionId": "session-371871171d24",
+      "goal": "?????????",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 2,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-371871171d24",
+        "userId": "demo-user",
+        "goal": "?????????",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:regression-5-1789783086379"
+        },
+        "needReplan": false,
+        "pendingSubmission": false,
+        "assessmentPersisted": true,
+        "submissionId": "demo-user:set-demo-binary-tree-001:regression-5-1789783086379",
+        "evidenceIds": [
+          "evidence-submit-regression-5-1789783086379"
+        ],
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-371871171d24",
+      "nextAction": "学习流程已完成"
+    },
+    "session-290a756b7d46": {
+      "sessionId": "session-290a756b7d46",
+      "goal": "?????????",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 2,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-290a756b7d46",
+        "userId": "demo-user",
+        "goal": "?????????",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:regression-6-1789783086609"
+        },
+        "needReplan": false,
+        "pendingSubmission": false,
+        "assessmentPersisted": true,
+        "submissionId": "demo-user:set-demo-binary-tree-001:regression-6-1789783086609",
+        "evidenceIds": [
+          "evidence-submit-regression-6-1789783086609"
+        ],
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-290a756b7d46",
+      "nextAction": "学习流程已完成"
+    },
+    "session-cfbab3dd1d4b": {
+      "sessionId": "session-cfbab3dd1d4b",
+      "goal": "?????????",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 2,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-cfbab3dd1d4b",
+        "userId": "demo-user",
+        "goal": "?????????",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:regression-7-1789783086803"
+        },
+        "needReplan": false,
+        "pendingSubmission": false,
+        "assessmentPersisted": true,
+        "submissionId": "demo-user:set-demo-binary-tree-001:regression-7-1789783086803",
+        "evidenceIds": [
+          "evidence-submit-regression-7-1789783086803"
+        ],
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-cfbab3dd1d4b",
+      "nextAction": "学习流程已完成"
+    },
+    "session-dcce928cb8f3": {
+      "sessionId": "session-dcce928cb8f3",
+      "goal": "?????????",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 2,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-dcce928cb8f3",
+        "userId": "demo-user",
+        "goal": "?????????",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:regression-8-1789783086995"
+        },
+        "needReplan": false,
+        "pendingSubmission": false,
+        "assessmentPersisted": true,
+        "submissionId": "demo-user:set-demo-binary-tree-001:regression-8-1789783086995",
+        "evidenceIds": [
+          "evidence-submit-regression-8-1789783086995"
+        ],
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-dcce928cb8f3",
+      "nextAction": "学习流程已完成"
+    },
+    "session-6965669f4a91": {
+      "sessionId": "session-6965669f4a91",
+      "goal": "?????????",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 2,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-6965669f4a91",
+        "userId": "demo-user",
+        "goal": "?????????",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:regression-9-1789783087203"
+        },
+        "needReplan": false,
+        "pendingSubmission": false,
+        "assessmentPersisted": true,
+        "submissionId": "demo-user:set-demo-binary-tree-001:regression-9-1789783087203",
+        "evidenceIds": [
+          "evidence-submit-regression-9-1789783087203"
+        ],
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-6965669f4a91",
+      "nextAction": "学习流程已完成"
+    },
+    "session-53dcd6d2784f": {
+      "sessionId": "session-53dcd6d2784f",
+      "goal": "?????????",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 2,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-53dcd6d2784f",
+        "userId": "demo-user",
+        "goal": "?????????",
+        "oldMastery": 58,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 58,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:regression-10-1789783087445"
+        },
+        "needReplan": false,
+        "pendingSubmission": false,
+        "assessmentPersisted": true,
+        "submissionId": "demo-user:set-demo-binary-tree-001:regression-10-1789783087445",
+        "evidenceIds": [
+          "evidence-submit-regression-10-1789783087445"
+        ],
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-53dcd6d2784f",
+      "nextAction": "学习流程已完成"
+    }
+  },
+  "users": {
+    "u-541d7fcb429b": {
+      "userId": "u-541d7fcb429b",
+      "nickname": "验收账号140",
+      "grade": "大二",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-18T14:02:20+00:00",
+      "lastLoginAt": "2026-09-18T14:02:20+00:00"
+    },
+    "u-7707005a0e55": {
+      "userId": "u-7707005a0e55",
+      "nickname": "待注销账号",
+      "grade": "",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "deactivated",
+      "createdAt": "2026-09-18T14:02:20+00:00",
+      "lastLoginAt": "2026-09-18T14:02:20+00:00",
+      "deactivatedAt": "2026-09-18T14:02:20+00:00"
+    },
+    "u-bf8f56890288": {
+      "userId": "u-bf8f56890288",
+      "nickname": "验收账号4639",
+      "grade": "大二",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-18T15:17:19+00:00",
+      "lastLoginAt": "2026-09-18T15:17:19+00:00"
+    },
+    "u-ec6aa5818303": {
+      "userId": "u-ec6aa5818303",
+      "nickname": "待注销账号",
+      "grade": "",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "deactivated",
+      "createdAt": "2026-09-18T15:17:20+00:00",
+      "lastLoginAt": "2026-09-18T15:17:20+00:00",
+      "deactivatedAt": "2026-09-18T15:17:20+00:00"
+    },
+    "u-accdc5128f34": {
+      "userId": "u-accdc5128f34",
+      "nickname": "验收账号8518",
+      "grade": "大二",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-18T16:21:58+00:00",
+      "lastLoginAt": "2026-09-18T16:21:58+00:00"
+    },
+    "u-a74ac30033d2": {
+      "userId": "u-a74ac30033d2",
+      "nickname": "待注销账号",
+      "grade": "",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "deactivated",
+      "createdAt": "2026-09-18T16:21:59+00:00",
+      "lastLoginAt": "2026-09-18T16:21:59+00:00",
+      "deactivatedAt": "2026-09-18T16:21:59+00:00"
+    },
+    "u-e00ad034044f": {
+      "userId": "u-e00ad034044f",
+      "nickname": "验收账号8682",
+      "grade": "大二",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-18T16:24:42+00:00",
+      "lastLoginAt": "2026-09-18T16:24:42+00:00"
+    },
+    "u-67630c8d8521": {
+      "userId": "u-67630c8d8521",
+      "nickname": "待注销账号",
+      "grade": "",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "deactivated",
+      "createdAt": "2026-09-18T16:24:43+00:00",
+      "lastLoginAt": "2026-09-18T16:24:43+00:00",
+      "deactivatedAt": "2026-09-18T16:24:43+00:00"
+    },
+    "u-8fbdfa7b7f67": {
+      "userId": "u-8fbdfa7b7f67",
+      "nickname": "验收账号2977",
+      "grade": "大二",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-19T01:56:17+00:00",
+      "lastLoginAt": "2026-09-19T01:56:17+00:00"
+    },
+    "u-1becb5b90ca1": {
+      "userId": "u-1becb5b90ca1",
+      "nickname": "待注销账号",
+      "grade": "",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "deactivated",
+      "createdAt": "2026-09-19T01:56:17+00:00",
+      "lastLoginAt": "2026-09-19T01:56:17+00:00",
+      "deactivatedAt": "2026-09-19T01:56:17+00:00"
+    }
+  },
+  "sessions": {},
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    },
+    "trace-session-53dcd6d2784f": {
+      "traceId": "trace-session-53dcd6d2784f",
+      "events": [
+        {
+          "agent": "secretary",
+          "toolCalls": [],
+          "inputSummary": "assessment completed",
+          "outputSummary": "学习流程已完成",
+          "evidenceIds": [],
+          "stateVersion": 2,
+          "timestamp": "2026-09-19T01:58:07.510541+00:00",
+          "status": "completed",
+          "sessionId": "session-53dcd6d2784f",
+          "traceId": "trace-session-53dcd6d2784f",
+          "stepId": "step-1",
+          "inputStateVersion": 1,
+          "outputStateVersion": 2
+        }
+      ]
+    },
+    "trace-submit-regression-10-1789783087445": {
+      "traceId": "trace-submit-regression-10-1789783087445",
+      "events": [
+        {
+          "agent": "assessment",
+          "toolCalls": [
+            "grade_exercise"
+          ],
+          "inputSummary": "提交题集 set-demo-binary-tree-001",
+          "outputSummary": "得分 66.67",
+          "evidenceIds": [
+            "evidence-submit-regression-10-1789783087445"
+          ],
+          "stateVersion": 1,
+          "timestamp": "2026-09-19T01:58:07.448771+00:00",
+          "status": "completed",
+          "sessionId": "session-53dcd6d2784f",
+          "stepId": "step-1",
+          "inputStateVersion": 1,
+          "outputStateVersion": 1
+        }
+      ]
+    }
+  },
+  "evidences": {
+    "evidence-submit-regression-10-1789783087445": {
+      "id": "evidence-submit-regression-10-1789783087445",
+      "sourceType": "assessment",
+      "sourceId": "demo-user:set-demo-binary-tree-001:regression-10-1789783087445",
+      "knowledgePointId": "binary-tree-postorder",
+      "metric": "accuracy",
+      "value": 0.6667000000000001,
+      "timestamp": "2026-09-19T01:58:07.448771+00:00",
+      "reliability": 1.0
+    }
+  },
+  "plan_histories": {
+    "plan-demo-001": {
+      "oldVersion": 1,
+      "newVersion": 2,
+      "changedTasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 15,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "reason": "掌握度低于阈值",
+      "evidenceIds": [
+        "evidence-submit-regression-10-1789783087445"
+      ],
+      "timestamp": "2026-09-19T01:58:07.476719+00:00",
+      "adjustmentReason": "掌握度低于阈值",
+      "triggerEvidence": [
+        "evidence-submit-regression-10-1789783087445"
+      ]
+    }
+  },
+  "submissions": {
+    "demo-user:set-demo-binary-tree-001:regression-10-1789783087445": {
+      "response": {
+        "userId": "demo-user",
+        "submissionId": "demo-user:set-demo-binary-tree-001:regression-10-1789783087445",
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:regression-10-1789783087445"
+        },
+        "masteryUpdate": {
+          "knowledgePointId": "binary-tree-postorder",
+          "oldScore": 42,
+          "newScore": 58
+        },
+        "needReplan": true,
+        "replanDecision": {
+          "needReplan": true,
+          "reasons": [
+            "mastery_below_threshold",
+            "repeated_error"
+          ]
+        },
+        "traceId": "trace-submit-regression-10-1789783087445",
+        "evidenceIds": [
+          "evidence-submit-regression-10-1789783087445"
+        ],
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "planDiff": {
+          "planId": "plan-demo-001",
+          "oldVersion": 1,
+          "newVersion": 2,
+          "changedTasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-submit-regression-10-1789783087445"
+          ],
+          "timestamp": "2026-09-19T01:58:07.476719+00:00",
+          "adjustmentReason": "掌握度低于阈值",
+          "triggerEvidence": [
+            "evidence-submit-regression-10-1789783087445"
+          ]
+        }
+      }
+    }
+  }
+}

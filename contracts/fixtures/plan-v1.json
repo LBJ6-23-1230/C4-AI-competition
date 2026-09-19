@@ -1,0 +1,16 @@
+{
+  "planId": "plan-demo-001",
+  "version": 1,
+  "generatedFromProfileVersion": 1,
+  "reason": "巩固二叉树后序遍历",
+  "tasks": [
+    {
+      "taskId": "task-postorder",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "durationMinutes": 30,
+      "status": "pending",
+      "priority": "high"
+    }
+  ]
+}

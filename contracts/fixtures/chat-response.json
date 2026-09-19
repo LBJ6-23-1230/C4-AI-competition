@@ -1,0 +1,11 @@
+{
+  "reply": "我已根据课程紧迫度和薄弱点生成今日建议，先从最高优先级任务开始。",
+  "intent": "get_suggestion",
+  "card": {
+    "type": "tasks",
+    "title": "学习计划",
+    "summary": "查看近期学习任务和优先级安排。",
+    "targetPage": "pages/StudyPlan",
+    "data": {}
+  }
+}

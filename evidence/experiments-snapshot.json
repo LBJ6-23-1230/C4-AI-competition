@@ -1,0 +1,224 @@
+﻿{
+    "evidences":  [
+                      {
+                          "data":  {
+                                       "id":  "evidence-submit-regression-10-1789783087445",
+                                       "knowledgePointId":  "binary-tree-postorder",
+                                       "metric":  "accuracy",
+                                       "reliability":  1.0,
+                                       "sourceId":  "demo-user:set-demo-binary-tree-001:regression-10-1789783087445",
+                                       "sourceType":  "assessment",
+                                       "timestamp":  "2026-09-19T01:58:07.448771+00:00",
+                                       "value":  0.6667000000000001
+                                   },
+                          "recordId":  "record-0001"
+                      }
+                  ],
+    "generatedAt":  "2026-09-19T01:59:14.608722+00:00",
+    "planDiffs":  [
+                      {
+                          "data":  {
+                                       "adjustmentReason":  "掌握度低于阈值",
+                                       "changedTasks":  [
+                                                            {
+                                                                "durationMinutes":  45,
+                                                                "knowledgePointId":  "binary-tree-postorder",
+                                                                "knowledgePointName":  "二叉树后序遍历",
+                                                                "priority":  "high",
+                                                                "status":  "pending",
+                                                                "taskId":  "task-postorder"
+                                                            },
+                                                            {
+                                                                "durationMinutes":  15,
+                                                                "knowledgePointId":  "graph-algorithm",
+                                                                "knowledgePointName":  "图算法",
+                                                                "priority":  "medium",
+                                                                "status":  "pending",
+                                                                "taskId":  "task-graph"
+                                                            }
+                                                        ],
+                                       "evidenceIds":  [
+                                                           "evidence-submit-regression-10-1789783087445"
+                                                       ],
+                                       "newVersion":  2,
+                                       "oldVersion":  1,
+                                       "reason":  "掌握度低于阈值",
+                                       "timestamp":  "2026-09-19T01:58:07.476719+00:00",
+                                       "triggerEvidence":  [
+                                                               "evidence-submit-regression-10-1789783087445"
+                                                           ]
+                                   },
+                          "recordId":  "record-0001"
+                      }
+                  ],
+    "snapshotVersion":  "experiment-snapshot-v1",
+    "submissions":  [
+                        {
+                            "data":  {
+                                         "response":  {
+                                                          "assessment":  {
+                                                                             "errorTypes":  [
+                                                                                                "traversal-order"
+                                                                                            ],
+                                                                             "exerciseResultId":  "demo-user:set-demo-binary-tree-001:regression-10-1789783087445",
+                                                                             "oldMastery":  42,
+                                                                             "perKnowledgeAccuracy":  {
+                                                                                                          "binary-tree-postorder":  0.6667
+                                                                                                      },
+                                                                             "score":  66.67,
+                                                                             "suggestedNewMastery":  58
+                                                                         },
+                                                          "evidenceIds":  [
+                                                                              "evidence-submit-regression-10-1789783087445"
+                                                                          ],
+                                                          "masteryUpdate":  {
+                                                                                "knowledgePointId":  "binary-tree-postorder",
+                                                                                "newScore":  58,
+                                                                                "oldScore":  42
+                                                                            },
+                                                          "needReplan":  true,
+                                                          "plan":  {
+                                                                       "generatedFromProfileVersion":  2,
+                                                                       "planId":  "plan-demo-001",
+                                                                       "reason":  "根据练习结果重规划",
+                                                                       "tasks":  [
+                                                                                     {
+                                                                                         "durationMinutes":  45,
+                                                                                         "knowledgePointId":  "binary-tree-postorder",
+                                                                                         "knowledgePointName":  "二叉树后序遍历",
+                                                                                         "priority":  "high",
+                                                                                         "status":  "pending",
+                                                                                         "taskId":  "task-postorder"
+                                                                                     },
+                                                                                     {
+                                                                                         "durationMinutes":  15,
+                                                                                         "knowledgePointId":  "graph-algorithm",
+                                                                                         "knowledgePointName":  "图算法",
+                                                                                         "priority":  "medium",
+                                                                                         "status":  "pending",
+                                                                                         "taskId":  "task-graph"
+                                                                                     }
+                                                                                 ],
+                                                                       "version":  2
+                                                                   },
+                                                          "planDiff":  {
+                                                                           "adjustmentReason":  "掌握度低于阈值",
+                                                                           "changedTasks":  [
+                                                                                                {
+                                                                                                    "durationMinutes":  45,
+                                                                                                    "knowledgePointId":  "binary-tree-postorder",
+                                                                                                    "knowledgePointName":  "二叉树后序遍历",
+                                                                                                    "priority":  "high",
+                                                                                                    "status":  "pending",
+                                                                                                    "taskId":  "task-postorder"
+                                                                                                },
+                                                                                                {
+                                                                                                    "durationMinutes":  15,
+                                                                                                    "knowledgePointId":  "graph-algorithm",
+                                                                                                    "knowledgePointName":  "图算法",
+                                                                                                    "priority":  "medium",
+                                                                                                    "status":  "pending",
+                                                                                                    "taskId":  "task-graph"
+                                                                                                }
+                                                                                            ],
+                                                                           "evidenceIds":  [
+                                                                                               "evidence-submit-regression-10-1789783087445"
+                                                                                           ],
+                                                                           "newVersion":  2,
+                                                                           "oldVersion":  1,
+                                                                           "planId":  "plan-demo-001",
+                                                                           "reason":  "掌握度低于阈值",
+                                                                           "timestamp":  "2026-09-19T01:58:07.476719+00:00",
+                                                                           "triggerEvidence":  [
+                                                                                                   "evidence-submit-regression-10-1789783087445"
+                                                                                               ]
+                                                                       },
+                                                          "replanDecision":  {
+                                                                                 "needReplan":  true,
+                                                                                 "reasons":  [
+                                                                                                 "mastery_below_threshold",
+                                                                                                 "repeated_error"
+                                                                                             ]
+                                                                             },
+                                                          "submissionId":  "demo-user:set-demo-binary-tree-001:regression-10-1789783087445",
+                                                          "traceId":  "trace-submit-regression-10-1789783087445"
+                                                      }
+                                     },
+                            "recordId":  "record-0001"
+                        }
+                    ],
+    "summary":  {
+                    "eventCount":  2,
+                    "eventStatusCounts":  {
+                                              "completed":  2
+                                          },
+                    "evidenceCount":  1,
+                    "planDiffCount":  1,
+                    "submissionCount":  1,
+                    "traceCount":  3
+                },
+    "traces":  [
+                   {
+                       "data":  {
+                                    "events":  [
+
+                                               ],
+                                    "traceId":  "trace-demo-reset-001"
+                                },
+                       "recordId":  "record-0001"
+                   },
+                   {
+                       "data":  {
+                                    "events":  [
+                                                   {
+                                                       "agent":  "secretary",
+                                                       "evidenceIds":  [
+
+                                                                       ],
+                                                       "inputStateVersion":  1,
+                                                       "inputSummary":  "assessment completed",
+                                                       "outputStateVersion":  2,
+                                                       "outputSummary":  "学习流程已完成",
+                                                       "sessionId":  "session-53dcd6d2784f",
+                                                       "stateVersion":  2,
+                                                       "status":  "completed",
+                                                       "stepId":  "step-1",
+                                                       "timestamp":  "2026-09-19T01:58:07.510541+00:00",
+                                                       "toolCalls":  [
+
+                                                                     ],
+                                                       "traceId":  "trace-session-53dcd6d2784f"
+                                                   }
+                                               ],
+                                    "traceId":  "trace-session-53dcd6d2784f"
+                                },
+                       "recordId":  "record-0002"
+                   },
+                   {
+                       "data":  {
+                                    "events":  [
+                                                   {
+                                                       "agent":  "assessment",
+                                                       "evidenceIds":  [
+                                                                           "evidence-submit-regression-10-1789783087445"
+                                                                       ],
+                                                       "inputStateVersion":  1,
+                                                       "inputSummary":  "提交题集 set-demo-binary-tree-001",
+                                                       "outputStateVersion":  1,
+                                                       "outputSummary":  "得分 66.67",
+                                                       "sessionId":  "session-53dcd6d2784f",
+                                                       "stateVersion":  1,
+                                                       "status":  "completed",
+                                                       "stepId":  "step-1",
+                                                       "timestamp":  "2026-09-19T01:58:07.448771+00:00",
+                                                       "toolCalls":  [
+                                                                         "grade_exercise"
+                                                                     ]
+                                                   }
+                                               ],
+                                    "traceId":  "trace-submit-regression-10-1789783087445"
+                                },
+                       "recordId":  "record-0003"
+                   }
+               ]
+}

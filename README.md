@@ -1,0 +1,352 @@
+# 知学 Mate（ZhiXue Mate）· liantiao1 联调工程
+
+> **参赛赛道**：2026 中国高校计算机大赛 · 人工智能创意赛 · 鸿蒙赛道 · **Agent 创新方向**
+> **团队**：暗影骑士王们（武汉理工大学）
+> **本目录定位**：**前后端已完成联调的单一工程**，可直接用 DevEco Studio 打开运行。
+> **联调结论**：`105 / 105` 项自检通过（含 `90` 个后端单元测试全绿）。复现命令见 §6。
+
+---
+
+## 1. 一句话说明这次联调做了什么
+
+联调前，工程里有**两套后端、两套契约版本、两套前端数据源**：
+
+| 问题 | 联调前 | 联调后 |
+|---|---|---|
+| 后端数量 | B1（`frontend/backend`，Flask + LLM）与 B2（`zhixue-agent-server`，真 Agent 循环）**两个进程、两个端口** | **合并为一个进程、一个端口 5000** |
+| 前端 baseUrl | 需要同时指向两个后端才能工作 | **只需一个 baseUrl** |
+| 契约版本 | 前端 `v0.2` / 后端 `v0.3`，错误结构也不同 | **统一冻结为 `api-contract-v0.3`**（`errorCode/message/details`） |
+| 判分 | B1 判分与答案无关，**任何答案都返回 67** | 复用确定性判分：**√√× → 66.67，全对 → 100.0，全错 → 0.0** |
+| 掌握度 | 全错也 +16（"全错反而进步"） | 分档更新：全错 **‑4**（42 → 38） |
+| 重规划 | 每次 `+15/−15` 累加，连跑会漂到 0 分钟 | 以基线 V1 为锚，**连跑 3 次稳定 45/15** |
+| 答案泄漏 | 题集接口把 `answerKey` 返回给客户端 | 出参字段白名单投影，**不泄漏** |
+| 离线 Fixture 判分 | **同样是写死的 67**（文档从未记录） | 与后端同一条确定性规则，**在线/离线同源** |
+| 默认地址 | 页面里各写一份 IP | 集中到 `ApiDefaults.ets` **单一真源** + 静态护栏校验 |
+| 用户身份 | 无登录概念；前端 `u001` 与后端 `demo-user` **分裂** | **三入口登录**（一键体验 / 昵称注册 / 离线跳过），游客优先；`ApiDefaults.DEMO_USER_ID` 单一真源 |
+
+**一句话**：以前是"两个半成品拼在一起"，现在是**一个可直接运行、可被评委现场验证的完整工程**。
+
+---
+
+## 2. 目录结构
+
+```
+liantiao1/                                  ← 用 DevEco Studio 打开这一层
+├── build-profile.json5                     ← HarmonyOS 工程入口（SDK 6.1.1(24)）
+├── oh-package.json5 / oh-package-lock.json5
+├── hvigorfile.ts / hvigor/
+├── code-linter.json5
+├── AppScope/                               ← 应用级配置（包名 com.zhixue.mate、版本 1.0.0）
+├── entry/                                  ← 【前端】ArkTS 主模块
+│   └── src/main/ets/
+│       ├── entryability/EntryAbility.ets    ← 含 restoreIdentity() 条件启动（登录态）
+│       ├── pages/                          ← 18 个页面
+│       │   ├── Login.ets                   ← ★ 登录页（三入口 + 离线兜底）
+│       │   ├── Account.ets                 ← ★ 账号与隐私页（退出 / 注销）
+│       │   ├── ApiEnvironment.ets          ← 接口环境页
+│       │   └── …（其余 15 个业务页面）
+│       ├── components/                     ← 5 个组件（含五因子依据卡）
+│       ├── viewmodels/                     ← 6 个 ViewModel（含 ProactiveViewModel）
+│       ├── api/                            ← 接口层
+│       │   ├── ApiDefaults.ets             ← ★ 联调新增：baseUrl / 契约版本 / 游客 userId 单一真源
+│       │   ├── AgentApiClient.ets          ← 唯一 HTTP 入口（自动携带 Bearer）
+│       │   ├── ApiModels.ets               ← 契约类型定义
+│       │   ├── ApiResponseValidator.ets    ← 响应结构校验（含 auth 五接口）
+│       │   ├── ApiEnvironmentStore.ets     ← 地址持久化（preferences）
+│       │   ├── AuthModels.ets              ← ★ 登录 DTO
+│       │   ├── AuthResult.ets              ← ★ 登录流程返回类型
+│       │   ├── AuthStore.ets               ← ★ 登录态持久化（preferences）
+│       │   ├── AuthClient.ets              ← ★ 登录流程编排
+│       │   └── FixtureApiTransport.ets     ← 离线演示传输层（判分已与后端对齐）
+│       ├── services/                       ← AgentBridge（聊天）/ LocalAgentService（离线规则）
+│       ├── cache/ · data/ · models/ · utils/
+│
+├── contracts/                              ← 【契约】前后端唯一接口契约
+│   ├── openapi.json                        ← api-contract-v0.3（与 server 侧逐字节一致）
+│   └── fixtures/                           ← 离线 Fixture 数据
+│
+├── server/                                 ← 【后端】统一服务（不属于 HarmonyOS 模块，DevEco 会忽略）
+│   ├── contracts/openapi.json              ← 镜像副本，由自检脚本校验一致性
+│   └── zhixue-agent-server/
+│       ├── run.py                          ← ★ 启动入口（单进程提供三层能力）
+│       ├── requirements.txt / config.py / .env.example
+│       ├── app/
+│       │   ├── __init__.py                 ← create_app + 契约版本 + 可选 Bearer 中间件
+│       │   ├── auth/service.py             ← ★ 鉴权领域层（纯函数，与 Flask 解耦）
+│       │   ├── api/                        ← auth / chat（聊天层）/ demo / workflows / profile /
+│       │   │                                  plans / exercises / traces / proactive / experiments
+│       │   ├── agent/
+│       │   │   ├── chat_llm.py             ← ★ 联调新增：LLM 意图识别 + 6 路子 Agent
+│       │   │   └── proactive.py            ← 主动服务决策（纯函数）
+│       │   ├── agents/ · runtime/          ← Agent 编排与执行循环
+│       │   ├── tools/                      ← 确定性工具（判分 / 掌握度 / 重规划 / 选题）
+│       │   ├── decision/                   ← 五因子优先级、重规划规则
+│       │   ├── domain/ · repositories/     ← 领域模型、JSON 仓储
+│       │   └── model_adapters/             ← Qwen / Fallback 适配器
+│       ├── chat/                           ← 聊天层资产
+│       │   ├── prompts/                    ← 7 个 Prompt 模板
+│       │   └── mock_*.json                 ← 演示数据（用户/课程/候选人/错题）
+│       ├── data/question_bank.json         ← 题库（含锁定答案键）
+│       └── tests/                          ← 90 个单元测试
+│
+├── tools/
+│   ├── verify_liantiao1.py                 ← ★ 一键联调自检（退出码 0 = 全通）
+│   ├── start_dev.ps1                       ← ★ 一键启动后端
+│   ├── run_*.ps1 · validate_contract.ps1   ← 前端侧回归脚本（原样保留）
+│   └── generate_ui_wireframe_doc.py
+│
+├── evidence/verify_result.json             ← ★ 最近一次联调自检原始输出
+├── deliverables/ui_wireframes/             ← UI 线框图
+└── docs/                                   ← 联调与分析文档（见 §7）
+```
+
+---
+
+## 3. 5 分钟上手
+
+### 3.1 打开前端
+
+1. 用 **DevEco Studio** 打开本目录 `liantiao1/`（**不是** `entry/`）。
+2. 确认已安装 **HarmonyOS SDK 6.1.1(24)**（`build-profile.json5` 的 `targetSdkVersion` / `compatibleSdkVersion`）。
+3. 执行 **Sync and Refresh Project** 同步依赖。
+4. 配置本机签名后选 `entry` 模块运行到模拟器/真机。
+5. 想要**完全离线也能演示**：进入 App 的「接口环境」页 → `使用离线 Fixture`。
+
+### 3.2 启动后端
+
+```powershell
+cd liantiao1\server\zhixue-agent-server
+
+# 首次：准备 Python 3.12 环境（工程使用 `str | Path` 语法，3.8 跑不起来）
+uv venv E:\C4联调\.venv-lt --python 3.12
+uv pip install --python E:\C4联调\.venv-lt\Scripts\python.exe `
+    flask flask-cors "openai>=1.0.0" python-dotenv pytest
+
+# 配置 LLM（可选但强烈建议；不配也能跑，只是聊天层降级为确定性规则）
+Copy-Item .env.example .env
+notepad .env          # 填入 DASHSCOPE_API_KEY=sk-xxxx
+
+# 启动
+E:\C4联调\.venv-lt\Scripts\python.exe run.py
+# → http://0.0.0.0:5000
+```
+
+也可以用一键脚本：`powershell -ExecutionPolicy Bypass -File tools\start_dev.ps1`
+
+### 3.3 联调地址速查 ⚠️ 最容易踩的坑
+
+前端默认地址在 `entry/src/main/ets/api/ApiDefaults.ets` 的 `DEFAULT_BASE_URL`。
+
+| 运行环境 | 应填的 baseUrl |
+|---|---|
+| 本机浏览器 / 桌面预览 | `http://127.0.0.1:5000` |
+| **HarmonyOS 模拟器** | `http://10.0.2.2:5000`（模拟器访问宿主机的固定网关） |
+| **HarmonyOS 真机** | `http://<开发机局域网IP>:5000`（`ipconfig` 查 WiFi 适配器 IPv4） |
+
+> ⚠️ **本工程已切回纯 HarmonyOS 构建插件**，不再使用 ArkUI-X 跨平台壳工程，
+> 因此**不支持 Android 模拟器运行**（`runtimeOS: "HarmonyOS"`）。
+> 若将来确需跨平台演示，需重新引入 `@ohos/hvigor-ohos-arkui-x-plugin` 并安装 ArkUI-X SDK。
+>
+> 真机联调还需**放行 Windows 防火墙 5000 端口入站**。
+> 不想改代码？直接在 App 的「**接口环境**」页填地址 → 会持久化到 `preferences`，重启仍生效。
+
+---
+
+## 4. 联调后的架构（单一真源）
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  HarmonyOS ArkTS 前端（16 页面 / 6 ViewModel / 5 组件）         │
+│                                                              │
+│   AgentBridge ──┐                                            │
+│   ViewModels  ──┼──► AgentApiClient（唯一 HTTP 入口）          │
+│   ProactiveVM ──┘         │                                  │
+└───────────────────────────┼──────────────────────────────────┘
+                            │  单一 baseUrl（默认 :5000）
+                            │  请求头 X-API-Contract-Version: api-contract-v0.3
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│  统一后端（单进程 · 单端口）                                    │
+│                                                              │
+│  ① 自然语言层  POST /api/agent/chat                           │
+│     LLM 意图识别 → 6 路子 Agent（查任务/薄弱/建议/搭子/错题/更新） │
+│     └ Qwen-VL 多模态识图（/analyze_wrong 带 image 时）          │
+│     └ 无 Key / 调用失败 → 确定性规则兜底，且**明确标注降级**       │
+│                                                              │
+│  ② 结构化工作流层  /api/v1/**                                  │
+│     demo/reset · workflows(+run) · profile · plans(current,diff)│
+│     exercises(+submit) · traces · agent/proactive · experiments │
+│     └ 真 Agent 循环：secretary → exercise → assessment         │
+│     └ 确定性工具：grade_exercise / update_mastery / replan      │
+│     └ trace 留痕（3 事件 / 3 agent / 3 tool），不含思维链         │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 4.1 登录与身份（本次新增）
+
+登录功能已实现，定位是「**Agent 的身份锚点**」，不是门禁。
+
+**三个入口，全部保证「一定能进 App」**：
+
+| 入口 | userId | token | 需要后端 | 说明 |
+|---|---|---|---|---|
+| **一键体验**（主按钮） | `demo-user` | 无 | ❌ 不需要 | 评委/演示永远点这个，零摩擦 |
+| **用昵称开始** | 服务端下发 `u-xxxx` | 有 | ✅ 需要 | 建立自己的画像，学习记录归到自己名下 |
+| **跳过，先看看** | `demo-user` | 无 | ❌ 不需要 | 自动切离线 Fixture，无网络也能进 |
+
+**四条关键设计**（都是为了让登录不伤害演示）：
+
+1. **游客优先，绝不硬门禁** —— 未登录用约定的 `demo-user`，可跑通全部 18 个页面。
+2. **演示基线零影响** —— `demo/reset` 只作用于 `demo-user`，`mastery 42 / Plan V1 [30,30] / √√× → 66.67 → 58` 逐项不变（有 31 项自检断言守着）。
+3. **鉴权是可选的，不是门禁** —— 不带 token 按游客处理；带无效/过期 token **降级为游客而不是 401**，避免一个过期票据把整个 App 打成不可用。
+4. **不做密码体系** —— 本工程没有需要密码保护的数据。注册只取昵称 + 年级，服务端下发长期 token（30 天）。生产化路径是接入 AGC 认证服务。
+
+**新增文件**：
+
+```
+entry/src/main/ets/
+├── pages/Login.ets         登录页（三入口 + 离线兜底）
+├── pages/Account.ets       账号与隐私页（退出登录 / 注销账号）
+└── api/
+    ├── AuthModels.ets      DTO（AuthUser / StoredSession / 年级白名单）
+    ├── AuthResult.ets      登录流程统一返回类型
+    ├── AuthStore.ets       登录态持久化（preferences）
+    └── AuthClient.ets      流程编排（游客 / 注册 / 恢复 / 退出 / 注销）
+
+server/zhixue-agent-server/
+├── app/auth/service.py     领域逻辑（纯函数，只依赖 Repository）
+├── app/auth/__init__.py
+├── app/api/auth.py         /api/v1/auth/* 五个接口
+└── tests/test_auth.py      20 个鉴权测试
+```
+
+**接口**（契约已写入 `contracts/openapi.json`，含 `BearerAuth` 方案）：
+
+```
+POST   /api/v1/auth/register   {nickname, grade?}  → {user, token, expiresAt}   201
+POST   /api/v1/auth/login      {userId, token}     → {user, token, expiresAt}
+POST   /api/v1/auth/logout     (Bearer)            → {status}
+GET    /api/v1/auth/me         (Bearer)            → {user}
+DELETE /api/v1/auth/account    (Bearer)            → {status: deactivated}
+```
+
+**新账号的能力**：注册时自动预置一份 `mastery=0` 的空画像与起始计划，因此真实账号也能走完
+「练习 → 判分 → 掌握度提升」的完整闭环（实测 `0 → 16`）。这是登录功能真正的价值证明。
+
+**为什么要合并**：原来前端 `WorkflowViewModel` 指向 B1，而 B1 **不执行真实 Agent 循环**——于是「Agent 自己连续调用 ≥2 个智能体」这个核心验收项，在前端链路上根本不成立。合并后前端一次点击就能看到真实循环。
+
+---
+
+## 5. 演示主链（数值已实测锁定）
+
+```
+POST /api/v1/demo/reset
+  → profileVersion=1, mastery=42, Plan V1 时长 [30, 30]
+
+GET  /api/v1/exercises/set-demo-binary-tree-001?knowledgePointId=binary-tree-postorder&count=3
+  → 3 题：preorder-001 / inorder-001 / postorder-001（不泄漏 answerKey）
+
+POST /api/v1/exercises/set-demo-binary-tree-001/submit   （提交 √√×：A / B / A）
+  → score = 66.67          ← 2 对 1 错
+  → oldMastery 42 → newMastery 58
+  → needReplan = true
+
+GET  /api/v1/profile/demo-user     → profileVersion=2, mastery=58
+GET  /api/v1/plans/current         → Plan V2，时长 [45, 15]
+GET  /api/v1/plans/plan-demo-001/diff → V1 → V2，changedTasks 时长 [45, 15]
+GET  /api/v1/traces/{traceId}      → 3 事件，agent=[secretary, exercise, assessment]
+                                     tool=[select_exercises, grade_exercise, update_mastery]
+```
+
+### ⚠️ 三个锁死的值（改动会全线崩）
+
+```
+exercise-preorder-001  = "A"
+exercise-inorder-001   = "B"
+exercise-postorder-001 = "C"     ← 注意是 C，不是 A
+三题必须共用 knowledgePointId = "binary-tree-postorder"
+```
+
+> 答案键必须是 A/B/C，演示提交 √√×（A、B、A）才是 2 对 1 错 = 66.67。
+> 三题必须共用同一知识点，否则题集只返回 1 道题。
+> **这三个值同时存在于 `data/question_bank.json` 与 `FixtureApiTransport.ANSWER_KEYS`，改一处必须同步另一处。**
+
+---
+
+## 6. 一键联调自检（可复现证据）
+
+```powershell
+cd liantiao1
+E:\C4联调\.venv-lt\Scripts\python.exe tools\verify_liantiao1.py --start-server
+# 退出码 0 = 全部通过；原始输出写入 evidence\verify_result.json
+```
+
+自检覆盖 6 组、共 **105** 项：
+
+| 组 | 内容 | 数量 |
+|---|---|---|
+| ⓪ 静态一致性 | 契约双份文件逐字节一致、契约版本 v0.3、无硬编码 IP、`ApiDefaults` 单一真源、**游客 userId 无散落硬编码**、登录功能文件齐备、契约声明 auth 与 BearerAuth、**后端鉴权源码与测试齐备**（后端独立包模式下前端项自动跳过） | 19 |
+| ① 单元测试 | 后端 `pytest`（`90 passed`） | 1 |
+| ② 契约主链 | reset → 题集 → 提交 → 画像 → 计划 → diff 的每个数值 | 22 |
+| ③ 回归护栏 | **旧缺陷不得复现**：判分随答案变化、全错不涨掌握度、时长不漂移、幂等重放 | 9 |
+| ④ Agent 循环 | 真循环完成、trace ≥2 agent/≥3 tool、确定性、proactive、聊天层、charset 鲁棒性、错误结构 | 23 |
+| ⑤ 登录 / 鉴权 | 注册/登录/退出/注销、鉴权边界、新账号闭环，**以及演示基线护栏** | 31 |
+
+**最近一次结果：`105/105 checks passed`**（见 `evidence/verify_result.json`）。
+
+> ⚠️ 想单独跑 pytest 时，本机若出现 `PermissionError: [WinError 5]`，那是**临时目录权限**问题不是代码问题。
+> 用 `--basetemp` 指到工程内目录即可：
+> `python -m pytest -q tests/ --basetemp=..\..\.ptbase`
+
+---
+
+## 7. 文档索引
+
+| 文档 | 内容 |
+|---|---|
+| [`docs/01-下一步改进分析与建议.md`](docs/01-下一步改进分析与建议.md) | ★ 结合工作区全部大赛/指导文档 + 联调后现状，给出**下一步该做什么、为什么、怎么验收** |
+| [`docs/02-登录界面设计与用户数据库方案.md`](docs/02-登录界面设计与用户数据库方案.md) | ★ **登录界面怎么做**、与整项目的**适配度分析**、参赛时**用户数据库问题**的完整解法 |
+| [`docs/03-联调说明与验收记录.md`](docs/03-联调说明与验收记录.md) | 本次联调的技术细节、改动清单、验收证据 |
+| [`docs/04-Agent运行界面信息架构_v2.md`](docs/04-Agent运行界面信息架构_v2.md) | ★ **本次界面重构**：设计初衷判据、重构前问题证据、新信息架构、决策过程分层 |
+| [`docs/05-Agent使用报告.md`](docs/05-Agent使用报告.md) | ★ **Agent 使用报告**：上手步骤、三条使用流程、如何验证它真的是个 Agent、排障速查 |
+| [`docs/前端README.md`](docs/前端README.md) | 前端原始功能说明（16 页面逐页详解） |
+| [`docs/前端测试方案_V1.0.md`](docs/前端测试方案_V1.0.md) | 前端测试方案 |
+| [`docs/前端回归检查清单_V1.0.md`](docs/前端回归检查清单_V1.0.md) | 前端回归清单 |
+| [`docs/小样本体验执行表_V1.0.md`](docs/小样本体验执行表_V1.0.md) | 小样本用户体验记录表 |
+| [`server/zhixue-agent-server/`](server/zhixue-agent-server/) | 后端源码（含 90 个单元测试） |
+
+---
+
+## 8. 关键事实备忘
+
+| 项目 | 值 |
+|---|---|
+| 包名 | `com.zhixue.mate` |
+| 版本 | 1.0.0（versionCode 1000000） |
+| 目标平台 | HarmonyOS SDK 6.1.1(24) |
+| 前端 | ArkTS · 16 页面 · 6 ViewModel · 5 组件 |
+| 后端 | Python 3.12 + Flask（单进程 · 单端口 5000） |
+| LLM | 通义千问 `qwen-vl-plus`（DashScope 兼容模式） |
+| 契约 | `api-contract-v0.3`（前后端逐字节一致） |
+| 测试 | 后端 `90 passed`；联调自检 `105/105` |
+| 演示基线 | score 66.67 / mastery 42→58 / Plan V2(45, 15) |
+| 离线可演示 | ✅ 「接口环境」页一键切 Fixture（判分与在线一致） |
+| 登录 | ✅ 三入口（一键体验 / 昵称注册 / 离线跳过）；**游客优先，演示基线零影响** |
+
+---
+
+## 9. 已知边界（诚实声明）
+
+| 范围 | 状态 | 说明 |
+|---|---|---|
+| 后端逻辑与契约 | ✅ 真实 HTTP 实跑验证 | 105/105 项自检 |
+| 后端单元测试 | ✅ `90 passed` | Python 3.12 实测 |
+| **后端登录 / 鉴权** | ✅ **真实 HTTP 实跑验证** | 31 项（含演示基线护栏） |
+| **前端 ArkTS 编译** | ✅ **已真实编译通过** | `hvigorw assembleHap` → `BUILD SUCCESSFUL`，产出 `entry-default-unsigned.hap`（1.68 MB） |
+| **前端登录页 / 账号页** | ✅ 编译通过 / ⚠️ 未做交互验证 | 改 `@Entry` 单根节点问题后编译零错误；代码级交互清单见 `docs/03` §6.B |
+| 前端 UI 交互与运行 | ⚠️ **需在模拟器/真机验证** | 编译零错误，但未在设备上跑过点击流程 |
+| **HAP 出包** | ⚠️ **已能出包，仅缺签名** | `signingConfigs` 为空 → 产出 unsigned HAP；配置签名后即可安装 |
+| 真实 LLM 调用 | ⚠️ **未验证** | 需配置 `DASHSCOPE_API_KEY`；未配时走确定性兜底并明确标注 |
+| 服务卡片 / 代理提醒 / 语音 | ❌ **尚未实现** | 见 `docs/01-下一步改进分析与建议.md` 的 P0 清单 |
+| 手机号验证码登录（AGC） | ❌ **尚未实现** | 本次是免密昵称注册；AGC 方案见 `docs/02` §4.2 |
+| 数据库换 SQLite / AGC | ❌ **尚未实现** | 仍用 `JsonRepository`；迁移只需改 `create_app()` 一行 |

@@ -1,0 +1,96 @@
+知学 Mate · 后端工程包（交给后端同学：黄恩博）
+================================================================
+
+一、解压后怎么跑起来
+----------------------------------------------------------------
+cd server\zhixue-agent-server
+
+# 首次：准备 Python 3.12 环境（工程用 str | Path 语法，3.8 跑不起来）
+uv venv ..\..\.venv-lt --python 3.12
+uv pip install --python ..\..\.venv-lt\Scripts\python.exe ^
+    flask flask-cors "openai>=1.0.0" python-dotenv pytest
+
+# 配置大模型（可选但强烈建议；不配也能跑，聊天层降级为确定性规则）
+Copy-Item .env.example .env
+notepad .env          # 填入 DASHSCOPE_API_KEY=sk-xxxx
+
+# 启动
+..\..\.venv-lt\Scripts\python.exe run.py
+# → http://0.0.0.0:5000
+
+也可以回到工程根目录用一键脚本：
+powershell -ExecutionPolicy Bypass -File tools\start_dev.ps1
+
+二、先读哪份文档（本包 docs/ 与 deliverables/ 内）
+----------------------------------------------------------------
+★ 必读：deliverables/03-后端同学下一步工作总任务文件.docx
+   —— 你的任务清单、逐日排期、验收判据、每晚自检命令，全在里面。
+
+配套：
+  docs/03-联调说明与验收记录.md      联调做了什么、怎么验收
+  docs/06-初赛文档与当前实现比对.md    判断层从三因子改为五因子的完整对照
+  deliverables/01-下一步工作总任务文件.docx   全团队总任务线
+  deliverables/05-原始版本与当前版本对比评估.docx 原版 vs 当前（含 10 项缺陷验证）
+  contracts/README.md                契约使用说明
+  README.md                          工程总说明
+
+三、你接下来要做的五件事（详见任务文件）
+----------------------------------------------------------------
+1. 配置 DASHSCOPE_API_KEY（10 分钟，全场性价比最高）★
+2. proactive 响应补 cardData（前端服务卡片要用，结构需与前端对齐）
+3. 通知触发规则实现（后端判定「该不该提醒」，前端只投递）
+4. PartnerMatch 是否补 /api/v1/partners/match 接口 —— 需给前端最终结论
+5. 主链连跑 10 次回归 + 导出 experiments/snapshot 作前景评估素材
+
+四、红线：这些值改了会全线崩
+----------------------------------------------------------------
+# data/question_bank.json —— 三个答案键锁死
+exercise-preorder-001  = "A"
+exercise-inorder-001   = "B"
+exercise-postorder-001 = "C"      ← 注意是 C，不是 A
+三题必须共用 knowledgePointId = "binary-tree-postorder"
+
+# 演示基线（105 项自检里有一整组断言守着）
+demo/reset       → 掌握度 42，Plan V1 时长 [30, 30]
+提交 √√×（A/B/A）→ score 66.67，掌握度 42 → 58
+重规划           → Plan V2 时长 [45, 15]，连跑 10 次不变
+游客身份         → 始终 demo-user
+
+★ 三题必须共用同一 knowledgePointId。前端按它取题集，
+  拆成三个知识点则题集只返回 1 道题（测试断言 len == 3 会挂）。
+
+五、每晚自检
+----------------------------------------------------------------
+# 1. 单元测试（90 passed 是基线，不许降）
+cd server\zhixue-agent-server
+python -m pytest -q tests/ --basetemp=..\..\.ptbase
+
+# 2. 全量自检 105 项
+python tools\verify_liantiao1.py --start-server
+
+# 3. 主链连跑 10 次（复赛硬要求）
+powershell -ExecutionPolicy Bypass -File tools\run_backend_core_regression.ps1
+
+★ 本机直接跑 pytest 可能出现 PermissionError 干扰项，那是沙箱临时目录
+  限制造成的环境噪声。用 --basetemp 指到工程内目录即可看到真实结果。
+
+六、包内已包含
+----------------------------------------------------------------
+server/zhixue-agent-server/   后端全部代码
+  app/api/          10 个路由模块（含 auth）
+  app/agents/       5 个认知职能智能体
+  app/decision/     五因子优先级 / 掌握度规则 / 重规划规则
+  app/domain/       6 个领域模型
+  app/tools/        6 个确定性工具
+  app/runtime/      Agent 循环 / 编排 / 会话 / 工具注册表
+  app/repositories/ JSON 与 SQLite 双实现（换库只改一行）
+  app/auth/         鉴权领域逻辑
+  app/agent/        chat_llm（Qwen-VL）+ proactive（主动决策）
+  chat/prompts/     7 个 Prompt 模板 + mock 数据
+  data/             题库（30 题）与 repository.json
+  tests/            90 个单元测试
+contracts/      接口契约 openapi.json（前后端唯一真源）
+tools/          回归 / 契约校验 / 自检脚本 + 文档生成脚本
+evidence/       verify_result.json（105 项自检原始输出）
+docs/           工程文档
+deliverables/   任务文件
