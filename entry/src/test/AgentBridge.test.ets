@@ -142,12 +142,35 @@ export default function agentBridgeTest() {
       expect(response.llmUsed).assertFalse();
     });
 
+    it('parses llmUsed true as model-generated', 0, () => {
+      const response = AgentBridge.parseResponse({
+        'reply': '大模型回复',
+        'intent': 'get_suggestion',
+        'llmUsed': true
+      });
+      expect(response.llmUsed).assertTrue();
+    });
+
     it('tolerates a missing llmUsed field for backward compatibility', 0, () => {
       const response = AgentBridge.parseResponse({
         'reply': '兼容旧服务端',
         'intent': 'get_suggestion'
       });
       expect(response.llmUsed === undefined).assertTrue();
+    });
+
+    it('rejects a non-boolean llmUsed field', 0, () => {
+      let invalidLlmUsedRejected: boolean = false;
+      try {
+        AgentBridge.parseResponse({
+          'reply': '错误类型响应',
+          'intent': 'get_suggestion',
+          'llmUsed': 'yes'
+        });
+      } catch (error) {
+        invalidLlmUsedRejected = true;
+      }
+      expect(invalidLlmUsedRejected).assertTrue();
     });
 
     it('uses the chat home as the fixed return destination', 0, () => {
