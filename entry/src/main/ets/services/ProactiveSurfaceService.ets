@@ -1,4 +1,4 @@
-import { common } from '@kit.AbilityKit';
+import { common, wantAgent } from '@kit.AbilityKit';
 import notificationManager from '@ohos.notificationManager';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AgentApiClient } from '../api/AgentApiClient';
@@ -49,9 +49,27 @@ export class ProactiveSurfaceService {
         return;
       }
       const request: notificationManager.NotificationRequest = { id: 20260918,
-        // 当前 SDK 中 manager 与 NotificationRequest 仍引用两套 ContentType 声明；基础文本值为 0。
-        content: { contentType: 0,
-          normal: { title: decision.title, text: decision.body, additionalText: '知学 Mate Agent 主动提醒' } }
+        // SDK 依据（notificationContent.d.ts:473-489）：
+        //   contentType            @deprecated since 11
+        //                          @useinstead NotificationContent#notificationContentType
+        // 所以这里用 notificationContentType；取值 0 = NOTIFICATION_CONTENT_BASIC_TEXT
+        // （枚举 ContentType 的第一个成员，见 @ohos.notificationManager.d.ts:1189）。
+        content: { notificationContentType: 0,
+          normal: { title: decision.title, text: decision.body, additionalText: '知学 Mate Agent 主动提醒' } },
+        wantAgent: await wantAgent.getWantAgent({
+          wants: [{
+            bundleName: 'com.zhixue.mate',
+            abilityName: 'EntryAbility',
+            parameters: {
+              source: 'learning_card',
+              taskName: decision.cardData.taskName,
+              durationMinutes: decision.cardData.durationMinutes
+            }
+          }],
+          actionType: wantAgent.OperationType.START_ABILITY,
+          requestCode: 20260918,
+          actionFlags: [wantAgent.WantAgentFlags.UPDATE_PRESENT_FLAG]
+        })
       };
       await notificationManager.publish(request);
       hilog.info(DOMAIN, TAG, '%{public}s', 'Proactive notification published.');

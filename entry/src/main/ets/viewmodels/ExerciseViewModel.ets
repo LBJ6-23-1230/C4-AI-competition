@@ -3,6 +3,7 @@ import { ApiDefaults } from '../api/ApiDefaults';
 import { ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, WorkflowResponse, WorkflowRunResponse, WorkflowStatusResponse } from '../api/ApiModels';
 import { ApiFailure } from '../api/ApiResult';
 import { ClientCache } from '../cache/ClientCache';
+import { appState } from '../data/AppState';
 
 /**
  * Prepares the exercise flow for the page. Scores and mastery are always
@@ -44,8 +45,14 @@ export class ExerciseViewModel {
     this.errorMessage = '';
     this.warningMessage = '';
     const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
+    // 兜底必须是**当前身份**，而不是写死的演示账号。
+    //
+    // 修复的缺陷：原先兜底 `ApiDefaults.DEMO_USER_ID`，于是真实账号做题时
+    // 掌握度被写进演示账号（后端侧同步修了身份解析，两端都改才生效）。
+    // 游客/离线态下 `appState.currentUser.userId` 本来就是 demo-user。
+    const fallbackUserId: string = appState.currentUser.userId;
     const request: ExerciseSubmission = {
-      userId: submission.userId ?? ApiDefaults.DEMO_USER_ID,
+      userId: submission.userId ?? (fallbackUserId.length > 0 ? fallbackUserId : ApiDefaults.DEMO_USER_ID),
       sessionId: submission.sessionId ?? workflow?.sessionId,
       idempotencyKey: submission.idempotencyKey,
       answers: submission.answers

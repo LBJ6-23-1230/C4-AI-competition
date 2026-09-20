@@ -112,7 +112,12 @@ export class VoiceInputService {
     if (this.engine !== null) return this.engine;
     const engine: speechRecognizer.SpeechRecognitionEngine = await speechRecognizer.createEngine({
       language: 'zh-CN',
-      online: 1
+      // SDK 依据（@hms.ai.speechRecognizer.d.ts）：
+      //   "The value 0 indicates online, value 1 indicates offline."
+      // 语义与字段名相反，极易写错。这里要的是**在线识别**：
+      //   * 离线模式依赖设备本地语言包，模拟器/部分真机未预置会直接失败；
+      //   * 在线识别准确率更高，且无需用户额外下载语言包。
+      online: 0
     });
     engine.setListener({
       onStart: (sessionId: string, eventMessage: string): void => {

@@ -65,13 +65,33 @@ struct StudyTags {
     this.workflowRequestVersion++;
   }
 
+  /**
+   * 当前身份对应的 userId。
+   *
+   * 已登录 → 真实 userId；游客/离线 → `demo-user`（它本来就是体验身份）。
+   * 页面里**不允许再写死 `demo-user`** —— 那是"登录后仍看到演示数据"的根因。
+   */
+  private effectiveUserId(): string {
+    const id: string = appState.currentUser.userId;
+    return id.length > 0 ? id : DemoSnapshot.USER_ID;
+  }
+
   private async loadProfile(forceRefresh: boolean = false): Promise<void> {
     if (this.isLoading && forceRefresh) {
       return;
     }
     const requestVersion: number = ++this.profileRequestVersion;
     this.isLoading = true;
-    const state = await this.viewModel.load(DemoSnapshot.USER_ID, forceRefresh);
+    // 读**当前身份**的画像，而不是写死的演示账号。
+    //
+    // 修复的缺陷：这里原先硬编码 `DemoSnapshot.USER_ID`（= demo-user），
+    // 于是用户注册登录后，画像页展示的仍是演示账号的掌握度（42），
+    // 而不是自己的（新账号是 0）。后端侧同步修了身份解析，
+    // 两边都改才生效。
+    //
+    // 注意游客/离线态下 `appState.currentUser.userId` 本来就是 demo-user，
+    // 所以演示基线不受影响。
+    const state = await this.viewModel.load(this.effectiveUserId(), forceRefresh);
     if (!this.isPageActive || requestVersion !== this.profileRequestVersion) {
       return;
     }

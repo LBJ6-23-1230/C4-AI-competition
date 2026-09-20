@@ -17,6 +17,7 @@
     "pages/FocusSetup",
     "pages/FocusTimer",
     "pages/FocusResult",
-    "pages/LearningHistory"
+    "pages/LearningHistory",
+    "pages/KnowledgeBase"
   ]
 }

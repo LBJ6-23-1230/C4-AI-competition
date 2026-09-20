@@ -121,7 +121,11 @@ struct FocusTimer {
       selfAssessment: status === 'completed' ? 'completed' : 'not_completed',
       timerType: focusTask?.timerType ?? 'countdown',
       status: status,
-      endedAt: new Date().toLocaleString()
+      // 必须是 **ISO 8601**：这个值会作为 `lastStudyAt` 传给后端
+      // `/api/v1/agent/proactive`，而后端用 `datetime.fromisoformat()` 解析。
+      // 原先用 `toLocaleString()`（形如 "2026/9/20 17:30:00"）解析失败返回 None，
+      // 导致 `gap_days=0`、`no_study_for_2d` 这条触发路径**永远不可达**。
+      endedAt: new Date().toISOString()
     };
   }
 

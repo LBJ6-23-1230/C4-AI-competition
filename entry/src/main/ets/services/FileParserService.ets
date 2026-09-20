@@ -1,3 +1,4 @@
+import { util } from '@kit.ArkTS';
 import {
   CourseInfo,
   HomeworkDDL
@@ -395,14 +396,86 @@ export class FileParserService {
   }
 
   /**
-   * 将 ArrayBuffer 转换为 UTF-8 字符串
-   * 替代 TextDecoder（部分 ArkTS 环境不支持）
+   * 将 ArrayBuffer 按 **UTF-8** 解码为字符串。
+   *
+   * ⚠️ 修复了一个真实缺陷：原先的实现是
+   * ```
+   * for (i) result += String.fromCharCode(bytes[i]);   // ← Latin-1 逐字节解码
+   * ```
+   * 注释却写着"转换为 UTF-8 字符串"。`String.fromCharCode` 只按单字节码点映射，
+   * 一个 UTF-8 汉字占 3 字节，会被拆成 3 个乱码字符 ——
+   * **用"文件方式"导入中文 CSV/JSON 必然乱码**。
+   *
+   * 之前一直没暴露：手动粘贴文本不经过本函数，只有走文件选择才会触发。
+   * 知识库功能会大量导入中文讲义，这个 bug 必须先修。
+   *
+   * 为什么现在可以用 `util.TextDecoder`：原注释担心"部分 ArkTS 环境不支持"，
+   * 但本工程实际编译 SDK 是 API 24（DevEco 6.1.1），`TextDecoder` 自 API 9 起就有，
+   * 顾虑不成立。若真遇到不支持的运行时，下面的 catch 会回退到启发式解码，
+   * 不会让整个导入流程崩掉。
    */
   static arrayBufferToString(buffer: ArrayBuffer): string {
-    const bytes: Uint8Array = new Uint8Array(buffer);
+    try {
+      const decoder: util.TextDecoder = util.TextDecoder.create('utf-8', { ignoreBOM: false });
+      return decoder.decodeToString(new Uint8Array(buffer));
+    } catch (error) {
+      // 回退：按 UTF-8 规则手工解码（处理 1/2/3/4 字节序列）
+      return FileParserService.decodeUtf8Manually(new Uint8Array(buffer));
+    }
+  }
+
+  /**
+   * 手工 UTF-8 解码回退实现。
+   *
+   * 严格按 UTF-8 的字节前缀判断序列长度，非法字节用 U+FFFD 替代，
+   * 保证不会产生越界或异常。
+   */
+  private static decodeUtf8Manually(bytes: Uint8Array): string {
     let result: string = '';
-    for (let i: number = 0; i < bytes.length; i++) {
-      result += String.fromCharCode(bytes[i]);
+    let i: number = 0;
+    while (i < bytes.length) {
+      const b0: number = bytes[i];
+      let codePoint: number = -1;
+      let size: number = 1;
+
+      if (b0 < 0x80) {
+        codePoint = b0;
+        size = 1;
+      } else if ((b0 & 0xE0) === 0xC0) {
+        size = 2;
+        codePoint = b0 & 0x1F;
+      } else if ((b0 & 0xF0) === 0xE0) {
+        size = 3;
+        codePoint = b0 & 0x0F;
+      } else if ((b0 & 0xF8) === 0xF0) {
+        size = 4;
+        codePoint = b0 & 0x07;
+      }
+
+      if (codePoint < 0 || i + size > bytes.length) {
+        result += '\uFFFD';
+        i += 1;
+        continue;
+      }
+
+      let valid: boolean = true;
+      for (let k: number = 1; k < size; k++) {
+        const cont: number = bytes[i + k];
+        if ((cont & 0xC0) !== 0x80) {
+          valid = false;
+          break;
+        }
+        codePoint = (codePoint << 6) | (cont & 0x3F);
+      }
+
+      if (!valid) {
+        result += '\uFFFD';
+        i += 1;
+        continue;
+      }
+
+      result += String.fromCodePoint(codePoint);
+      i += size;
     }
     return result;
   }

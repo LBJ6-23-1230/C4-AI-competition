@@ -19,16 +19,61 @@ export interface AuthUser {
   authProvider: AuthProvider;
   createdAt: string;
   lastLoginAt: string;
+  /** 脱敏手机号（`138****0000`）。服务端**不回传完整号码**。 */
+  phoneMasked?: string;
+  hasPhone?: boolean;
 }
 
 export interface AuthRegisterRequest {
   nickname: string;
   grade?: string;
+  /** 手机号。**注册必填**（唯一身份标识）；后端做格式校验与唯一约束。 */
+  phone?: string;
 }
 
+/**
+ * 华为账号登录请求。
+ *
+ * 客户端用 `@kit.AccountKit` 拿到 OpenID 后交给服务端换取本服务的 token。
+ * 服务端**不校验 OpenID 的真伪**（那需要调用华为的服务端接口验签），
+ * 因此这条链路在当前版本是"演示可用、生产需补验签"，见 `docs/13`。
+ */
+export interface AuthHuaweiLoginRequest {
+  openId: string;
+  unionId?: string;
+  nickname?: string;
+  grade?: string;
+}
+
+/**
+ * 登录请求。两种形式，服务端按"给了 userId/token 就优先按凭据恢复，
+ * 否则按昵称登录"分派：
+ *   · `{userId, token}` —— 恢复本机已保存的登录态
+ *   · `{phone}`         —— 按手机号登录（当前演示版未接短信验证码）
+ *   · `{nickname}`      —— 按昵称免密登录
+ */
 export interface AuthLoginRequest {
-  userId: string;
-  token: string;
+  userId?: string;
+  token?: string;
+  nickname?: string;
+  phone?: string;
+}
+
+/**
+ * 「登录优先，注册兜底」的请求/响应。
+ *
+ * 这是登录页主按钮应当调用的接口：昵称已存在就登录、不存在才建号，
+ * 从而避免"用同一个昵称再点一次又建一个新账号"（此前实测会得到两个 userId）。
+ */
+export interface AuthLoginOrRegisterRequest {
+  nickname: string;
+  grade?: string;
+  phone?: string;
+}
+
+export interface AuthLoginOrRegisterResponse extends AuthSessionResponse {
+  /** true = 本次新建了账号；false = 登录了已有账号。用于文案区分。 */
+  created: boolean;
 }
 
 export interface AuthSessionResponse {

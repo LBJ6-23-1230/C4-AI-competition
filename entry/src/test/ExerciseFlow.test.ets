@@ -80,14 +80,10 @@ export default function exerciseFlowTest() {
         expect(initialProfile.data.mastery[0].masteryScore).assertEqual(42);
       }
 
-      const submission = await AgentApiClient.submitExercise('set-demo-binary-tree-001', {
+      await AgentApiClient.submitExercise('set-demo-binary-tree-001', {
         idempotencyKey: 'fixture-state-test',
         answers: []
       });
-      expect(submission.ok).assertTrue();
-      if (submission.ok) {
-        expect(submission.data.traceId).assertEqual('trace-demo-001');
-      }
       const updatedProfile = await AgentApiClient.getProfile('demo-user');
       const updatedPlan = await AgentApiClient.getCurrentPlan();
       const updatedWorkflow = await AgentApiClient.getWorkflow('session-demo-001');

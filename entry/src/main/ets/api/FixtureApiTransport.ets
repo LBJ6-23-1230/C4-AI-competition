@@ -168,7 +168,7 @@ export class FixtureApiTransport {
     FixtureDemoStateStore.setMasteryScore(newMastery);
     const perKnowledge: Record<string, number> = {};
     perKnowledge['binary-tree-postorder'] = score;
-    return { userId: ApiDefaults.DEMO_USER_ID, submissionId: ApiDefaults.DEMO_USER_ID + ':set-demo-binary-tree-001:fixture-submission', traceId: 'trace-demo-001', assessment: { score: score, perKnowledgeAccuracy: perKnowledge, errorTypes: score < 100 ? ['后序遍历顺序混淆'] : [], oldMastery: 42, suggestedNewMastery: newMastery }, masteryUpdate: { knowledgePointId: 'binary-tree-postorder', oldScore: 42, newScore: newMastery }, needReplan: score < 80, plan: FixtureApiTransport.plan(), planDiff: FixtureApiTransport.planDiff() };
+    return { userId: ApiDefaults.DEMO_USER_ID, submissionId: ApiDefaults.DEMO_USER_ID + ':set-demo-binary-tree-001:fixture-submission', assessment: { score: score, perKnowledgeAccuracy: perKnowledge, errorTypes: score < 100 ? ['后序遍历顺序混淆'] : [], oldMastery: 42, suggestedNewMastery: newMastery }, masteryUpdate: { knowledgePointId: 'binary-tree-postorder', oldScore: 42, newScore: newMastery }, needReplan: score < 80, plan: FixtureApiTransport.plan(), planDiff: FixtureApiTransport.planDiff() };
   }
 
   private static planDiff(): PlanDiff {

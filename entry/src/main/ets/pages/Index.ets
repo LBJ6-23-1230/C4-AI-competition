@@ -16,6 +16,8 @@ import { PlanViewModel } from '../viewmodels/PlanViewModel';
 import { ProactiveViewModel } from '../viewmodels/ProactiveViewModel';
 import { common } from '@kit.AbilityKit';
 import { LearningCardService } from '../services/LearningCardService';
+import { AuthClient } from '../api/AuthClient';
+import { AuthStore } from '../api/AuthStore';
 
 @Entry
 @Component
@@ -28,6 +30,8 @@ struct Index {
   @State proactiveDecision: ProactiveResponse | null = null;
   @State proactiveMessage: string = '';
   @State isProactiveLoading: boolean = false;
+  /** 切换身份进行中（防连点重复吊销会话）。 */
+  @State isSwitchingIdentity: boolean = false;
   /** 当前标签页：0 对话（回对话页）/ 1 我的智能体 / 2 学习 / 3 我的。 */
   @State activeTab: number = 1;
   /** 智能体页的分类筛选，默认「全部」。 */
@@ -83,6 +87,23 @@ struct Index {
     this.isWorkflowRefreshing = false;
   }
 
+  /**
+   * 判断这份 proactive 决策是否真的"有可执行的动作"。
+   *
+   * 后端在静默情形（专注会话进行中、或未命中任何触发条件）会返回
+   * `action.type='none'` + 空 title/hint。这种结果**不该覆盖桌面学习卡** ——
+   * 否则用户桌面上的卡片会变成空任务或"不打扰"这类无意义文案。
+   *
+   * 首页仍然照常展示 `cardData` / `reason`（那是"推荐做什么"），
+   * 只是不把它写进卡片。
+   */
+  private hasActionableDecision(decision: ProactiveResponse): boolean {
+    if (decision.action === undefined || decision.action === null) {
+      return false;
+    }
+    return decision.action.type !== 'none' && decision.title.trim().length > 0;
+  }
+
   private async loadProactiveDecision(): Promise<void> {
     this.isProactiveLoading = true;
     this.proactiveMessage = '';
@@ -90,14 +111,25 @@ struct Index {
     const daysLeft: number = appState.getHighPriorityCourse().exam.daysLeft;
     const recentSessions = appState.getFocusSummary().recentSessions;
     const lastStudyAt: string | undefined = recentSessions.length > 0 ? recentSessions[0].endedAt : undefined;
+    // `foreground` 传 **false** —— 这一点是修过的缺陷。
+    //
+    // 原先传 `true`，后端 `agent/proactive.py` 会直接返回静默结果
+    // （`action.type='none'`、`title=''`、`hint=''`）。后果有两个：
+    //   ① `startProactiveTask()` 与 `isActionReady()` 的第一个分支**变成死代码**；
+    //   ② 那个空结果会被 `LearningCardService.saveDecision()` 存成学习卡，
+    //      用户在桌面上看到一句"用户当前前台使用应用，暂不打扰"。
+    //
+    // 语义上也本就不该传 true：`shouldNotify` 回答的是"**要不要发系统通知**"，
+    // 而首页只关心"**推荐做什么**"。前台展示与通知投递是两件事 ——
+    // 通知投递由 `ProactiveSurfaceService`（App 进后台时）负责。
     const state = await this.proactiveViewModel.load(
-      appState.currentUser.userId, daysLeft, true,
+      appState.currentUser.userId, daysLeft, false,
       appState.activeFocusTask !== null && appState.focusResultDraft === null,
       lastStudyAt);
     if (!this.isPageActive || requestVersion !== this.proactiveRequestVersion) return;
     this.proactiveDecision = state.decision;
     this.proactiveMessage = state.errorMessage;
-    if (state.decision !== null) {
+    if (state.decision !== null && this.hasActionableDecision(state.decision)) {
       const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
       void LearningCardService.saveDecision(context, state.decision);
     }
@@ -577,6 +609,34 @@ struct Index {
     router.pushUrl({ url: 'pages/Account' });
   }
 
+  /**
+   * 回到登录 / 注册界面（切换身份）。
+   *
+   * **三种身份都要支持**，而不只是"已登录"：
+   * * 已登录 → 先 `signOut()` 吊销服务端会话 + 清本地凭据 + 清缓存。
+   *   否则 `EntryAbility` 下次启动会读本地凭据直接进主页，
+   *   用户会觉得"我明明退出去了怎么又回来了"。
+   * * 游客 / 离线 → 没有服务端凭据可吊销，直接跳；离线态还要切回联机数据源，
+   *   否则登录成功后仍会走 Fixture 数据。
+   *
+   * 用 `replaceUrl` 而不是 `pushUrl`：登录页是身份入口，
+   * 不该留在返回栈里，否则在登录页按返回又会回到「我的」。
+   */
+  private async goToLogin(): Promise<void> {
+    if (this.isSwitchingIdentity) {
+      return;
+    }
+    this.isSwitchingIdentity = true;
+    if (AuthStore.isSignedIn()) {
+      await AuthClient.signOut();
+      appState.applyLogout();
+    }
+    // 离线态回到联机，否则登录后仍在读本地 Fixture 数据
+    AgentApiClient.setUseFixture(false);
+    this.isSwitchingIdentity = false;
+    router.replaceUrl({ url: 'pages/Login' });
+  }
+
   /** 诊断练习入口：也是 PrimaryActionCard 在无任何 Agent 建议时的兜底动作。 */
   private openExercisePractice(): void {
     router.pushUrl({ url: 'pages/ExercisePractice' });
@@ -715,6 +775,12 @@ struct Index {
 
               this.PanelRow('◱', '开始专注', '按任务倒计时，结束后自动生成复盘', 'pages/FocusSetup')
               this.PanelRow('▣', '课程与作业清单', '查看已导入的课程与 DDL', 'pages/CourseImport')
+
+              // 知识库入口：让 Agent 的判断有据可依（引用你自己的课程资料）
+              this.PanelCard('我的知识库',
+                '上传课程讲义、题库或笔记（TXT / Markdown / CSV / JSON）。' +
+                'Agent 会从中提取知识点与易错点，回答时标注资料来源与章节。',
+                '进入我的知识库', 'pages/KnowledgeBase')
             }
 
             // ================= 标签 3：我的（身份 / 数据 / 搭子） =================
@@ -735,6 +801,23 @@ struct Index {
                   .width('100%').height(44).fontSize(14).fontColor('#2563EB')
                   .backgroundColor('#EFF6FF').borderRadius(12)
                   .onClick(() => this.openAccount())
+
+                // 切换到登录 / 注册界面。
+                //
+                // **三种身份都必须能走这条路**，而不只是"已登录"：
+                //   · 已登录 → 先吊销服务端会话再跳，否则下次启动又直接进主页
+                //   · 游客   → 直接跳（没有服务端凭据可吊销）
+                //   · 离线   → 先切回联机数据源，再跳
+                // 否则用户一旦以游客身份进入，就再也没法换账号了。
+                Button('切换账号 / 退出登录')
+                  .width('100%').height(44).fontSize(14).fontColor('#B45309')
+                  .backgroundColor('#FFFBEB').borderRadius(12)
+                  .border({ width: 1, color: '#FDE68A' })
+                  .onClick(() => { this.goToLogin(); })
+                Text(appState.isSignedIn
+                  ? '退出后将回到登录 / 注册界面，可以换一个账号进来。账号数据仍保留在服务端。'
+                  : '当前是体验身份。点击可回到登录 / 注册界面，用你自己的账号进入。')
+                  .fontSize(11).fontColor('#98A2B3').lineHeight(17).width('100%')
               }
               .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
               .border({ width: 1, color: '#EAECF0' })

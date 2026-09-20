@@ -80,14 +80,9 @@ function Scroll-UntilVisibleTextContains([string]$Text, [int]$MaxSwipes = 6) {
 & $HdcPath shell aa force-stop $BundleName | Out-Null
 & $HdcPath shell aa start -a $AbilityName -b $BundleName | Out-Null
 Start-Sleep -Seconds 2
-$initialPage = (Get-AppRoot (Get-Layout)).attributes.pagePath
-if ($initialPage -eq 'pages/Login') {
-    Click-Text '跳过登录，用演示身份进入 →'
-}
 Assert-Page 'pages/ChatMain'
 Click-Text '工具'
 Assert-Page 'pages/Index'
-Click-Text '我的'
 Scroll-UntilVisibleText '配置 →'
 Click-Text '配置 →'
 Assert-Page 'pages/ApiEnvironment'
@@ -98,9 +93,8 @@ if (@(Find-TextNodes $environmentLayout '使用离线 Fixture').Count -gt 0) {
 Assert-VisibleText '当前模式：Fixture 离线演示'
 Click-Text '← 返回'
 Assert-Page 'pages/Index'
-Click-Text '智能体'
-Click-Text '规划智能体'
-Click-Text 'Agent 学习计划'
+Scroll-UntilVisibleText '查看全部计划 →'
+Click-Text '查看全部计划 →'
 Assert-Page 'pages/StudyPlan'
 
 Scroll-UntilVisibleText '开始任务'

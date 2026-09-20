@@ -52,7 +52,9 @@ struct FocusResult {
       completionRate: completionRate, selfAssessment: this.assessment,
       timerType: draft?.timerType ?? focusTask?.timerType ?? 'countdown',
       status: status,
-      endedAt: draft?.endedAt ?? new Date().toLocaleString()
+      // 同 FocusTimer：必须是 ISO 8601，否则后端解析 `lastStudyAt` 失败，
+      // `no_study_for_2d` 触发路径不可达。
+      endedAt: draft?.endedAt ?? new Date().toISOString()
     };
   }
 
@@ -67,11 +69,16 @@ struct FocusResult {
       this.saved = true;
       return;
     }
-    if (this.isFixture()) {
-      const currentPlan = appState.weeklyPlan ?? LocalAgentService.generateWeeklyPlan(
-        appState.courses, appState.homeworkDDLs, appState.currentUser
-      );
+    const fixtureMode: boolean = this.isFixture();
+    const currentPlan = appState.weeklyPlan ?? (fixtureMode ? LocalAgentService.generateWeeklyPlan(
+      appState.courses, appState.homeworkDDLs, appState.currentUser
+    ) : null);
+    // 后端尚无专注结果写回接口，但联机计划已在本地加载。
+    // 两种模式都应立即更新当前计划，否则首页完成度会一直是 0%。
+    if (currentPlan !== null) {
       appState.setWeeklyPlan(LocalAgentService.adjustPlanAfterFocus(currentPlan, session));
+    }
+    if (fixtureMode) {
       appState.latestReview = LocalAgentService.generateReviewSummary(
         appState.latestSuggestion,
         appState.latestPartner,
@@ -79,10 +86,10 @@ struct FocusResult {
       );
     }
     appState.completeChatTask(
-      this.isFixture() ?
+      fixtureMode ?
         (this.assessment === 'completed' ? '本次专注已完成，离线计划已同步更新。' : '本次专注结果已保存，离线计划已调整。') :
-        '本次专注结果已保存；后端尚未提供专注结果同步接口。',
-      this.isFixture() ? '查看离线模式更新后的安排。' : '可继续查看后端当前计划。',
+        (currentPlan !== null ? '本次专注结果已保存，当前计划进度已更新。' : '本次专注结果已保存；当前暂无可更新的计划。'),
+      fixtureMode ? '查看离线模式更新后的安排。' : '查看更新后的当前计划。',
       '查看更新计划',
       'pages/StudyPlan'
     );
@@ -156,7 +163,7 @@ struct FocusResult {
               Text(this.currentFeedback().nextSuggestion).fontSize(13).fontColor('#64748B').lineHeight(20)
             }.width('100%').padding(18).backgroundColor('#EFF6FF').borderRadius(20)
           } else {
-            Text('真实模式仅保存本次 UI 专注记录，不会在前端自行更改 Agent 计划。')
+            Text('真实模式会立即更新当前计划进度；待后端提供专注结果接口后再跨端同步。')
               .fontSize(13).fontColor('#0F766E').lineHeight(20).width('100%').padding(16).backgroundColor('#ECFDF5').borderRadius(16)
           }
           if (this.saved) {

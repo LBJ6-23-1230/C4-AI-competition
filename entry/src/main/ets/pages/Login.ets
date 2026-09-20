@@ -57,6 +57,8 @@ struct Login {
   /** 'password' | 'code' —— 登录方式分段（仅 login 模式显示，code 为规划项）。 */
   @State method: string = 'password';
   @State nickname: string = '';
+  /** 手机号 —— 注册必填、登录首选（唯一身份标识）。 */
+  @State phone: string = '';
   @State password: string = '';
   @State grade: string = '';
   @State rememberMe: boolean = true;
@@ -64,6 +66,8 @@ struct Login {
   @State busy: boolean = false;
   @State message: string = '';
   @State messageIsError: boolean = false;
+  /** 华为账号一键登录进行中。 */
+  @State isHuaweiLoggingIn: boolean = false;
 
   private isActive: boolean = false;
 
@@ -73,6 +77,32 @@ struct Login {
 
   aboutToDisappear(): void {
     this.isActive = false;
+  }
+
+  // ---------------------------------------------------------------- 校验
+  /**
+   * 手机号格式校验（与后端 `service.normalize_phone` 同一套规则）。
+   *
+   * 前端先校验是为了**减少一次无效往返**；后端仍会独立校验，
+   * 不能把前端校验当作安全边界。
+   */
+  private validatePhone(): string {
+    const digits: string = this.phone.replace(/[^\d]/g, '');
+    const normalized: string = (digits.length === 13 && digits.startsWith('86'))
+      ? digits.substring(2) : digits;
+    if (normalized.length === 0) {
+      return '请输入手机号';
+    }
+    if (!/^1[3-9]\d{9}$/.test(normalized)) {
+      return '手机号格式不正确（应为 11 位中国大陆号码）';
+    }
+    return '';
+  }
+
+  /** 取出归一化后的手机号（去掉 +86、空格、横线）。 */
+  private normalizedPhone(): string {
+    const digits: string = this.phone.replace(/[^\d]/g, '');
+    return (digits.length === 13 && digits.startsWith('86')) ? digits.substring(2) : digits;
   }
 
   // ---------------------------------------------------------------- 流程
@@ -108,41 +138,75 @@ struct Login {
   /**
    * 主按钮分派。
    *
-   * 两种模式都走**后端既有的免密接口**：
-   *   · 注册 → `AuthClient.register(nickname, grade)`
-   *   · 登录 → 本机已保存过凭据时恢复；否则引导去注册
-   * 密码字段仅作视觉占位，不参与校验（见文件头说明）。
+   * ⚠️ 这里修掉了一个实际缺陷：**此前两个标签都只调 `AuthClient.register()`**，
+   * 于是「登录」标签下用同一昵称再点一次会**又建一个新账号**
+   * （实测两次注册「张三」得到两个不同 userId）——用户以为登录了，
+   * 实际旧画像永远读不到。
+   *
+   * 现在按 `mode` 真正分派：
+   *   · 登录 → `AuthClient.loginByPhoneOrNickname()`（手机号优先）
+   *   · 注册 → `AuthClient.loginOrRegister()`（**手机号必填**，已存在则登录）
+   *
+   * 密码字段仍只作视觉占位（后端刻意不做密码体系，见文件头说明）。
    */
   private async onSubmit(): Promise<void> {
     if (this.busy) {
       return;
     }
     if (this.method === 'code') {
-      this.message = '验证码登录需要短信服务支持，当前未接入。请改用密码登录或直接进入演示。';
+      this.message = '验证码登录需要短信服务支持，当前未接入。请改用手机号登录或直接进入演示。';
       this.messageIsError = true;
       return;
     }
 
-    const invalid: string = AuthClient.validateNickname(this.nickname);
-    if (invalid.length > 0) {
-      this.message = invalid;
+    const invalidNickname: string = AuthClient.validateNickname(this.nickname);
+    if (invalidNickname.length > 0) {
+      this.message = invalidNickname;
       this.messageIsError = true;
       return;
     }
 
-    if (this.mode === 'login' && !this.rememberMe) {
-      // 不记住 → 仍可进入，只是不落盘（演示用，不阻塞流程）
+    // 手机号：注册时**必填**，登录时可选（但填了就会优先按号匹配）
+    const phoneError: string = this.validatePhone();
+    if (this.mode === 'register' && phoneError.length > 0) {
+      this.message = phoneError;
+      this.messageIsError = true;
+      return;
+    }
+    if (this.mode === 'login' && this.phone.trim().length > 0 && phoneError.length > 0) {
+      this.message = phoneError;
+      this.messageIsError = true;
+      return;
     }
 
     this.busy = true;
     this.message = '';
-    const result: AuthResult = await AuthClient.register(this.nickname, this.grade);
+    const phone: string = this.normalizedPhone();
+
+    // 关键分派
+    let result: AuthResult;
+    if (this.mode === 'register') {
+      result = await AuthClient.loginOrRegister(this.nickname, this.grade, phone);
+    } else if (phone.length > 0) {
+      // 登录且填了手机号 → 按手机号登录（唯一、可验证，比昵称可靠）
+      result = await AuthClient.loginByPhone(phone);
+    } else {
+      result = await AuthClient.loginByNickname(this.nickname);
+    }
     if (!this.isActive) {
       return;
     }
     this.busy = false;
 
     if (!result.ok) {
+      // 登录模式下"查无此账号"是很常见的误操作，直接把用户引到注册标签
+      if (this.mode === 'login'
+        && (result.message.indexOf('还没有账号') >= 0 || result.message.indexOf('请先注册') >= 0)) {
+        this.message = '还没有账号。已为你切到「注册」，补上手机号再点一次即可建立。';
+        this.messageIsError = true;
+        this.mode = 'register';
+        return;
+      }
       this.message = result.message;
       this.messageIsError = true;
       return;
@@ -153,8 +217,49 @@ struct Login {
     this.goHome();
   }
 
+  /**
+   * 华为账号一键登录。
+   *
+   * 这是鸿蒙赛道最对口的登录方式：免注册、免验证码，
+   * 直接拿到华为账号的 OpenID 作为身份标识。
+   *
+   * **诚实说明**：它需要 DevEco 中配置好 AppGallery Connect 的
+   * client_id 与签名证书指纹，否则一步都走不通。所以这里把失败原因
+   * 原样呈现给用户，不假装成功。
+   */
+  private async onHuaweiLogin(): Promise<void> {
+    if (this.isHuaweiLoggingIn) {
+      return;
+    }
+    this.isHuaweiLoggingIn = true;
+    this.message = '';
+    const result: AuthResult = await AuthClient.loginWithHuaweiAccount();
+    if (!this.isActive) {
+      return;
+    }
+    this.isHuaweiLoggingIn = false;
+    if (!result.ok) {
+      this.message = result.message;
+      this.messageIsError = true;
+      return;
+    }
+    AgentApiClient.setUseFixture(false);
+    appState.applyLogin(result.user, result.source);
+    this.goHome();
+  }
+
   private canSubmit(): boolean {
-    return AuthClient.validateNickname(this.nickname).length === 0 && !this.busy;
+    if (this.busy) {
+      return false;
+    }
+    if (AuthClient.validateNickname(this.nickname).length > 0) {
+      return false;
+    }
+    // 注册必须填合法手机号；登录允许只填昵称
+    if (this.mode === 'register' && this.validatePhone().length > 0) {
+      return false;
+    }
+    return true;
   }
 
   // ---------------------------------------------------------------- 界面
@@ -177,40 +282,22 @@ struct Login {
           .padding({ top: 56, bottom: 26 })
 
           // ---------- 登录 / 注册 分段 ----------
-          this.Segmented(
-            [{ key: 'login', label: '登录', icon: '🔒' },
-             { key: 'register', label: '注册', icon: '✎' }],
-            this.mode,
-            (key: string): void => {
-              this.mode = key;
-              this.message = '';
-              this.messageIsError = false;
-            }
-          )
+          // 用无参 Builder（直接读 this.mode），确保切换后高亮与主按钮文案必然刷新
+          this.ModeSegment()
 
           // ---------- 密码 / 验证码 分段（仅登录模式） ----------
           if (this.mode === 'login') {
-            this.Segmented(
-              [{ key: 'password', label: '密码登录', icon: '🔒' },
-               { key: 'code', label: '验证码登录', icon: '💬' }],
-              this.method,
-              (key: string): void => {
-                this.method = key;
-                this.message = '';
-                this.messageIsError = false;
-              }
-            )
+            this.MethodSegment()
           }
 
           // ---------- 表单 ----------
           Column({ space: 16 }) {
-            // 昵称（对应参考图的"手机号"字段位置）
+            // 昵称
             Column({ space: 8 }) {
               Text('昵称').fontSize(14).fontWeight(FontWeight.Medium).fontColor('#0F172A').width('100%')
               Row({ space: 10 }) {
                 Text('👤').fontSize(15).fontColor('#94A3B8')
-                TextInput({ placeholder: this.method === 'code' ? '请输入手机号' : '请输入昵称',
-                            text: this.nickname })
+                TextInput({ placeholder: '请输入昵称（1-16 字）', text: this.nickname })
                   .layoutWeight(1).height(48).fontSize(15)
                   .backgroundColor(Color.Transparent).padding(0)
                   .maxLength(16).enabled(!this.busy)
@@ -227,13 +314,48 @@ struct Login {
               .border({ width: 1, color: '#E2E8F0' })
             }.width('100%')
 
+            // 手机号 —— 注册必填；登录时填了会优先按手机号匹配
+            Column({ space: 8 }) {
+              Row({ space: 6 }) {
+                Text('手机号').fontSize(14).fontWeight(FontWeight.Medium).fontColor('#0F172A')
+                Text(this.mode === 'register' ? '必填' : '选填')
+                  .fontSize(11)
+                  .fontColor(this.mode === 'register' ? '#B91C1C' : '#94A3B8')
+                  .backgroundColor(this.mode === 'register' ? '#FEF2F2' : '#F1F5F9')
+                  .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                  .borderRadius(6)
+                Blank()
+              }.width('100%')
+              Row({ space: 10 }) {
+                Text('📱').fontSize(15).fontColor('#94A3B8')
+                TextInput({ placeholder: '11 位手机号', text: this.phone })
+                  .type(InputType.PhoneNumber)
+                  .layoutWeight(1).height(48).fontSize(15)
+                  .backgroundColor(Color.Transparent).padding(0)
+                  .maxLength(20).enabled(!this.busy)
+                  .onChange((value: string) => {
+                    this.phone = value;
+                    if (this.messageIsError) {
+                      this.message = '';
+                      this.messageIsError = false;
+                    }
+                  })
+              }
+              .width('100%').padding({ left: 14, right: 14 })
+              .backgroundColor('#F8FAFC').borderRadius(10)
+              .border({ width: 1, color: '#E2E8F0' })
+              Text(this.mode === 'register'
+                ? '手机号是账号的唯一标识，用于登录与找回。当前版本不做短信校验。'
+                : '填了手机号就按手机号登录（唯一、可靠）；留空则按昵称登录。')
+                .fontSize(11).fontColor('#98A2B3').lineHeight(17).width('100%')
+            }.width('100%')
+
             // 密码（视觉占位，不参与校验）
             Column({ space: 8 }) {
               Text('密码').fontSize(14).fontWeight(FontWeight.Medium).fontColor('#0F172A').width('100%')
               Row({ space: 10 }) {
                 Text('🔒').fontSize(15).fontColor('#94A3B8')
-                TextInput({ placeholder: '请输入密码',
-                            text: this.showPassword ? this.password : this.password })
+                TextInput({ placeholder: '请输入密码', text: this.password })
                   .type(this.showPassword ? InputType.Normal : InputType.Password)
                   .layoutWeight(1).height(48).fontSize(15)
                   .backgroundColor(Color.Transparent).padding(0)
@@ -280,7 +402,10 @@ struct Login {
             .onClick(() => { this.rememberMe = !this.rememberMe; })
 
             // 主按钮
-            Button(this.busy ? '处理中…' : (this.mode === 'login' ? '登录  →' : '注册并进入  →'))
+            // 文案必须与当前标签严格对应：此前两个标签下都是"登录 →"，
+            // 用户以为在登录、实际在注册（见 onSubmit 的说明）。
+            Button(this.busy ? '处理中…'
+              : (this.mode === 'login' ? '登录  →' : '注册并进入  →'))
               .width('100%').height(50).fontSize(16).fontWeight(FontWeight.Bold)
               .fontColor('#FFFFFF')
               .backgroundColor(this.canSubmit() ? '#3B82F6' : '#CBD5E1')
@@ -305,6 +430,20 @@ struct Login {
             Text('或').fontSize(12).fontColor('#94A3B8')
             Divider().color('#E2E8F0').layoutWeight(1)
           }.width('100%').margin({ top: 28, bottom: 18 })
+
+          // ---------- 华为账号一键登录（鸿蒙全场景能力） ----------
+          // 免注册、免验证码；同一华为账号在手机/平板/PC 上是同一个身份，
+          // 换设备不需要重新注册 —— 这是"全场景"最实在的一处体现。
+          Button(this.isHuaweiLoggingIn ? '正在拉起华为账号…' : '华为账号一键登录')
+            .width('100%').height(48).fontSize(15).fontWeight(FontWeight.Medium)
+            .fontColor('#0F172A').backgroundColor('#FFFFFF')
+            .borderRadius(12).border({ width: 1, color: '#E2E8F0' })
+            .enabled(!this.isHuaweiLoggingIn && !this.busy)
+            .onClick(() => { this.onHuaweiLogin(); })
+          Text('使用华为账号登录，无需注册。需设备已登录华为账号，'
+            + '且应用已在 AppGallery Connect 配置 client_id。')
+            .fontSize(11).fontColor('#98A2B3').lineHeight(17).width('100%')
+            .margin({ top: 8 })
 
           // ---------- 演示 / 离线逃生口（评审必用，务必保留） ----------
           Button('跳过登录，用演示身份进入 →')
@@ -341,11 +480,69 @@ struct Login {
   }
 
   /**
-   * 分段控件（对应参考图的「登录 | 注册」与「密码登录 | 验证码登录」）。
+   * 「登录 | 注册」分段。
    *
-   * 用**无参 Builder + 内部读 state** 的写法会与调用方耦合，故这里接收
-   * 静态选项数组与当前选中值；选中态由调用方传入的 `activeKey` 决定。
-   * 选项是常量、`activeKey` 是 `@State`，因此重建时能正确刷新高亮。
+   * ⚠️ **刻意不给本 Builder 传参**，而是直接读 `this.mode`。
+   *
+   * 原因：ArkUI 的 `@Builder` 对**参数**采用值传递，参数不是可观察依赖，
+   * 外层状态变化时不保证重建。此前把 `this.mode` 当参数传进去，
+   * 存在"点了注册但高亮/联动文案不刷新"的风险（本次一并消除）。
+   * **无参 Builder 直接读 `this` 上的状态变量则依赖关系明确、必然刷新。**
+   */
+  @Builder
+  ModeSegment() {
+    Row({ space: 0 }) {
+      ForEach(MODE_OPTIONS, (item: SegOption) => {
+        Row({ space: 6 }) {
+          Text(item.icon).fontSize(13)
+          Text(item.label).fontSize(14)
+            .fontWeight(this.mode === item.key ? FontWeight.Bold : FontWeight.Normal)
+            .fontColor(this.mode === item.key ? '#2563EB' : '#64748B')
+        }
+        .layoutWeight(1).height(44)
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor(this.mode === item.key ? '#FFFFFF' : '#F1F5F9')
+        .borderRadius(8)
+        .onClick(() => {
+          this.mode = item.key;
+          this.message = '';
+          this.messageIsError = false;
+        })
+      }, (item: SegOption) => item.key)
+    }
+    .width('100%').padding(4).backgroundColor('#F1F5F9').borderRadius(10)
+    .margin({ bottom: 12 })
+  }
+
+  /** 「密码登录 | 验证码登录」分段。同样无参，直接读 `this.method`。 */
+  @Builder
+  MethodSegment() {
+    Row({ space: 0 }) {
+      ForEach(METHOD_OPTIONS, (item: SegOption) => {
+        Row({ space: 6 }) {
+          Text(item.icon).fontSize(13)
+          Text(item.label).fontSize(14)
+            .fontWeight(this.method === item.key ? FontWeight.Bold : FontWeight.Normal)
+            .fontColor(this.method === item.key ? '#2563EB' : '#64748B')
+        }
+        .layoutWeight(1).height(44)
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor(this.method === item.key ? '#FFFFFF' : '#F1F5F9')
+        .borderRadius(8)
+        .onClick(() => {
+          this.method = item.key;
+          this.message = '';
+          this.messageIsError = false;
+        })
+      }, (item: SegOption) => item.key)
+    }
+    .width('100%').padding(4).backgroundColor('#F1F5F9').borderRadius(10)
+    .margin({ bottom: 12 })
+  }
+
+  /**
+   * @deprecated 保留仅为兼容；新代码请用 `ModeSegment()` / `MethodSegment()`。
+   * 传参版 Builder 存在状态不刷新的风险，故不再从 `build()` 调用。
    */
   @Builder
   Segmented(options: SegOption[], activeKey: string, onPick: (key: string) => void) {
@@ -368,6 +565,17 @@ struct Login {
     .margin({ bottom: 12 })
   }
 }
+
+/** 分段选项常量（提到组件外，避免每次 build 重建数组）。 */
+const MODE_OPTIONS: SegOption[] = [
+  { key: 'login', label: '登录', icon: '🔒' },
+  { key: 'register', label: '注册', icon: '✎' }
+];
+
+const METHOD_OPTIONS: SegOption[] = [
+  { key: 'password', label: '密码登录', icon: '🔒' },
+  { key: 'code', label: '验证码登录', icon: '💬' }
+];
 
 /** 分段控件的选项类型。 */
 interface SegOption {

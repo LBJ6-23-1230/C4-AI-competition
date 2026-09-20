@@ -103,16 +103,12 @@ function Scroll-UntilVisibleTextContains([string]$Text, [int]$MaxSwipes = 5) {
 & $HdcPath shell aa force-stop $BundleName | Out-Null
 & $HdcPath shell aa start -a $AbilityName -b $BundleName | Out-Null
 Start-Sleep -Seconds 2
-$initialPage = (Get-AppRoot (Get-Layout)).attributes.pagePath
-if ($initialPage -eq 'pages/Login') {
-    Click-Text '跳过登录，用演示身份进入 →'
-}
 Assert-Page 'pages/ChatMain'
 
-Click-Text '错题诊断'
+Click-Text '错题分析'
 Click-Text '发送'
-Wait-VisibleText '查看错题诊断'
-Click-Text '查看错题诊断'
+Wait-VisibleText '查看错题分析'
+Click-Text '查看错题分析'
 Assert-Page 'pages/WrongQuestion'
 Click-Text '🔄 使用模拟错题快速体验'
 Wait-VisibleText '✅ 分析完成'
@@ -128,10 +124,10 @@ Assert-VisibleText 'Agent 学习计划'
 & $HdcPath shell uitest uiInput keyEvent Back | Out-Null
 Start-Sleep -Milliseconds 600
 Assert-Page 'pages/ChatMain'
-Click-Text '学习搭子'
+Click-Text '匹配搭子'
 Click-Text '发送'
-Wait-VisibleText '查看学习搭子'
-Click-Text '查看学习搭子'
+Wait-VisibleText '查看搭子详情'
+Click-Text '查看搭子详情'
 Assert-Page 'pages/PartnerMatch'
 Assert-VisibleText '最佳学习伙伴'
 Scroll-UntilVisibleText '综合匹配度'

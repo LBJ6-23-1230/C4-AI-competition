@@ -73,11 +73,56 @@ export class ApiResponseValidator {
         ApiResponseValidator.hasArray(data, 'factors') &&
         ApiResponseValidator.isRecordField(data, 'cardData');
     }
+    // ---- 知识库（/api/v1/knowledge-bases/**、/api/v1/documents/**）----
+    if (method === 'GET' && path.indexOf('/api/v1/knowledge-bases') === 0) {
+      if (path.indexOf('/documents') > 0) {
+        return ApiResponseValidator.hasString(data, 'kbId') &&
+          ApiResponseValidator.hasArray(data, 'documents');
+      }
+      if (path === '/api/v1/knowledge-bases') {
+        return ApiResponseValidator.hasArray(data, 'knowledgeBases') &&
+          ApiResponseValidator.hasNumber(data, 'total');
+      }
+      // 详情：KnowledgeBase + documents
+      return ApiResponseValidator.hasString(data, 'kbId') &&
+        ApiResponseValidator.hasString(data, 'name') &&
+        ApiResponseValidator.hasString(data, 'courseName');
+    }
+    if (method === 'POST' && path === '/api/v1/knowledge-bases') {
+      return ApiResponseValidator.hasString(data, 'kbId') &&
+        ApiResponseValidator.hasString(data, 'name');
+    }
+    if (method === 'DELETE' && path.indexOf('/api/v1/knowledge-bases/') === 0) {
+      return ApiResponseValidator.hasString(data, 'status');
+    }
+    if (method === 'POST' && path.indexOf('/api/v1/knowledge-bases/') === 0
+      && path.endsWith('/documents')) {
+      return ApiResponseValidator.hasString(data, 'documentId') &&
+        ApiResponseValidator.hasString(data, 'status') &&
+        ApiResponseValidator.hasString(data, 'fileName');
+    }
+    if (method === 'DELETE' && path.indexOf('/api/v1/documents/') === 0) {
+      return ApiResponseValidator.hasString(data, 'status');
+    }
+    if (method === 'POST' && path.indexOf('/api/v1/knowledge-bases/') === 0
+      && path.endsWith('/search')) {
+      return ApiResponseValidator.hasString(data, 'kbId') &&
+        ApiResponseValidator.hasString(data, 'query') &&
+        ApiResponseValidator.hasArray(data, 'hits') &&
+        ApiResponseValidator.hasNumber(data, 'totalScanned') &&
+        ApiResponseValidator.hasString(data, 'retrievalMode');
+    }
     // ---- 鉴权（/api/v1/auth/*）----
     if (method === 'POST' && path === '/api/v1/auth/register') {
       return ApiResponseValidator.isAuthSession(data);
     }
     if (method === 'POST' && path === '/api/v1/auth/login') {
+      return ApiResponseValidator.isAuthSession(data);
+    }
+    if (method === 'POST' && path === '/api/v1/auth/login-or-register') {
+      return ApiResponseValidator.isAuthSession(data);
+    }
+    if (method === 'POST' && path === '/api/v1/auth/login-with-huawei') {
       return ApiResponseValidator.isAuthSession(data);
     }
     if (method === 'POST' && path === '/api/v1/auth/logout') {

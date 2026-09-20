@@ -4,6 +4,7 @@ import { ApiFailure, ApiResult } from './ApiResult';
 import { AuthResult } from './AuthResult';
 import { AuthStore } from './AuthStore';
 import { AuthUser, NICKNAME_MAX_LENGTH, NICKNAME_MIN_LENGTH, StoredSession } from './AuthModels';
+import { HuaweiAccountService, HuaweiAuthOutcome } from '../services/HuaweiAccountService';
 
 /**
  * 登录流程编排。
@@ -86,6 +87,135 @@ export class AuthClient {
       user: result.data.user,
       source: 'local',
       message: `欢迎，${result.data.user.nickname}。已为你建立独立的学习画像。`
+    };
+  }
+
+  /**
+   * **登录优先，注册兜底** —— 登录页主按钮应当调这个。
+   *
+   * 修复的问题：此前"登录"与"注册"两个标签实际都只调 `register()`，
+   * 于是用同一个昵称再点一次会**又建一个新账号**（实测两次注册「张三」
+   * 得到两个不同 userId），用户以为在登录、实际旧画像永远读不到。
+   *
+   * 现在由服务端判定：昵称已存在就登录、不存在才建号，响应里的 `created`
+   * 用于区分文案。
+   */
+  static async loginOrRegister(nickname: string, grade: string, phone?: string): Promise<AuthResult> {
+    const invalid: string = AuthClient.validateNickname(nickname);
+    if (invalid.length > 0) {
+      return { ok: false, user: null, source: 'local', message: invalid };
+    }
+
+    const result = await AgentApiClient.authLoginOrRegister({
+      nickname: nickname.trim(),
+      grade: grade.length > 0 ? grade : undefined,
+      phone: phone !== undefined && phone.length > 0 ? phone : undefined
+    });
+    if (!result.ok) {
+      return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
+    }
+
+    AuthStore.save(result.data.user, result.data.token, result.data.expiresAt);
+    return {
+      ok: true,
+      user: result.data.user,
+      source: 'local',
+      message: result.data.created
+        ? `已为你建立账号，${result.data.user.nickname}。`
+        : `欢迎回来，${result.data.user.nickname}。`
+    };
+  }
+
+  /**
+   * 按手机号免密登录（**账号必须已存在**）。
+   *
+   * 手机号是唯一身份标识，比昵称可靠 —— 所以登录页优先用它。
+   *
+   * ⚠️ 当前版本**不做短信验证码**：真实场景必须先验证码证明"号是本人的"。
+   * 完整链路见 `docs/11-用户登录体系方案.md` §5.2。
+   */
+  static async loginByPhone(phone: string): Promise<AuthResult> {
+    const trimmed: string = phone.trim();
+    if (trimmed.length === 0) {
+      return { ok: false, user: null, source: 'local', message: '请输入手机号。' };
+    }
+    const result = await AgentApiClient.authLogin({ phone: trimmed });
+    if (!result.ok) {
+      return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
+    }
+    AuthStore.save(result.data.user, result.data.token, result.data.expiresAt);
+    return {
+      ok: true,
+      user: result.data.user,
+      source: 'restored',
+      message: `欢迎回来，${result.data.user.nickname}。`
+    };
+  }
+
+  /**
+   * 华为账号一键登录（鸿蒙赛道最对口的登录方式）。
+   *
+   * 走 `@kit.AccountKit` 的 `authentication` 模块拿到华为账号的 OpenID，
+   * 再交给本服务换取自己的 token。免注册、免验证码。
+   *
+   * ⚠️ **前置条件（缺一不可）**：
+   *   1. 在 AppGallery Connect 创建应用并开通「华为账号」能力
+   *   2. DevEco 中把 `client_id` 配到 `module.json5` 的 metadata
+   *   3. 应用签名证书指纹已在 AGC 登记
+   *
+   * 缺任何一条都会在 `executeRequest` 阶段失败。这里把失败原因
+   * **原样返回给用户**，不静默降级成"登录成功"。
+   */
+  static async loginWithHuaweiAccount(): Promise<AuthResult> {
+    const outcome: HuaweiAuthOutcome = await HuaweiAccountService.requestOpenId();
+    if (!outcome.ok) {
+      return { ok: false, user: null, source: 'local', message: outcome.message };
+    }
+    const result = await AgentApiClient.authLoginWithHuawei({
+      openId: outcome.openId,
+      unionId: outcome.unionId,
+      nickname: outcome.nickname
+    });
+    if (!result.ok) {
+      return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
+    }
+    AuthStore.save(result.data.user, result.data.token, result.data.expiresAt);
+    return {
+      ok: true,
+      user: result.data.user,
+      source: 'local',
+      message: result.data.created
+        ? `已用华为账号建立账号，${result.data.user.nickname}。`
+        : `欢迎回来，${result.data.user.nickname}。`
+    };
+  }
+
+  /**
+   * 按昵称免密登录（**账号必须已存在**）。
+   *
+   * 与 `loginOrRegister` 的区别：这里不会建号，昵称不存在时明确报错。
+   * 换设备、清过应用数据后想登回原账号时用它。
+   *
+   * ⚠️ 昵称不是秘密，因此这不是安全的认证方式，仅适用于演示/单机场景。
+   * 真实身份校验请见 `docs/11-用户登录体系方案.md` 的手机号验证码方案。
+   */
+  static async loginByNickname(nickname: string): Promise<AuthResult> {
+    const invalid: string = AuthClient.validateNickname(nickname);
+    if (invalid.length > 0) {
+      return { ok: false, user: null, source: 'local', message: invalid };
+    }
+
+    const result = await AgentApiClient.authLogin({ nickname: nickname.trim() });
+    if (!result.ok) {
+      return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
+    }
+
+    AuthStore.save(result.data.user, result.data.token, result.data.expiresAt);
+    return {
+      ok: true,
+      user: result.data.user,
+      source: 'restored',
+      message: `欢迎回来，${result.data.user.nickname}。`
     };
   }
 

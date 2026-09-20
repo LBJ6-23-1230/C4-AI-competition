@@ -1,8 +1,8 @@
 import { http } from '@kit.NetworkKit';
-import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
+import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeDocument, KnowledgeDocumentUploadRequest, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiFailure, ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { ApiDefaults } from './ApiDefaults';
-import { AuthLoginRequest, AuthRegisterRequest, AuthSessionResponse, AuthStatusResponse, AuthUserResponse } from './AuthModels';
+import { AuthHuaweiLoginRequest, AuthLoginOrRegisterRequest, AuthLoginOrRegisterResponse, AuthLoginRequest, AuthRegisterRequest, AuthSessionResponse, AuthStatusResponse, AuthUserResponse } from './AuthModels';
 import { AuthStore } from './AuthStore';
 import { FixtureApiTransport } from './FixtureApiTransport';
 import { ApiResponseValidator } from './ApiResponseValidator';
@@ -105,6 +105,46 @@ export class AgentApiClient {
     return AgentApiClient.request<ProactiveResponse>(http.RequestMethod.POST, '/api/v1/agent/proactive', request);
   }
 
+  // ------------------------------------------------------------------ 知识库
+  static async listKnowledgeBases(userId?: string): Promise<ApiResult<KnowledgeBaseListResponse>> {
+    const suffix: string = userId !== undefined && userId.length > 0
+      ? `?userId=${encodeURIComponent(userId)}` : '';
+    return AgentApiClient.request<KnowledgeBaseListResponse>(http.RequestMethod.GET,
+      `/api/v1/knowledge-bases${suffix}`);
+  }
+
+  static async createKnowledgeBase(request: KnowledgeBaseCreateRequest): Promise<ApiResult<KnowledgeBase>> {
+    return AgentApiClient.request<KnowledgeBase>(http.RequestMethod.POST,
+      '/api/v1/knowledge-bases', request);
+  }
+
+  static async getKnowledgeBase(kbId: string): Promise<ApiResult<KnowledgeBaseDetail>> {
+    return AgentApiClient.request<KnowledgeBaseDetail>(http.RequestMethod.GET,
+      `/api/v1/knowledge-bases/${encodeURIComponent(kbId)}`);
+  }
+
+  static async deleteKnowledgeBase(kbId: string): Promise<ApiResult<KnowledgeBase>> {
+    return AgentApiClient.request<KnowledgeBase>(http.RequestMethod.DELETE,
+      `/api/v1/knowledge-bases/${encodeURIComponent(kbId)}`);
+  }
+
+  static async uploadKnowledgeDocument(kbId: string,
+    request: KnowledgeDocumentUploadRequest): Promise<ApiResult<KnowledgeDocument>> {
+    return AgentApiClient.request<KnowledgeDocument>(http.RequestMethod.POST,
+      `/api/v1/knowledge-bases/${encodeURIComponent(kbId)}/documents`, request);
+  }
+
+  static async deleteKnowledgeDocument(documentId: string): Promise<ApiResult<KnowledgeDocument>> {
+    return AgentApiClient.request<KnowledgeDocument>(http.RequestMethod.DELETE,
+      `/api/v1/documents/${encodeURIComponent(documentId)}`);
+  }
+
+  static async searchKnowledgeBase(kbId: string,
+    request: KnowledgeSearchRequest): Promise<ApiResult<KnowledgeSearchResponse>> {
+    return AgentApiClient.request<KnowledgeSearchResponse>(http.RequestMethod.POST,
+      `/api/v1/knowledge-bases/${encodeURIComponent(kbId)}/search`, request);
+  }
+
   // ------------------------------------------------------------------ 鉴权
   static async authRegister(request: AuthRegisterRequest): Promise<ApiResult<AuthSessionResponse>> {
     return AgentApiClient.request<AuthSessionResponse>(http.RequestMethod.POST, '/api/v1/auth/register', request);
@@ -112,6 +152,20 @@ export class AgentApiClient {
 
   static async authLogin(request: AuthLoginRequest): Promise<ApiResult<AuthSessionResponse>> {
     return AgentApiClient.request<AuthSessionResponse>(http.RequestMethod.POST, '/api/v1/auth/login', request);
+  }
+
+  /**
+   * 登录优先、注册兜底。登录页主按钮应当调这个：
+   * 昵称已存在就登录，不存在才建号 —— 避免"再点一次又建一个新账号"。
+   * 响应里的 `created` 用于区分文案（"欢迎回来" / "已为你建号"）。
+   */
+  static async authLoginOrRegister(request: AuthLoginOrRegisterRequest): Promise<ApiResult<AuthLoginOrRegisterResponse>> {
+    return AgentApiClient.request<AuthLoginOrRegisterResponse>(http.RequestMethod.POST, '/api/v1/auth/login-or-register', request);
+  }
+
+  /** 华为账号登录：用 `@kit.AccountKit` 拿到的 OpenID 换取本服务 token。 */
+  static async authLoginWithHuawei(request: AuthHuaweiLoginRequest): Promise<ApiResult<AuthLoginOrRegisterResponse>> {
+    return AgentApiClient.request<AuthLoginOrRegisterResponse>(http.RequestMethod.POST, '/api/v1/auth/login-with-huawei', request);
   }
 
   static async authMe(): Promise<ApiResult<AuthUserResponse>> {

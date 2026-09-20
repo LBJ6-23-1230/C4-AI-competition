@@ -8,7 +8,7 @@
 
 - ArkTS 主 HAP 已通过真实 Hvigor 构建。
 - ohosTest 测试 HAP 已通过编译。
-- 模拟器回归基线：`44 / 44` 通过。
+- 模拟器回归基线：`40 / 40` 通过。
 - API 契约：`contracts/openapi.json`，版本 `api-contract-v0.3`。
 - 默认连接真实后端；无网络时可在「接口环境」页切换到离线 Fixture。
 
@@ -88,7 +88,7 @@
 .\tools\validate_contract.ps1
 ```
 
-已连接 HarmonyOS 模拟器或真机时，运行 44 项回归测试：
+已连接 HarmonyOS 模拟器或真机时，运行 40 项回归测试：
 
 ```powershell
 .\tools\run_ohos_regression.ps1

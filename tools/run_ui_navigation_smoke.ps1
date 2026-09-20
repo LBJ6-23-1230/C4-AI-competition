@@ -95,64 +95,46 @@ function Back-ToIndex {
 & $HdcPath shell aa force-stop $BundleName | Out-Null
 & $HdcPath shell aa start -a $AbilityName -b $BundleName | Out-Null
 Start-Sleep -Seconds 2
-$initialPage = (Get-AppRoot (Get-Layout)).attributes.pagePath
-if ($initialPage -eq 'pages/Login') {
-    Click-Text '跳过登录，用演示身份进入 →'
-}
 $null = Assert-Page 'pages/ChatMain'
-Write-Output 'Navigation checkpoint: ChatMain'
 
 Click-Text '工具'
 $null = Assert-Page 'pages/Index'
-Write-Output 'Navigation checkpoint: Index'
 
-Click-Text '规划智能体'
-Click-Text 'Agent 学习计划'
+Scroll-UntilVisibleText '查看全部计划 →'
+Click-Text '查看全部计划 →'
 $null = Assert-Page 'pages/StudyPlan'
-Write-Output 'Navigation checkpoint: StudyPlan'
 Back-ToIndex
 
-Click-Text '练习智能体'
+Scroll-UntilVisibleText '开始诊断练习'
+Click-Text '开始诊断练习'
 $null = Assert-Page 'pages/ExercisePractice'
-Write-Output 'Navigation checkpoint: ExercisePractice'
 Back-ToIndex
 
-Scroll-UntilVisibleText '秘书智能体'
-Click-Text '秘书智能体'
+Scroll-UntilVisibleText '查看 Agent 决策过程'
+Click-Text '查看 Agent 决策过程'
 $null = Assert-Page 'pages/AgentTrace'
-Write-Output 'Navigation checkpoint: AgentTrace'
 Back-ToIndex
 
-Click-Text '学习'
-Scroll-UntilVisibleText '课程与作业清单'
-Click-Text '课程与作业清单'
+Click-Text '课程与作业'
 $null = Assert-Page 'pages/CourseImport'
-Write-Output 'Navigation checkpoint: CourseImport'
 Back-ToIndex
 
-Click-Text '智能体'
-Scroll-ToTop
-Click-Text '诊断智能体'
-Click-Text '错题诊断'
+Click-Text '错题复习'
 $null = Assert-Page 'pages/WrongQuestion'
-Write-Output 'Navigation checkpoint: WrongQuestion'
 Back-ToIndex
 
 Click-Text '我的'
-Scroll-UntilVisibleText '明细 ›'
-Click-Text '明细 ›'
 $null = Assert-Page 'pages/LearningHistory'
-Write-Output 'Navigation checkpoint: LearningHistory'
 Back-ToIndex
 
 Scroll-ToTop
 Scroll-UntilVisibleText '配置 →'
 Click-Text '配置 →'
 $null = Assert-Page 'pages/ApiEnvironment'
-Write-Output 'Navigation checkpoint: ApiEnvironment'
 Back-ToIndex
 
-Click-Text '对话'
+Scroll-UntilVisibleText '返回对话'
+Click-Text '返回对话'
 $null = Assert-Page 'pages/ChatMain'
 
 Write-Output 'UI navigation smoke passed: ChatMain -> Index -> StudyPlan/ExercisePractice/AgentTrace/CourseImport/WrongQuestion/LearningHistory/ApiEnvironment -> ChatMain.'

@@ -4,6 +4,109 @@ export const API_CONTRACT_VERSION: string = 'api-contract-v0.3';
 export type WorkflowStatus = 'running' | 'completed' | 'failed' | 'fallback' | 'error';
 export type PlanTaskStatus = 'pending' | 'in_progress' | 'completed';
 
+/* ==================== 知识库（api-contract-v0.3 新增） ==================== */
+
+/**
+ * 文档处理状态。
+ * `failed` 是**真实可达**的状态（如 PDF 第一期不支持、编码错误），
+ * 界面必须展示失败原因，不能假装成功。
+ */
+export type KnowledgeDocumentStatus = 'ready' | 'failed';
+
+/** 知识库（按课程组织）。`userId` 表明它是个人资料，必须按用户隔离。 */
+export interface KnowledgeBase {
+  kbId: string;
+  userId: string;
+  courseName: string;
+  name: string;
+  description?: string;
+  documentCount?: number;
+  chunkCount?: number;
+  knowledgePoints?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** 知识库详情：在基础字段上附带文档列表。 */
+export interface KnowledgeBaseDetail extends KnowledgeBase {
+  documents?: KnowledgeDocument[];
+}
+
+export interface KnowledgeDocument {
+  documentId: string;
+  kbId: string;
+  userId: string;
+  fileName: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  status: KnowledgeDocumentStatus;
+  /** 失败时的可读原因；成功时为空字符串。 */
+  statusMessage?: string;
+  charCount?: number;
+  chunkCount?: number;
+  knowledgePoints?: string[];
+  errorPointCandidates?: string[];
+  uploadedAt?: string;
+  parsedAt?: string;
+}
+
+/**
+ * 检索命中的原文片段。
+ * `headingPath` 是引用标注的关键 —— 有它才能显示「第3章 > 3.2.3 后序遍历」，
+ * 而不只是「某个文件里」。
+ */
+export interface KnowledgeChunkHit {
+  chunkId: string;
+  documentId: string;
+  fileName?: string;
+  headingPath?: string;
+  text: string;
+  knowledgePoints?: string[];
+  score: number;
+}
+
+export interface KnowledgeBaseListResponse {
+  knowledgeBases: KnowledgeBase[];
+  total: number;
+}
+
+export interface KnowledgeDocumentListResponse {
+  kbId: string;
+  documents: KnowledgeDocument[];
+  total: number;
+}
+
+export interface KnowledgeSearchRequest {
+  query: string;
+  topK?: number;
+  knowledgePointId?: string;
+  userId?: string;
+}
+
+export interface KnowledgeSearchResponse {
+  kbId: string;
+  query: string;
+  hits: KnowledgeChunkHit[];
+  totalScanned: number;
+  /** 当前检索方式。第一期是 keyword+tag；第三期引入向量检索后为 vector。 */
+  retrievalMode: string;
+}
+
+export interface KnowledgeBaseCreateRequest {
+  courseName: string;
+  name: string;
+  description?: string;
+  userId?: string;
+}
+
+export interface KnowledgeDocumentUploadRequest {
+  fileName: string;
+  contentBase64: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  userId?: string;
+}
+
 export interface Evidence {
   id: string;
   sourceType: string;
