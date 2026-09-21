@@ -11,6 +11,7 @@ import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
 import { appState } from '../data/AppState';
 import { ProactiveSurfaceService } from '../services/ProactiveSurfaceService';
 import { ProactiveSettingsStore } from '../services/ProactiveSettingsStore';
+import { DeviceLayout } from '../utils/DeviceLayout';
 
 const DOMAIN = 0x0000;
 
@@ -31,6 +32,10 @@ export default class EntryAbility extends UIAbility {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
     this.activeWindowStage = windowStage;
 
+    // 绑定窗口尺寸 → 布局断点。module.json5 声明了 phone/tablet/2in1 三种形态，
+    // 页面需要知道自己在大屏还是小屏，才能决定是否给正文加最大宽度。
+    DeviceLayout.attach(windowStage);
+
     if (!ApiEnvironmentStore.restore(this.context)) {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore API environment, using defaults.');
     }
@@ -40,9 +45,18 @@ export default class EntryAbility extends UIAbility {
     if (!WorkflowSessionStore.restore(this.context)) {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore workflow session.');
     }
-    if (!AuthStore.initialize(this.context)) {
-      hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore auth session.');
-    }
+    // AuthStore 的初始化是**异步**的：要先从系统资产库取数据密钥、把 token 解密。
+    // 不 await 也能工作（先按内存态跑，加密就绪后下一次 save() 自动改用密文），
+    // 但 await 之后首屏拿到的是**已解密**的登录态，避免短暂显示成未登录。
+    AuthStore.initialize(this.context).then((ready: boolean) => {
+      if (!ready) {
+        hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore auth session.');
+      }
+      if (AuthStore.encryptionDegraded()) {
+        hilog.warn(DOMAIN, 'testTag', '%{public}s',
+          'Token encryption unavailable; credentials fall back to plaintext storage.');
+      }
+    });
     if (!ProactiveSettingsStore.restore(this.context)) {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore proactive notification settings.');
     }

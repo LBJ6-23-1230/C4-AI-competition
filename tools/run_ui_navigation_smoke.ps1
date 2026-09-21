@@ -95,46 +95,34 @@ function Back-ToIndex {
 & $HdcPath shell aa force-stop $BundleName | Out-Null
 & $HdcPath shell aa start -a $AbilityName -b $BundleName | Out-Null
 Start-Sleep -Seconds 2
+$initialLayout = Get-Layout
+if ((Get-AppRoot $initialLayout).attributes.pagePath -eq 'pages/Login') {
+    Click-Text '跳过登录，用演示身份进入 →'
+    Start-Sleep -Seconds 2
+}
 $null = Assert-Page 'pages/ChatMain'
 
 Click-Text '工具'
 $null = Assert-Page 'pages/Index'
 
-Scroll-UntilVisibleText '查看全部计划 →'
-Click-Text '查看全部计划 →'
-$null = Assert-Page 'pages/StudyPlan'
-Back-ToIndex
-
-Scroll-UntilVisibleText '开始诊断练习'
-Click-Text '开始诊断练习'
-$null = Assert-Page 'pages/ExercisePractice'
-Back-ToIndex
-
-Scroll-UntilVisibleText '查看 Agent 决策过程'
-Click-Text '查看 Agent 决策过程'
-$null = Assert-Page 'pages/AgentTrace'
-Back-ToIndex
-
-Click-Text '课程与作业'
+Click-Text '学习'
+Scroll-UntilVisibleText '课程与作业清单'
+Click-Text '课程与作业清单'
 $null = Assert-Page 'pages/CourseImport'
 Back-ToIndex
 
-Click-Text '错题复习'
-$null = Assert-Page 'pages/WrongQuestion'
+Click-Text '学习'
+Scroll-UntilVisibleText '开始专注'
+Click-Text '开始专注'
+$null = Assert-Page 'pages/FocusSetup'
 Back-ToIndex
 
 Click-Text '我的'
-$null = Assert-Page 'pages/LearningHistory'
+Click-Text '账号与密码管理'
+$null = Assert-Page 'pages/Account'
 Back-ToIndex
 
-Scroll-ToTop
-Scroll-UntilVisibleText '配置 →'
-Click-Text '配置 →'
-$null = Assert-Page 'pages/ApiEnvironment'
-Back-ToIndex
-
-Scroll-UntilVisibleText '返回对话'
-Click-Text '返回对话'
+Click-Text '对话'
 $null = Assert-Page 'pages/ChatMain'
 
-Write-Output 'UI navigation smoke passed: ChatMain -> Index -> StudyPlan/ExercisePractice/AgentTrace/CourseImport/WrongQuestion/LearningHistory/ApiEnvironment -> ChatMain.'
+Write-Output 'UI navigation smoke passed: ChatMain -> Index -> CourseImport/FocusSetup/Account -> ChatMain.'

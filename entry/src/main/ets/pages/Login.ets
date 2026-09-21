@@ -5,6 +5,7 @@ import { AuthClient } from '../api/AuthClient';
 import { AuthResult } from '../api/AuthResult';
 import { GRADE_OPTIONS } from '../api/AuthModels';
 import { appState } from '../data/AppState';
+import { DeviceLayout } from '../utils/DeviceLayout';
 
 /**
  * 登录页 —— 对齐参考设计（ACCOUNT ACCESS 卡片式表单）。
@@ -54,12 +55,27 @@ import { appState } from '../data/AppState';
 struct Login {
   /** 'login' | 'register' —— 顶部大分段。 */
   @State mode: string = 'login';
-  /** 'password' | 'code' —— 登录方式分段（仅 login 模式显示，code 为规划项）。 */
+  /** 'password' | 'code' —— 登录方式分段（仅 login 模式显示）。 */
   @State method: string = 'password';
   @State nickname: string = '';
   /** 手机号 —— 注册必填、登录首选（唯一身份标识）。 */
   @State phone: string = '';
   @State password: string = '';
+  /** 短信验证码（仅 `method === 'code'` 使用）。 */
+  @State verifyCode: string = '';
+  /** 重发倒计时秒数；0 表示可以发送。值来自后端 `resendAfterSeconds`，不写死。 */
+  @State resendCountdown: number = 0;
+  /** 验证码是否已发出（用于切换按钮文案与展示开发回显提示）。 */
+  @State codeSent: boolean = false;
+  /**
+   * 短信是否**真的**发出去了。
+   *
+   * false 表示后端仅在开发模式回显了验证码 —— 界面必须如实说明，
+   * 不能显示成"验证码已发送"（后端专门设计了 `smsDelivered` 字段来区分）。
+   */
+  @State smsDelivered: boolean = false;
+  /** 开发模式回显的验证码；非空时界面用醒目样式标注"开发回显"。 */
+  @State devCode: string = '';
   @State grade: string = '';
   @State rememberMe: boolean = true;
   @State showPassword: boolean = false;
@@ -70,6 +86,8 @@ struct Login {
   @State isHuaweiLoggingIn: boolean = false;
 
   private isActive: boolean = false;
+  /** 倒计时定时器句柄；离开页面必须清掉，否则会在已销毁的页面上 setState。 */
+  private resendTimer: number = -1;
 
   aboutToAppear(): void {
     this.isActive = true;
@@ -77,6 +95,7 @@ struct Login {
 
   aboutToDisappear(): void {
     this.isActive = false;
+    this.stopResendTimer();
   }
 
   // ---------------------------------------------------------------- 校验
@@ -153,9 +172,10 @@ struct Login {
     if (this.busy) {
       return;
     }
-    if (this.method === 'code') {
-      this.message = '验证码登录需要短信服务支持，当前未接入。请改用手机号登录或直接进入演示。';
-      this.messageIsError = true;
+
+    // 验证码登录：走独立链路（先校验手机号+验证码，再 verifyCode）
+    if (this.method === 'code' && this.mode === 'login') {
+      await this.onVerifyCodeLogin();
       return;
     }
 
@@ -248,6 +268,111 @@ struct Login {
     this.goHome();
   }
 
+  // -------------------------------------------------------- 手机号验证码登录
+  /**
+   * 发送验证码。
+   *
+   * 三个要点：
+   * 1. **倒计时用后端返回的 `resendAfterSeconds`**，不要写死 60 ——
+   *    否则界面显示的"可重发时间"与后端真实限流不一致，用户点了会被 429。
+   * 2. `smsDelivered === false` 时**必须如实告知**短信没真的发出去，
+   *    并展示开发回显码。这是后端专门设计来避免"假装已发送"的字段。
+   * 3. 离开页面要清定时器，避免在已销毁的页面上写 @State。
+   */
+  private async onSendCode(): Promise<void> {
+    if (this.busy || this.resendCountdown > 0) {
+      return;
+    }
+    const phoneError: string = this.validatePhone();
+    if (phoneError.length > 0) {
+      this.message = phoneError;
+      this.messageIsError = true;
+      return;
+    }
+
+    this.busy = true;
+    this.message = '';
+    const result: AuthResult = await AuthClient.sendVerificationCode(this.normalizedPhone());
+    if (!this.isActive) {
+      return;
+    }
+    this.busy = false;
+
+    if (!result.ok) {
+      this.message = result.message;
+      this.messageIsError = true;
+      return;
+    }
+
+    this.codeSent = true;
+    this.smsDelivered = result.smsDelivered === true;
+    this.devCode = result.devCode !== undefined ? result.devCode : '';
+    this.message = result.message;
+    // 开发回显不是错误，但要足够醒目，避免被误当成"短信已发送"
+    this.messageIsError = false;
+    this.startResendTimer(result.resendAfterSeconds !== undefined ? result.resendAfterSeconds : 60);
+  }
+
+  /** 校验验证码并登录 / 自动注册。 */
+  private async onVerifyCodeLogin(): Promise<void> {
+    const phoneError: string = this.validatePhone();
+    if (phoneError.length > 0) {
+      this.message = phoneError;
+      this.messageIsError = true;
+      return;
+    }
+    if (!/^\d{6}$/.test(this.verifyCode.trim())) {
+      this.message = '请输入 6 位数字验证码。';
+      this.messageIsError = true;
+      return;
+    }
+
+    this.busy = true;
+    this.message = '';
+    // 昵称/年级只在"首次自动建号"时被后端采用；已注册手机号会忽略它们。
+    const result: AuthResult = await AuthClient.verifyCode(
+      this.normalizedPhone(), this.verifyCode.trim(),
+      this.nickname.length > 0 ? this.nickname : undefined,
+      this.grade.length > 0 ? this.grade : undefined);
+    if (!this.isActive) {
+      return;
+    }
+    this.busy = false;
+
+    if (!result.ok) {
+      this.message = result.message;
+      this.messageIsError = true;
+      return;
+    }
+    AgentApiClient.setUseFixture(false);
+    appState.applyLogin(result.user, result.source);
+    this.goHome();
+  }
+
+  /** 启动重发倒计时。 */
+  private startResendTimer(seconds: number): void {
+    this.stopResendTimer();
+    this.resendCountdown = seconds > 0 ? seconds : 60;
+    this.resendTimer = setInterval(() => {
+      if (!this.isActive) {
+        this.stopResendTimer();
+        return;
+      }
+      this.resendCountdown = this.resendCountdown - 1;
+      if (this.resendCountdown <= 0) {
+        this.resendCountdown = 0;
+        this.stopResendTimer();
+      }
+    }, 1000);
+  }
+
+  private stopResendTimer(): void {
+    if (this.resendTimer !== -1) {
+      clearInterval(this.resendTimer);
+      this.resendTimer = -1;
+    }
+  }
+
   private canSubmit(): boolean {
     if (this.busy) {
       return false;
@@ -279,7 +404,7 @@ struct Login {
               .fontSize(14).fontColor('#64748B').width('100%')
           }
           .width('100%').alignItems(HorizontalAlign.Start)
-          .padding({ top: 56, bottom: 26 })
+          .padding({ top: this.topPadding(), bottom: 26 })
 
           // ---------- 登录 / 注册 分段 ----------
           // 用无参 Builder（直接读 this.mode），确保切换后高亮与主按钮文案必然刷新
@@ -345,33 +470,84 @@ struct Login {
               .backgroundColor('#F8FAFC').borderRadius(10)
               .border({ width: 1, color: '#E2E8F0' })
               Text(this.mode === 'register'
-                ? '手机号是账号的唯一标识，用于登录与找回。当前版本不做短信校验。'
-                : '填了手机号就按手机号登录（唯一、可靠）；留空则按昵称登录。')
+                ? '手机号是账号的唯一标识，用于登录与找回。'
+                : (this.method === 'code'
+                  ? '验证码登录：手机号未注册时会自动为你建号。'
+                  : '填了手机号就按手机号登录（唯一、可靠）；留空则按昵称登录。'))
                 .fontSize(11).fontColor('#98A2B3').lineHeight(17).width('100%')
             }.width('100%')
 
-            // 密码（视觉占位，不参与校验）
-            Column({ space: 8 }) {
-              Text('密码').fontSize(14).fontWeight(FontWeight.Medium).fontColor('#0F172A').width('100%')
-              Row({ space: 10 }) {
-                Text('🔒').fontSize(15).fontColor('#94A3B8')
-                TextInput({ placeholder: '请输入密码', text: this.password })
-                  .type(this.showPassword ? InputType.Normal : InputType.Password)
-                  .layoutWeight(1).height(48).fontSize(15)
-                  .backgroundColor(Color.Transparent).padding(0)
-                  .enabled(!this.busy)
-                  .onChange((value: string) => { this.password = value; })
-                Text(this.showPassword ? '🙈' : '👁')
-                  .fontSize(15).fontColor('#94A3B8')
-                  .onClick(() => { this.showPassword = !this.showPassword; })
-              }
-              .width('100%').padding({ left: 14, right: 14 })
-              .backgroundColor('#F8FAFC').borderRadius(10)
-              .border({ width: 1, color: '#E2E8F0' })
+            // ---------- 登录方式 = 验证码：验证码输入 + 获取验证码 ----------
+            if (this.mode === 'login' && this.method === 'code') {
+              Column({ space: 8 }) {
+                Text('短信验证码').fontSize(14).fontWeight(FontWeight.Medium)
+                  .fontColor('#0F172A').width('100%')
+                Row({ space: 10 }) {
+                  Text('💬').fontSize(15).fontColor('#94A3B8')
+                  TextInput({ placeholder: '6 位数字验证码', text: this.verifyCode })
+                    .type(InputType.Number)
+                    .maxLength(6)
+                    .layoutWeight(1).height(48).fontSize(15)
+                    .backgroundColor(Color.Transparent).padding(0)
+                    .enabled(!this.busy)
+                    .onChange((value: string) => { this.verifyCode = value; })
+                  // 倒计时读的是后端 `resendAfterSeconds`，与真实限流一致
+                  Button(this.resendCountdown > 0
+                    ? `${this.resendCountdown} 秒后可重发`
+                    : (this.codeSent ? '重新获取' : '获取验证码'))
+                    .fontSize(13).height(36).borderRadius(8)
+                    .backgroundColor(this.resendCountdown > 0 ? '#E2E8F0' : '#DBEAFE')
+                    .fontColor(this.resendCountdown > 0 ? '#94A3B8' : '#1D4ED8')
+                    .enabled(!this.busy && this.resendCountdown === 0)
+                    .onClick(() => { this.onSendCode(); })
+                }
+                .width('100%').padding({ left: 14, right: 14 })
+                .backgroundColor('#F8FAFC').borderRadius(10)
+                .border({ width: 1, color: '#E2E8F0' })
 
-              Text('演示版为免密登录：密码仅作界面占位，不参与校验。生产接入 AGC 认证服务。')
-                .fontSize(11).fontColor('#94A3B8').lineHeight(17).width('100%')
+                // 开发回显必须醒目且如实：不能让人以为短信真的发出去了
+                if (!this.smsDelivered && this.devCode.length > 0) {
+                  Column({ space: 4 }) {
+                    Text('⚠️ 开发模式回显（短信未真实下发）')
+                      .fontSize(12).fontWeight(FontWeight.Medium).fontColor('#B45309').width('100%')
+                    Text(`验证码：${this.devCode}`)
+                      .fontSize(15).fontWeight(FontWeight.Bold).fontColor('#B45309').width('100%')
+                    Text('后端未配置短信服务商，此码仅用于联调与演示。')
+                      .fontSize(11).fontColor('#B45309').lineHeight(16).width('100%')
+                  }
+                  .width('100%').padding(12).backgroundColor('#FFFBEB')
+                  .borderRadius(10).border({ width: 1, color: '#FDE68A' })
+                } else if (this.codeSent) {
+                  Text('验证码已发送。收不到可改用「密码登录」或「一键体验」。')
+                    .fontSize(11).fontColor('#64748B').lineHeight(17).width('100%')
+                }
+              }.width('100%')
+            }
+
+            // 密码（视觉占位，不参与校验）—— 验证码方式下不显示
+            if (!(this.mode === 'login' && this.method === 'code')) {
+              Column({ space: 8 }) {
+                Text('密码').fontSize(14).fontWeight(FontWeight.Medium).fontColor('#0F172A').width('100%')
+                Row({ space: 10 }) {
+                  Text('🔒').fontSize(15).fontColor('#94A3B8')
+                  TextInput({ placeholder: '请输入密码', text: this.password })
+                    .type(this.showPassword ? InputType.Normal : InputType.Password)
+                    .layoutWeight(1).height(48).fontSize(15)
+                    .backgroundColor(Color.Transparent).padding(0)
+                    .enabled(!this.busy)
+                    .onChange((value: string) => { this.password = value; })
+                  Text(this.showPassword ? '🙈' : '👁')
+                    .fontSize(15).fontColor('#94A3B8')
+                    .onClick(() => { this.showPassword = !this.showPassword; })
+                }
+                .width('100%').padding({ left: 14, right: 14 })
+                .backgroundColor('#F8FAFC').borderRadius(10)
+                .border({ width: 1, color: '#E2E8F0' })
+
+                Text('演示版为免密登录：密码仅作界面占位，不参与校验。生产接入 AGC 认证服务。')
+                  .fontSize(11).fontColor('#94A3B8').lineHeight(17).width('100%')
             }.width('100%')
+            }
 
             // 年级（仅注册模式）
             if (this.mode === 'register') {
@@ -475,8 +651,17 @@ struct Login {
       }
       .layoutWeight(1)
       .scrollBar(BarState.Off)
+      // 大屏上给正文限宽并居中，避免一行文本被拉得过长。
+      // 手机返回一个足够大的值，等价于"不约束"（`Infinity` 不是合法的 Length，不能用）。
+      .constraintSize({ maxWidth: DeviceLayout.contentMaxWidth() })
+      .align(Alignment.Top)
     }
     .width('100%').height('100%').backgroundColor('#FFFFFF')
+  }
+
+  /** 大屏上减少顶部留白（手机竖屏留 56 好看，平板上会显得空）。 */
+  private topPadding(): number {
+    return DeviceLayout.isLargeScreen() ? 32 : 56;
   }
 
   /**

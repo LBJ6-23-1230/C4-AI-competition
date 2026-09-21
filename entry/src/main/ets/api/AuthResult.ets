@@ -16,4 +16,24 @@ export interface AuthResult {
   source: AuthSource;
   /** 给用户看的中文说明，可为空串。 */
   message: string;
+  /**
+   * 距离可重发验证码还有多少秒（仅 `sendVerificationCode()` 会填）。
+   *
+   * **不要在前端写死 60** —— 后端 `VERIFICATION_RESEND_SECONDS` 是可配的，
+   * 倒计时用这个值才与后端限流真实一致。
+   */
+  resendAfterSeconds?: number;
+  /**
+   * 开发模式回显的验证码（仅 `sendVerificationCode()` 且后端未接短信时存在）。
+   *
+   * ⚠️ 界面上必须**明确标注这是开发回显**，不能显示成"短信已发送"。
+   */
+  devCode?: string;
+  /**
+   * 短信是否**真的**发出去了（仅 `sendVerificationCode()` 会填）。
+   *
+   * false 表示后端只在开发模式回显了验证码，并没有真实下发 ——
+   * 这是后端专门设计的诚实标注字段，前端必须如实呈现。
+   */
+  smsDelivered?: boolean;
 }

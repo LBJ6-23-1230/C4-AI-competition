@@ -2,7 +2,7 @@ import { http } from '@kit.NetworkKit';
 import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeDocument, KnowledgeDocumentUploadRequest, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiFailure, ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { ApiDefaults } from './ApiDefaults';
-import { AuthHuaweiLoginRequest, AuthLoginOrRegisterRequest, AuthLoginOrRegisterResponse, AuthLoginRequest, AuthRegisterRequest, AuthSessionResponse, AuthStatusResponse, AuthUserResponse } from './AuthModels';
+import { AuthHuaweiLoginRequest, AuthLoginOrRegisterRequest, AuthLoginOrRegisterResponse, AuthLoginRequest, AuthRegisterRequest, AuthSendCodeRequest, AuthSendCodeResponse, AuthSessionResponse, AuthStatusResponse, AuthUserResponse, AuthVerifyCodeRequest } from './AuthModels';
 import { AuthStore } from './AuthStore';
 import { FixtureApiTransport } from './FixtureApiTransport';
 import { ApiResponseValidator } from './ApiResponseValidator';
@@ -166,6 +166,26 @@ export class AgentApiClient {
   /** 华为账号登录：用 `@kit.AccountKit` 拿到的 OpenID 换取本服务 token。 */
   static async authLoginWithHuawei(request: AuthHuaweiLoginRequest): Promise<ApiResult<AuthLoginOrRegisterResponse>> {
     return AgentApiClient.request<AuthLoginOrRegisterResponse>(http.RequestMethod.POST, '/api/v1/auth/login-with-huawei', request);
+  }
+
+  /**
+   * 发送手机号验证码。
+   *
+   * 后端限流：同号 60 秒一次、滚动 24 小时最多 10 次。
+   * 未配置短信服务商时响应里 `smsDelivered=false` 且（仅非生产环境）回显 `devCode`。
+   */
+  static async authSendCode(request: AuthSendCodeRequest): Promise<ApiResult<AuthSendCodeResponse>> {
+    return AgentApiClient.request<AuthSendCodeResponse>(http.RequestMethod.POST, '/api/v1/auth/send-code', request);
+  }
+
+  /**
+   * 校验验证码并登录 / 自动注册。
+   *
+   * 响应形状与 `login-or-register` 相同（含 `created`），
+   * 便于前端复用同一套「登录成功 / 已建号」文案逻辑。
+   */
+  static async authVerifyCode(request: AuthVerifyCodeRequest): Promise<ApiResult<AuthLoginOrRegisterResponse>> {
+    return AgentApiClient.request<AuthLoginOrRegisterResponse>(http.RequestMethod.POST, '/api/v1/auth/verify-code', request);
   }
 
   static async authMe(): Promise<ApiResult<AuthUserResponse>> {

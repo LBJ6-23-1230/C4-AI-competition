@@ -1122,6 +1122,130 @@
           }
         }
       }
+    },
+    "/api/v1/auth/send-code": {
+      "post": {
+        "summary": "发送手机号验证码（开发模式回显）",
+        "description": "同号 60 秒内限发一次，滚动 24 小时最多 10 次。未配置短信服务商时仅在非生产环境回显 devCode，smsDelivered=false，绝不伪装已发送。",
+        "operationId": "authSendCode",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneCodeSendRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "验证码已签发",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhoneCodeSendResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "手机号格式错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "触发重发或每日限流，或手机号处于锁定状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "短信服务未接入或生产环境未配置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify-code": {
+      "post": {
+        "summary": "校验验证码并登录或自动注册",
+        "description": "验证码成功后立即失效；手机号已存在则登录，不存在则创建账号并预置起始画像。",
+        "operationId": "authVerifyCode",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneCodeVerifyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录已有账号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthLoginOrRegisterResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "验证码通过并新建账号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthLoginOrRegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "验证码错误、过期、已使用或参数非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "手机号因连续错误被锁定",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2262,7 +2386,7 @@
           },
           "phone": {
             "type": "string",
-            "description": "手机号。**注册必填**（唯一身份标识，后端做格式校验与唯一约束）；登录时可选，填了会优先按手机号匹配。当前版本不做短信验证码校验，见 docs/11 §5.2。"
+            "description": "手机号。注册必填；生产登录应先调用 send-code + verify-code。当前 /auth/login 的免验证码手机号登录保留给演示与单机环境。"
           }
         }
       },
@@ -2397,7 +2521,15 @@
               "UNAUTHORIZED",
               "CONTRACT_VERSION_MISMATCH",
               "INTERNAL_ERROR",
-              "LLM_FALLBACK"
+              "LLM_FALLBACK",
+              "RATE_LIMITED",
+              "DAILY_LIMIT_REACHED",
+              "PHONE_LOCKED",
+              "INVALID_CODE",
+              "CODE_EXPIRED",
+              "CODE_NOT_FOUND",
+              "SMS_NOT_CONFIGURED",
+              "SMS_PROVIDER_UNAVAILABLE"
             ]
           },
           "message": {
@@ -2691,7 +2823,9 @@
           "query",
           "hits",
           "totalScanned",
-          "retrievalMode"
+          "retrievalMode",
+          "semanticAvailable",
+          "semanticWeight"
         ],
         "properties": {
           "kbId": {
@@ -2713,9 +2847,18 @@
             "type": "string",
             "enum": [
               "keyword+tag",
-              "vector"
+              "vector",
+              "hybrid:semantic+keyword+tag"
             ],
-            "description": "当前检索方式。第一期是 keyword+tag，第三期引入向量检索后为 vector。诚实标注便于答辩解释。"
+            "description": "**实际**使用的检索方式，诚实标注以便答辩解释：\n* `keyword+tag` —— 纯关键词 + 标签 + 标题层级（未配置 DASHSCOPE_API_KEY，或向量调用失败时的降级路径）\n* `hybrid:semantic+keyword+tag` —— embedding 语义相似度与关键词分加权融合\n* `vector` —— 预留：将来若改为纯向量检索"
+          },
+          "semanticAvailable": {
+            "type": "boolean",
+            "description": "是否具备语义检索条件（即是否配置了 DASHSCOPE_API_KEY）。注意它是**能力**标志，不是本次是否真的用上了。"
+          },
+          "semanticWeight": {
+            "type": "number",
+            "description": "本次语义分在融合得分里的权重（0–1）。降级为纯关键词时为 0，可据此判断语义是否真的参与打分。"
           }
         }
       },
@@ -2796,6 +2939,77 @@
           "grade": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "PhoneCodeSendRequest": {
+        "type": "object",
+        "required": [
+          "phone"
+        ],
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "11 位中国大陆手机号，支持 +86 与分隔符写法"
+          }
+        }
+      },
+      "PhoneCodeSendResponse": {
+        "type": "object",
+        "required": [
+          "phoneMasked",
+          "expiresInSeconds",
+          "resendAfterSeconds",
+          "smsDelivered"
+        ],
+        "properties": {
+          "phoneMasked": {
+            "type": "string",
+            "example": "138****0000"
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "example": 300
+          },
+          "resendAfterSeconds": {
+            "type": "integer",
+            "example": 60
+          },
+          "smsDelivered": {
+            "type": "boolean",
+            "description": "true 才表示短信服务商已实际发送"
+          },
+          "devCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "仅开发模式回显；生产模式绝不返回"
+          }
+        }
+      },
+      "PhoneCodeVerifyRequest": {
+        "type": "object",
+        "required": [
+          "phone",
+          "code"
+        ],
+        "properties": {
+          "phone": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "description": "6 位数字验证码，一次性使用"
+          },
+          "nickname": {
+            "type": "string",
+            "nullable": true,
+            "description": "仅首次自动注册时使用；缺省为“用户+手机号后四位”"
+          },
+          "grade": {
+            "type": "string",
+            "nullable": true,
+            "description": "仅首次自动注册时使用"
           }
         }
       }

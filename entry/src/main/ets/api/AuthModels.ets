@@ -46,11 +46,13 @@ export interface AuthHuaweiLoginRequest {
 }
 
 /**
- * 登录请求。两种形式，服务端按"给了 userId/token 就优先按凭据恢复，
- * 否则按昵称登录"分派：
- *   · `{userId, token}` —— 恢复本机已保存的登录态
- *   · `{phone}`         —— 按手机号登录（当前演示版未接短信验证码）
+ * 登录请求。三种形式，服务端按优先级分派：
+ *   · `{userId, token}` —— 恢复本机已保存的登录态（最高优先）
+ *   · `{phone}`         —— 按手机号登录（**免验证码**，保留给演示与单机环境）
  *   · `{nickname}`      —— 按昵称免密登录
+ *
+ * ⚠️ 生产环境应走验证码链路（`AuthSendCodeRequest` + `AuthVerifyCodeRequest`），
+ * 见 `AuthClient.sendVerificationCode()` / `verifyCode()`。
  */
 export interface AuthLoginRequest {
   userId?: string;
@@ -58,6 +60,61 @@ export interface AuthLoginRequest {
   nickname?: string;
   phone?: string;
 }
+
+// ------------------------------------------------------------------ 手机号验证码
+/**
+ * 发送验证码请求。字段与契约 `PhoneCodeSendRequest` 一致。
+ *
+ * `phone` 支持 `+86` 前缀与空格/短横线分隔写法，后端会归一化成 11 位。
+ */
+export interface AuthSendCodeRequest {
+  phone: string;
+}
+
+/**
+ * 发送验证码响应。字段与契约 `PhoneCodeSendResponse` 一致。
+ *
+ * **诚实标注**：`smsDelivered === false` 表示短信**并没有真的发出去**
+ * （未配置短信服务商），此时后端仅在非生产环境回显 `devCode` 供联调使用。
+ * 界面必须据此如实提示，不得显示成"验证码已发送"。
+ */
+export interface AuthSendCodeResponse {
+  /** 脱敏手机号，如 `138****8888`。后端绝不回传完整号码。 */
+  phoneMasked: string;
+  /** 验证码有效期（秒）。 */
+  expiresInSeconds: number;
+  /** 多少秒后才能重新发送（当前 60）。按钮倒计时用它，不要写死。 */
+  resendAfterSeconds: number;
+  /** true 才代表短信服务商已实际发送。 */
+  smsDelivered: boolean;
+  /** 仅开发模式回显；生产模式绝不返回。可空。 */
+  devCode?: string;
+}
+
+/**
+ * 校验验证码并登录或自动注册。字段与契约 `PhoneCodeVerifyRequest` 一致。
+ *
+ * `nickname` / `grade` **仅在首次自动注册时**使用；手机号已存在时被忽略。
+ */
+export interface AuthVerifyCodeRequest {
+  phone: string;
+  /** 6 位数字验证码，一次性使用。 */
+  code: string;
+  nickname?: string;
+  grade?: string;
+}
+
+/** 验证码相关后端错误码 → 用户可读文案。见契约 `ErrorResponse.enum`。 */
+export const VERIFICATION_CODE_MESSAGES: Record<string, string> = {
+  'RATE_LIMITED': '发送太频繁了，请稍后再试。',
+  'DAILY_LIMIT_REACHED': '今日验证码次数已用完，请明天再试。',
+  'PHONE_LOCKED': '连续输错次数过多，该手机号已被临时锁定，请 15 分钟后再试。',
+  'INVALID_CODE': '验证码不正确，请检查后重试。',
+  'CODE_EXPIRED': '验证码已过期，请重新获取。',
+  'CODE_NOT_FOUND': '请先获取验证码。',
+  'SMS_NOT_CONFIGURED': '短信服务尚未配置，暂时无法发送验证码。可改用「昵称登录」或「一键体验」。',
+  'SMS_PROVIDER_UNAVAILABLE': '短信服务暂不可用，请稍后重试。可改用「昵称登录」或「一键体验」。'
+};
 
 /**
  * 「登录优先，注册兜底」的请求/响应。

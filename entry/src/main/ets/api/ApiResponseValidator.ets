@@ -110,7 +110,12 @@ export class ApiResponseValidator {
         ApiResponseValidator.hasString(data, 'query') &&
         ApiResponseValidator.hasArray(data, 'hits') &&
         ApiResponseValidator.hasNumber(data, 'totalScanned') &&
-        ApiResponseValidator.hasString(data, 'retrievalMode');
+        ApiResponseValidator.hasString(data, 'retrievalMode') &&
+        // 语义检索的两个诚实标注字段（契约 required）：
+        //   semanticAvailable = 后端是否具备语义能力
+        //   semanticWeight    = 本次语义分权重（0 表示未参与）
+        ApiResponseValidator.hasBoolean(data, 'semanticAvailable') &&
+        ApiResponseValidator.hasNumber(data, 'semanticWeight');
     }
     // ---- 鉴权（/api/v1/auth/*）----
     if (method === 'POST' && path === '/api/v1/auth/register') {

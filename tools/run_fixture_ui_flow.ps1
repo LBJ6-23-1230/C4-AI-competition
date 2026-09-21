@@ -107,10 +107,17 @@ function Scroll-UntilVisibleTextContains([string]$Text, [int]$MaxSwipes = 5) {
 & $HdcPath shell aa force-stop $BundleName | Out-Null
 & $HdcPath shell aa start -a $AbilityName -b $BundleName | Out-Null
 Start-Sleep -Seconds 2
+$initialLayout = Get-Layout
+if ((Get-AppRoot $initialLayout).attributes.pagePath -eq 'pages/Login') {
+    Click-Text '跳过登录，用演示身份进入 →'
+    Start-Sleep -Seconds 2
+}
 $null = Assert-Page 'pages/ChatMain'
 
 Click-Text '工具'
 $null = Assert-Page 'pages/Index'
+Click-Text '我的'
+Scroll-UntilVisibleText '配置 →'
 Click-Text '配置 →'
 $null = Assert-Page 'pages/ApiEnvironment'
 
@@ -127,19 +134,18 @@ Assert-VisibleText '当前模式：Fixture 离线演示'
 & $HdcPath shell uitest uiInput keyEvent Back | Out-Null
 Start-Sleep -Milliseconds 500
 $null = Assert-Page 'pages/Index'
-Scroll-UntilVisibleText '返回对话'
-Click-Text '返回对话'
+Click-Text '对话'
 $null = Assert-Page 'pages/ChatMain'
 
-Click-Text '薄弱诊断'
+Click-Text '学情画像'
 Click-Text '发送'
-Wait-VisibleText '查看薄弱诊断'
-Click-Text '查看薄弱诊断'
+Wait-VisibleText '查看学情画像'
+Click-Text '查看学情画像'
 $null = Assert-Page 'pages/StudyTags'
 Assert-VisibleText '知识画像 V1'
 Assert-VisibleText '42 / 100'
 
-Click-Text '开始诊断练习'
+Click-Text '按薄弱点开始专项练习'
 $null = Assert-Page 'pages/ExercisePractice'
 Click-Text 'A. 根-左-右'
 Click-Text 'B. 左-根-右'
@@ -149,13 +155,13 @@ Click-Text 'B. 左-根-右' 1
 Click-Text '提交诊断'
 Wait-VisibleText '诊断结果已生成'
 
-Assert-VisibleText '67%'
+Assert-VisibleText '66.67%'
 Assert-VisibleText '42 → 58'
 Assert-VisibleText 'Plan V1 → V2'
 Assert-VisibleText '诊断结果已生成'
 
-Scroll-UntilVisibleText '查看 Agent 决策过程'
-Click-Text '查看 Agent 决策过程'
+Scroll-UntilVisibleText '看 Agent 决策过程 →'
+Click-Text '看 Agent 决策过程 →'
 $null = Assert-Page 'pages/AgentTrace'
 Wait-VisibleText 'Agent 的决策过程'
 Assert-VisibleText '学习秘书'
@@ -167,8 +173,8 @@ Scroll-UntilVisibleTextContains '状态版本 5 ·'
 & $HdcPath shell uitest uiInput keyEvent Back | Out-Null
 Start-Sleep -Milliseconds 500
 $null = Assert-Page 'pages/ExercisePractice'
-Scroll-UntilVisibleText '查看更新后的知识画像'
-Click-Text '查看更新后的知识画像'
+Scroll-UntilVisibleText '看更新后的知识画像'
+Click-Text '看更新后的知识画像'
 $null = Assert-Page 'pages/StudyTags'
 Wait-VisibleText '知识画像 V2'
 Assert-VisibleText '58 / 100'
@@ -178,8 +184,8 @@ Scroll-UntilVisibleText '42 → 58 · 来源：学习评估'
 & $HdcPath shell uitest uiInput keyEvent Back | Out-Null
 Start-Sleep -Milliseconds 500
 $null = Assert-Page 'pages/ExercisePractice'
-Scroll-UntilVisibleText '查看 Agent 决策过程'
-Click-Text '查看 Agent 决策过程'
+Scroll-UntilVisibleText '看 Agent 决策过程 →'
+Click-Text '看 Agent 决策过程 →'
 $null = Assert-Page 'pages/AgentTrace'
 Wait-VisibleText 'Agent 的决策过程'
 Scroll-UntilVisibleText '重置演示数据'
@@ -200,4 +206,4 @@ Start-Sleep -Milliseconds 700
 $null = Assert-Page 'pages/ExercisePractice'
 Wait-VisibleText '以下哪项是给定二叉树的前序遍历结果？'
 
-Write-Output 'Fixture UI flow passed: Profile V1 42 -> 3 answers -> 67% -> mastery 58 -> Plan V2 -> 5-step Agent Trace -> Profile V2 evidence -> demo reset -> Profile V1 and fresh exercise.'
+Write-Output 'Fixture UI flow passed: Profile V1 42 -> 3 answers -> 66.67% -> mastery 58 -> Plan V2 -> 5-step Agent Trace -> Profile V2 evidence -> demo reset -> Profile V1 and fresh exercise.'

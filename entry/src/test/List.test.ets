@@ -10,6 +10,7 @@ import apiResponseValidatorTest from './ApiResponseValidator.test';
 import proactiveContextTest from './ProactiveContext.test';
 import learningCardTest from './LearningCard.test';
 import workflowViewModelTest from './WorkflowViewModel.test';
+import deviceLayoutTest from './DeviceLayout.test';
 
 export default function testsuite() {
   localUnitTest();
@@ -24,4 +25,5 @@ export default function testsuite() {
   proactiveContextTest();
   learningCardTest();
   workflowViewModelTest();
+  deviceLayoutTest();
 }

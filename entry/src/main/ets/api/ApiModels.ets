@@ -88,8 +88,18 @@ export interface KnowledgeSearchResponse {
   query: string;
   hits: KnowledgeChunkHit[];
   totalScanned: number;
-  /** 当前检索方式。第一期是 keyword+tag；第三期引入向量检索后为 vector。 */
+  /**
+   * **实际**使用的检索方式（后端诚实标注）：
+   *   · `keyword+tag`                 —— 纯关键词 + 标签 + 标题（未配置 Key，或向量调用失败）
+   *   · `hybrid:semantic+keyword+tag` —— embedding 语义分与关键词分加权融合
+   *   · `vector`                      —— 预留：将来若改为纯向量检索
+   * 可直接显示给用户/评委，**不要自行改写这两个字符串**，否则会失去"诚实标注"的意义。
+   */
   retrievalMode: string;
+  /** 是否具备语义检索能力（即后端是否配置了 DASHSCOPE_API_KEY）。注意是"能力"而非"本次用上了"。 */
+  semanticAvailable: boolean;
+  /** 本次语义分权重（0–1）。为 0 表示语义未参与打分。 */
+  semanticWeight: number;
 }
 
 export interface KnowledgeBaseCreateRequest {

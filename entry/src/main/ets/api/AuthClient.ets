@@ -3,7 +3,7 @@ import { AgentApiClient } from './AgentApiClient';
 import { ApiFailure, ApiResult } from './ApiResult';
 import { AuthResult } from './AuthResult';
 import { AuthStore } from './AuthStore';
-import { AuthUser, NICKNAME_MAX_LENGTH, NICKNAME_MIN_LENGTH, StoredSession } from './AuthModels';
+import { AuthUser, NICKNAME_MAX_LENGTH, NICKNAME_MIN_LENGTH, StoredSession, VERIFICATION_CODE_MESSAGES, AuthVerifyCodeRequest } from './AuthModels';
 import { HuaweiAccountService, HuaweiAuthOutcome } from '../services/HuaweiAccountService';
 
 /**
@@ -131,8 +131,9 @@ export class AuthClient {
    *
    * 手机号是唯一身份标识，比昵称可靠 —— 所以登录页优先用它。
    *
-   * ⚠️ 当前版本**不做短信验证码**：真实场景必须先验证码证明"号是本人的"。
-   * 完整链路见 `docs/11-用户登录体系方案.md` §5.2。
+   * ⚠️ **本方法不做验证码校验**：它保留了"知道手机号即可登录"的语义，
+   * 只适合演示与单机环境。产品路径应当用
+   * `sendVerificationCode()` + `verifyCode()` 两个方法（见下）。
    */
   static async loginByPhone(phone: string): Promise<AuthResult> {
     const trimmed: string = phone.trim();
@@ -150,6 +151,96 @@ export class AuthClient {
       source: 'restored',
       message: `欢迎回来，${result.data.user.nickname}。`
     };
+  }
+
+  // -------------------------------------------------------- 手机号验证码登录
+  /**
+   * 发送验证码。
+   *
+   * 返回的 `AuthResult.message` 在成功时是**给用户看的真实提示**：
+   *   · `smsDelivered === true`  → 「验证码已发送至 138****8888」
+   *   · `smsDelivered === false` → 明确说明**短信并未真的发出**，并给出开发回显码
+   *
+   * 之所以这么强调：后端专门设计了 `smsDelivered` 字段来区分"真发了"与
+   * "只是回显"，前端若一律显示"已发送"就浪费了这个设计，也违背项目
+   * "不伪装"的纪律。`devCode` 只在开发模式存在，界面上要标注成开发回显。
+   */
+  static async sendVerificationCode(phone: string): Promise<AuthResult> {
+    const trimmed: string = phone.trim();
+    if (trimmed.length === 0) {
+      return { ok: false, user: null, source: 'local', message: '请输入手机号。' };
+    }
+    const result = await AgentApiClient.authSendCode({ phone: trimmed });
+    if (!result.ok) {
+      return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
+    }
+    const data = result.data;
+    const devCode: string = data.devCode !== undefined && data.devCode.length > 0
+      ? data.devCode : '';
+    let message: string;
+    if (data.smsDelivered) {
+      message = `验证码已发送至 ${data.phoneMasked}，${AuthClient.describeSeconds(data.expiresInSeconds)}内有效。`;
+    } else if (devCode.length > 0) {
+      message = `短信服务未接入，当前为开发模式回显：验证码是 ${devCode}（${AuthClient.describeSeconds(data.expiresInSeconds)}内有效）。`;
+    } else {
+      message = `短信服务未接入，未能真实下发验证码。可改用「昵称登录」或「一键体验」。`;
+    }
+    return {
+      ok: true,
+      user: null,
+      source: 'local',
+      message: message,
+      resendAfterSeconds: data.resendAfterSeconds,
+      devCode: devCode,
+      smsDelivered: data.smsDelivered
+    };
+  }
+
+  /**
+   * 校验验证码并登录 / 自动注册（登录优先）。
+   *
+   * `nickname` / `grade` 只在**首次建号**时生效；手机号已注册时被后端忽略，
+   * 因此可以放心一并传上，不需要前端先探测"这个号存不存在"。
+   */
+  static async verifyCode(phone: string, code: string,
+    nickname?: string, grade?: string): Promise<AuthResult> {
+    const trimmedPhone: string = phone.trim();
+    const trimmedCode: string = code.trim();
+    if (trimmedPhone.length === 0) {
+      return { ok: false, user: null, source: 'local', message: '请输入手机号。' };
+    }
+    if (!/^\d{6}$/.test(trimmedCode)) {
+      return { ok: false, user: null, source: 'local', message: '请输入 6 位数字验证码。' };
+    }
+    const request: AuthVerifyCodeRequest = { phone: trimmedPhone, code: trimmedCode };
+    if (nickname !== undefined && nickname.trim().length > 0) {
+      request.nickname = nickname.trim();
+    }
+    if (grade !== undefined && grade.length > 0) {
+      request.grade = grade;
+    }
+
+    const result = await AgentApiClient.authVerifyCode(request);
+    if (!result.ok) {
+      return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
+    }
+    AuthStore.save(result.data.user, result.data.token, result.data.expiresAt);
+    return {
+      ok: true,
+      user: result.data.user,
+      source: 'local',
+      message: result.data.created
+        ? `已为你建立账号，${result.data.user.nickname}。`
+        : `欢迎回来，${result.data.user.nickname}。`
+    };
+  }
+
+  /** 把秒数说成人话（避免界面出现 "300 秒" 这种不直观的表述）。 */
+  private static describeSeconds(seconds: number): string {
+    if (seconds >= 60 && seconds % 60 === 0) {
+      return `${seconds / 60} 分钟`;
+    }
+    return `${seconds} 秒`;
   }
 
   /**
@@ -303,6 +394,12 @@ export class AuthClient {
     const failure = result as ApiFailure;
     if (failure.error.code === 'NETWORK_ERROR') {
       return '连接不上后端服务。请检查服务地址，或直接使用「一键体验」离线进入。';
+    }
+    // 验证码相关的 8 个错误码有专门文案（见 AuthModels.VERIFICATION_CODE_MESSAGES）。
+    // 后端把 errorCode 放在响应的 errorCode 字段里，由 AgentApiClient 透传成 error.code。
+    const mapped: string | undefined = VERIFICATION_CODE_MESSAGES[failure.error.code];
+    if (mapped !== undefined && mapped.length > 0) {
+      return mapped;
     }
     return failure.error.message;
   }
