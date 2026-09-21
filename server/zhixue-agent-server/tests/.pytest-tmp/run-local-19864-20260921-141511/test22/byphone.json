@@ -1,0 +1,118 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ]
+    },
+    "u-580591ea9e4d": {
+      "userId": "u-580591ea9e4d",
+      "goal": "李四的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 0,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-21T06:15:12.360893+00:00"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    },
+    "plan-u-580591ea9e4d": {
+      "planId": "plan-u-580591ea9e4d",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "新账号起始计划：从二叉树后序遍历开始",
+      "userId": "u-580591ea9e4d"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    }
+  },
+  "users": {
+    "u-580591ea9e4d": {
+      "userId": "u-580591ea9e4d",
+      "nickname": "李四",
+      "grade": "大一",
+      "phone": "13900000004",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-21T06:15:12+00:00",
+      "lastLoginAt": "2026-09-21T06:15:12+00:00"
+    }
+  },
+  "sessions": {
+    "aCSkrfwxN9u6aY8TuQUqkQAsc4mASZ7wZtyL2RCo54A": {
+      "token": "aCSkrfwxN9u6aY8TuQUqkQAsc4mASZ7wZtyL2RCo54A",
+      "userId": "u-580591ea9e4d",
+      "createdAt": "2026-09-21T06:15:12+00:00",
+      "expiresAt": "2026-10-21T06:15:12+00:00"
+    },
+    "sbfOAT2sB8MR-rKGaBWes_vkspqf89as52D54pgvm3s": {
+      "token": "sbfOAT2sB8MR-rKGaBWes_vkspqf89as52D54pgvm3s",
+      "userId": "u-580591ea9e4d",
+      "createdAt": "2026-09-21T06:15:12+00:00",
+      "expiresAt": "2026-10-21T06:15:12+00:00"
+    }
+  }
+}

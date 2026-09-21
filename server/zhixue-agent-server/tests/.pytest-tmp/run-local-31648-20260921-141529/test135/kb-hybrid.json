@@ -1,0 +1,106 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    }
+  },
+  "knowledge_bases": {
+    "kb-e143eef5c32b": {
+      "kbId": "kb-e143eef5c32b",
+      "userId": "demo-user",
+      "courseName": "数据结构",
+      "name": "数据结构复习",
+      "description": "",
+      "documentCount": 1,
+      "chunkCount": 1,
+      "knowledgePoints": [
+        "叉树",
+        "后序遍历"
+      ],
+      "createdAt": "2026-09-21T06:15:35.979995+00:00",
+      "updatedAt": "2026-09-21T06:15:35.984515+00:00"
+    }
+  },
+  "documents": {
+    "doc-08a5a1f5190e": {
+      "documentId": "doc-08a5a1f5190e",
+      "kbId": "kb-e143eef5c32b",
+      "userId": "demo-user",
+      "fileName": "笔记.md",
+      "mimeType": "",
+      "sizeBytes": 0,
+      "status": "ready",
+      "statusMessage": "",
+      "charCount": 29,
+      "chunkCount": 1,
+      "knowledgePoints": [
+        "叉树",
+        "后序遍历"
+      ],
+      "errorPointCandidates": [],
+      "uploadedAt": "2026-09-21T06:15:35.984515+00:00",
+      "parsedAt": "2026-09-21T06:15:35.984515+00:00"
+    }
+  },
+  "chunks": {
+    "chk-a7a2319a81b1": {
+      "chunkId": "chk-a7a2319a81b1",
+      "documentId": "doc-08a5a1f5190e",
+      "kbId": "kb-e143eef5c32b",
+      "userId": "demo-user",
+      "text": "后序遍历的顺序是左右根。",
+      "headingPath": "二叉树 > 后序遍历",
+      "knowledgePoints": [
+        "后序遍历"
+      ]
+    }
+  }
+}

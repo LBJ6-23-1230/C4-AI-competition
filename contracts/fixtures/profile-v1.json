@@ -1,0 +1,30 @@
+{
+  "profileVersion": 1,
+  "profile": {
+    "userId": "demo-user",
+    "goal": "数据结构考试80+",
+    "examDate": "2026-09-30",
+    "freeTimeSlots": ["20:00-22:00"],
+    "profileVersion": 1,
+    "mastery": [
+      {
+        "knowledgePointId": "binary-tree-postorder",
+        "knowledgePointName": "二叉树后序遍历",
+        "masteryScore": 42,
+        "confidence": 0.7,
+        "lastUpdated": "2026-09-02T09:00:00Z"
+      }
+    ]
+  },
+  "mastery": [
+    {
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "masteryScore": 42,
+      "confidence": 0.7,
+      "lastUpdated": "2026-09-02T09:00:00Z"
+    }
+  ],
+  "history": [],
+  "evidence": []
+}

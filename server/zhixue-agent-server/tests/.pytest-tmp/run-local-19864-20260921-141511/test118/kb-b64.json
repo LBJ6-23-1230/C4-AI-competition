@@ -1,0 +1,87 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    }
+  },
+  "knowledge_bases": {
+    "kb-c6f663d93976": {
+      "kbId": "kb-c6f663d93976",
+      "userId": "demo-user",
+      "courseName": "数据结构",
+      "name": "结构复习库",
+      "description": "",
+      "documentCount": 1,
+      "chunkCount": 0,
+      "knowledgePoints": [],
+      "createdAt": "2026-09-21T06:15:17.098379+00:00",
+      "updatedAt": "2026-09-21T06:15:17.102154+00:00"
+    }
+  },
+  "documents": {
+    "doc-9deb0a7ee5f7": {
+      "documentId": "doc-9deb0a7ee5f7",
+      "kbId": "kb-c6f663d93976",
+      "userId": "demo-user",
+      "fileName": "内容.md",
+      "mimeType": "",
+      "sizeBytes": 0,
+      "status": "failed",
+      "statusMessage": "文件内容不是合法的 base64",
+      "charCount": 0,
+      "chunkCount": 0,
+      "knowledgePoints": [],
+      "errorPointCandidates": [],
+      "uploadedAt": "2026-09-21T06:15:17.102154+00:00",
+      "parsedAt": "2026-09-21T06:15:17.102154+00:00"
+    }
+  }
+}

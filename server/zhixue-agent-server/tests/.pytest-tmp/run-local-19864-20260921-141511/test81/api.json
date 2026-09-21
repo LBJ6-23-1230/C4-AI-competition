@@ -1,0 +1,74 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    },
+    "trace-session-68046f27229a": {
+      "traceId": "trace-session-68046f27229a",
+      "events": []
+    }
+  },
+  "workflows": {
+    "session-68046f27229a": {
+      "sessionId": "session-68046f27229a",
+      "traceId": "trace-session-68046f27229a",
+      "status": "running",
+      "currentStep": "exercise",
+      "currentAgent": "exercise",
+      "nextAction": "获取练习题并开始学习",
+      "stateVersion": 1,
+      "finalAction": null,
+      "goal": "完成二叉树复习",
+      "userId": "demo-user",
+      "maxSteps": 6
+    }
+  }
+}

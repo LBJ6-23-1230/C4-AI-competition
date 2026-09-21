@@ -1,0 +1,250 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ]
+    },
+    "u-28804f754325": {
+      "userId": "u-28804f754325",
+      "goal": "甲的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 0,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-21T06:15:34.330269+00:00"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    },
+    "plan-u-28804f754325": {
+      "planId": "plan-u-28804f754325",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "新账号起始计划：从二叉树后序遍历开始",
+      "userId": "u-28804f754325"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    },
+    "trace-session-4a4decdf1f3f": {
+      "traceId": "trace-session-4a4decdf1f3f",
+      "events": [
+        {
+          "agent": "exercise",
+          "toolCalls": [
+            "select_exercises"
+          ],
+          "inputSummary": "plan has an available exercise step",
+          "outputSummary": "提交答案后继续评估",
+          "evidenceIds": [],
+          "stateVersion": 2,
+          "timestamp": "2026-09-21T06:15:34.348877+00:00",
+          "status": "waiting",
+          "sessionId": "session-4a4decdf1f3f",
+          "traceId": "trace-session-4a4decdf1f3f",
+          "stepId": "step-1",
+          "inputStateVersion": 1,
+          "outputStateVersion": 2
+        }
+      ]
+    }
+  },
+  "users": {
+    "u-28804f754325": {
+      "userId": "u-28804f754325",
+      "nickname": "甲",
+      "grade": "",
+      "phone": "13500000007",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-21T06:15:34+00:00",
+      "lastLoginAt": "2026-09-21T06:15:34+00:00"
+    }
+  },
+  "sessions": {
+    "crfeVBVoNlvvYx851Kn5uyCDlmbpRvChCpUuEht8BjA": {
+      "token": "crfeVBVoNlvvYx851Kn5uyCDlmbpRvChCpUuEht8BjA",
+      "userId": "u-28804f754325",
+      "createdAt": "2026-09-21T06:15:34+00:00",
+      "expiresAt": "2026-10-21T06:15:34+00:00"
+    }
+  },
+  "workflows": {
+    "session-4a4decdf1f3f": {
+      "sessionId": "session-4a4decdf1f3f",
+      "goal": "冒用探测",
+      "userId": "u-28804f754325",
+      "status": "running",
+      "currentStep": "exercise",
+      "currentAgent": "exercise",
+      "stateVersion": 2,
+      "maxSteps": 6,
+      "finalAction": "提交答案后继续评估",
+      "state": {
+        "sessionId": "session-4a4decdf1f3f",
+        "userId": "u-28804f754325",
+        "goal": "冒用探测",
+        "oldMastery": 0,
+        "plan": {
+          "planId": "plan-u-28804f754325",
+          "version": 1,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 30,
+              "status": "pending",
+              "priority": "high"
+            }
+          ],
+          "generatedFromProfileVersion": 1,
+          "reason": "新账号起始计划：从二叉树后序遍历开始",
+          "userId": "u-28804f754325"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 0,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "select_exercises"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "awaitingAnswers": true
+      },
+      "traceId": "trace-session-4a4decdf1f3f",
+      "nextAction": "提交答案后继续评估"
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    }
+  },
+  "verification_codes": {
+    "13500000006": {
+      "phone": "13500000006",
+      "codeHash": "187bf2e84c96526ee0bdbba4be6e19cd5723a834646f9023b39d596f100b130a",
+      "salt": "b788bba2edfbaa60eec7928314639130",
+      "codeIssuedAt": "2026-09-21T06:15:32+00:00",
+      "codeExpiresAt": "2026-09-21T06:20:32+00:00",
+      "lastSentAt": "2026-09-21T06:15:32+00:00",
+      "windowStartedAt": "2026-09-21T06:15:32+00:00",
+      "sendCount": 1,
+      "failedAttempts": 5,
+      "lockedUntil": "2026-09-21T06:30:32+00:00"
+    }
+  }
+}

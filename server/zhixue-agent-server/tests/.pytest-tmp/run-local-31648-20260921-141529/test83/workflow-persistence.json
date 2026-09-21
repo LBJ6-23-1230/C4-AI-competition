@@ -1,0 +1,449 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 2,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 58,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-21T06:15:33.793759+00:00"
+        }
+      ],
+      "history": [
+        {
+          "oldScore": 42,
+          "newScore": 58,
+          "evidenceIds": [
+            "evidence-session-caddc117cc52"
+          ],
+          "source": "assessment",
+          "timestamp": "2026-09-21T06:15:33.793759+00:00"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence-session-caddc117cc52",
+          "sourceType": "assessment",
+          "sourceId": "workflow:session-caddc117cc52",
+          "knowledgePointId": "binary-tree-postorder",
+          "metric": "accuracy",
+          "value": 0.6667000000000001,
+          "timestamp": "2026-09-21T06:15:33.793759+00:00",
+          "reliability": 1.0
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 2,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 15,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 2,
+      "reason": "mastery_below_threshold;repeated_error",
+      "userId": "demo-user"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    },
+    "trace-session-caddc117cc52": {
+      "traceId": "trace-session-caddc117cc52",
+      "events": [
+        {
+          "agent": "exercise",
+          "toolCalls": [
+            "select_exercises"
+          ],
+          "inputSummary": "plan has an available exercise step",
+          "outputSummary": "提交答案后继续评估",
+          "evidenceIds": [],
+          "stateVersion": 2,
+          "timestamp": "2026-09-21T06:15:33.785793+00:00",
+          "status": "waiting",
+          "sessionId": "session-caddc117cc52",
+          "traceId": "trace-session-caddc117cc52",
+          "stepId": "step-1",
+          "inputStateVersion": 1,
+          "outputStateVersion": 2
+        },
+        {
+          "agent": "assessment",
+          "toolCalls": [
+            "grade_exercise",
+            "update_mastery"
+          ],
+          "inputSummary": "submission is waiting for grading",
+          "outputSummary": "{'score': 66.67, 'perKnowledgeAccuracy': {'binary-tree-postorder': 0.6667}, 'errorTypes': ['traversal-order'], 'oldMastery': 42, 'suggestedNewMastery': 58, 'exerciseResultId': 'workflow:session-caddc117cc52', 'assessment': {'score': 66.67, 'perKnowledgeAccuracy': {'binary-tree-postorder': 0.6667}, 'errorTypes': ['traversal-order'], 'oldMastery': 42, 'suggestedNewMastery': 58, 'exerciseResultId': 'workflow:session-caddc117cc52'}, 'pendingSubmission': False, 'needReplan': False, 'assessmentPersisted': True, 'evidenceIds': ['evidence-session-caddc117cc52'], 'plan': {'planId': 'plan-demo-001', 'version': 2, 'tasks': [{'taskId': 'task-postorder', 'knowledgePointId': 'binary-tree-postorder', 'knowledgePointName': '二叉树后序遍历', 'durationMinutes': 45, 'status': 'pending', 'priority': 'high'}, {'taskId': 'task-graph', 'knowledgePointId': 'graph-algorithm', 'knowledgePointName': '图算法', 'durationMinutes': 15, 'status': 'pending', 'priority': 'medium'}], 'generatedFromProfileVersion': 2, 'reason': 'mastery_below_threshold;repeated_error', 'userId': 'demo-user'}, 'planDiff': {'oldVersion': 1, 'newVersion': 2, 'changedTasks': [{'taskId': 'task-postorder', 'knowledgePointId': 'binary-tree-postorder', 'knowledgePointName': '二叉树后序遍历', 'durationMinutes': 45, 'status': 'pending', 'priority': 'high'}, {'taskId': 'task-graph', 'knowledgePointId': 'graph-algorithm', 'knowledgePointName': '图算法', 'durationMinutes': 15, 'status': 'pending', 'priority': 'medium'}], 'reason': '掌握度低于阈值', 'evidenceIds': ['evidence-session-caddc117cc52'], 'timestamp': '2026-09-21T06:15:33.803279+00:00', 'planId': 'plan-demo-001'}, 'submissionId': 'workflow:session-caddc117cc52', 'toolCalls': ['grade_exercise', 'update_mastery']}",
+          "evidenceIds": [
+            "evidence-session-caddc117cc52"
+          ],
+          "stateVersion": 3,
+          "timestamp": "2026-09-21T06:15:33.811031+00:00",
+          "status": "completed",
+          "sessionId": "session-caddc117cc52",
+          "traceId": "trace-session-caddc117cc52",
+          "stepId": "step-2",
+          "inputStateVersion": 2,
+          "outputStateVersion": 3
+        },
+        {
+          "agent": "secretary",
+          "toolCalls": [],
+          "inputSummary": "assessment completed",
+          "outputSummary": "学习流程已完成",
+          "evidenceIds": [],
+          "stateVersion": 4,
+          "timestamp": "2026-09-21T06:15:33.814953+00:00",
+          "status": "completed",
+          "sessionId": "session-caddc117cc52",
+          "traceId": "trace-session-caddc117cc52",
+          "stepId": "step-3",
+          "inputStateVersion": 3,
+          "outputStateVersion": 4
+        }
+      ]
+    }
+  },
+  "workflows": {
+    "session-caddc117cc52": {
+      "sessionId": "session-caddc117cc52",
+      "goal": "完成二叉树复习",
+      "userId": "demo-user",
+      "status": "completed",
+      "currentStep": "finish",
+      "currentAgent": "finish",
+      "stateVersion": 4,
+      "maxSteps": 6,
+      "finalAction": "学习流程已完成",
+      "state": {
+        "sessionId": "session-caddc117cc52",
+        "userId": "demo-user",
+        "goal": "完成二叉树复习",
+        "oldMastery": 42,
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "mastery_below_threshold;repeated_error",
+          "userId": "demo-user"
+        },
+        "knowledgePoints": [
+          {
+            "knowledgePointId": "binary-tree-postorder",
+            "masteryScore": 42,
+            "errorIntensity": 60,
+            "importance": 90
+          }
+        ],
+        "answerKeys": {
+          "exercise-preorder-001": "A",
+          "exercise-inorder-001": "B",
+          "exercise-postorder-001": "C",
+          "exercise-bst-001": "A",
+          "exercise-bst-002": "A",
+          "exercise-bst-003": "A",
+          "exercise-bst-004": "A",
+          "exercise-bst-005": "A",
+          "exercise-graph-001": "B",
+          "exercise-graph-002": "A",
+          "exercise-graph-003": "A",
+          "exercise-graph-004": "A",
+          "exercise-graph-005": "A",
+          "exercise-complexity-001": "B",
+          "exercise-complexity-002": "A",
+          "exercise-complexity-003": "A",
+          "exercise-complexity-004": "A",
+          "exercise-complexity-005": "A",
+          "exercise-traversal-001": "A",
+          "exercise-traversal-002": "A",
+          "exercise-traversal-003": "A",
+          "exercise-traversal-004": "A",
+          "exercise-traversal-005": "A",
+          "exercise-prerequisite-001": "A",
+          "exercise-prerequisite-002": "A",
+          "exercise-prerequisite-003": "A",
+          "exercise-prerequisite-004": "A",
+          "exercise-prerequisite-005": "A",
+          "exercise-prerequisite-006": "A",
+          "exercise-prerequisite-007": "A"
+        },
+        "knowledgePointsByExercise": {
+          "exercise-preorder-001": "binary-tree-postorder",
+          "exercise-inorder-001": "binary-tree-postorder",
+          "exercise-postorder-001": "binary-tree-postorder",
+          "exercise-bst-001": "binary-tree-search",
+          "exercise-bst-002": "binary-tree-search",
+          "exercise-bst-003": "binary-tree-search",
+          "exercise-bst-004": "binary-tree-search",
+          "exercise-bst-005": "binary-tree-search",
+          "exercise-graph-001": "graph-algorithm",
+          "exercise-graph-002": "graph-algorithm",
+          "exercise-graph-003": "graph-algorithm",
+          "exercise-graph-004": "graph-algorithm",
+          "exercise-graph-005": "graph-algorithm",
+          "exercise-complexity-001": "algorithm-complexity",
+          "exercise-complexity-002": "algorithm-complexity",
+          "exercise-complexity-003": "algorithm-complexity",
+          "exercise-complexity-004": "algorithm-complexity",
+          "exercise-complexity-005": "algorithm-complexity",
+          "exercise-traversal-001": "binary-tree-traversal",
+          "exercise-traversal-002": "binary-tree-traversal",
+          "exercise-traversal-003": "binary-tree-traversal",
+          "exercise-traversal-004": "binary-tree-traversal",
+          "exercise-traversal-005": "binary-tree-traversal",
+          "exercise-prerequisite-001": "recursion-basics",
+          "exercise-prerequisite-002": "recursion-basics",
+          "exercise-prerequisite-003": "recursion-basics",
+          "exercise-prerequisite-004": "recursion-basics",
+          "exercise-prerequisite-005": "recursion-basics",
+          "exercise-prerequisite-006": "recursion-basics",
+          "exercise-prerequisite-007": "recursion-basics"
+        },
+        "status": "waiting",
+        "toolCalls": [
+          "grade_exercise",
+          "update_mastery"
+        ],
+        "nextAction": "提交答案后继续评估",
+        "awaitingAnswers": false,
+        "pendingSubmission": false,
+        "exerciseResultId": "workflow:session-caddc117cc52",
+        "score": 66.67,
+        "perKnowledgeAccuracy": {
+          "binary-tree-postorder": 0.6667
+        },
+        "errorTypes": [
+          "traversal-order"
+        ],
+        "suggestedNewMastery": 58,
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "workflow:session-caddc117cc52"
+        },
+        "needReplan": false,
+        "assessmentPersisted": true,
+        "evidenceIds": [
+          "evidence-session-caddc117cc52"
+        ],
+        "planDiff": {
+          "oldVersion": 1,
+          "newVersion": 2,
+          "changedTasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-caddc117cc52"
+          ],
+          "timestamp": "2026-09-21T06:15:33.803279+00:00",
+          "planId": "plan-demo-001"
+        },
+        "submissionId": "workflow:session-caddc117cc52",
+        "reason": "assessment completed"
+      },
+      "traceId": "trace-session-caddc117cc52",
+      "nextAction": "学习流程已完成"
+    }
+  },
+  "evidences": {
+    "evidence-session-caddc117cc52": {
+      "id": "evidence-session-caddc117cc52",
+      "sourceType": "assessment",
+      "sourceId": "workflow:session-caddc117cc52",
+      "knowledgePointId": "binary-tree-postorder",
+      "metric": "accuracy",
+      "value": 0.6667000000000001,
+      "timestamp": "2026-09-21T06:15:33.793759+00:00",
+      "reliability": 1.0
+    }
+  },
+  "plan_histories": {
+    "plan-demo-001:v2": {
+      "oldVersion": 1,
+      "newVersion": 2,
+      "changedTasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 15,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "reason": "掌握度低于阈值",
+      "evidenceIds": [
+        "evidence-session-caddc117cc52"
+      ],
+      "timestamp": "2026-09-21T06:15:33.803279+00:00",
+      "planId": "plan-demo-001"
+    }
+  },
+  "submissions": {
+    "workflow:session-caddc117cc52": {
+      "response": {
+        "userId": "demo-user",
+        "submissionId": "workflow:session-caddc117cc52",
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "workflow:session-caddc117cc52"
+        },
+        "masteryUpdate": {
+          "knowledgePointId": "binary-tree-postorder",
+          "oldScore": 42,
+          "newScore": 58
+        },
+        "needReplan": true,
+        "replanDecision": {
+          "needReplan": true,
+          "reasons": [
+            "mastery_below_threshold",
+            "repeated_error"
+          ]
+        },
+        "traceId": "trace-session-caddc117cc52",
+        "evidenceIds": [
+          "evidence-session-caddc117cc52"
+        ],
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "mastery_below_threshold;repeated_error",
+          "userId": "demo-user"
+        },
+        "planDiff": {
+          "oldVersion": 1,
+          "newVersion": 2,
+          "changedTasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-session-caddc117cc52"
+          ],
+          "timestamp": "2026-09-21T06:15:33.803279+00:00",
+          "planId": "plan-demo-001"
+        }
+      }
+    }
+  }
+}

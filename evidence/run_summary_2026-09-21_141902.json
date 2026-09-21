@@ -1,0 +1,61 @@
+{
+  "runAt": "2026-09-21T14:19:02",
+  "root": "C:\\Users\\86150\\Desktop\\liantiao4-backend",
+  "contract": {
+    "ok": true,
+    "detail": "仅有契约真源（本包不含前端 app/，跳过镜像比对），version=api-contract-v0.3，82149 字节"
+  },
+  "llmMode": {
+    "mode": "live",
+    "label": "真实 LLM 验证（后端已配置 DASHSCOPE_API_KEY）",
+    "skipDegradationChecks": true
+  },
+  "backendTests": {
+    "skipped": true
+  },
+  "boot": {
+    "ok": true,
+    "base": "http://127.0.0.1:5097"
+  },
+  "integration": {
+    "ok": true,
+    "report": "evidence\\integration_2026-09-21_141902.json",
+    "summary": {
+      "total": 95,
+      "passed": 95,
+      "failed": 0,
+      "passRate": 100.0
+    }
+  },
+  "overall": "PASS",
+  "baselineOk": true,
+  "demoBaseline": {
+    "score": 66.67,
+    "allWrongScore": 0.0,
+    "oldMastery": 42,
+    "newMastery": 58,
+    "profileVersion": [
+      1,
+      2
+    ],
+    "planVersion": [
+      1,
+      2
+    ],
+    "planDurations": [
+      [
+        30,
+        30
+      ],
+      [
+        45,
+        15
+      ]
+    ],
+    "workflowAgents": [
+      "exercise",
+      "finish"
+    ],
+    "workflowTools": []
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ]
+    },
+    "u-f2b76b45d115": {
+      "userId": "u-f2b76b45d115",
+      "goal": "华友token1的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 0,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-21T06:15:13.454506+00:00"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    },
+    "plan-u-f2b76b45d115": {
+      "planId": "plan-u-f2b76b45d115",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "新账号起始计划：从二叉树后序遍历开始",
+      "userId": "u-f2b76b45d115"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    }
+  },
+  "users": {
+    "u-f2b76b45d115": {
+      "userId": "u-f2b76b45d115",
+      "nickname": "华友token1",
+      "grade": "",
+      "phone": "",
+      "avatar": "",
+      "authProvider": "agc_phone",
+      "authSubject": "hw-open-token1",
+      "authUnionId": "",
+      "status": "active",
+      "createdAt": "2026-09-21T06:15:13+00:00",
+      "lastLoginAt": "2026-09-21T06:15:13+00:00"
+    }
+  },
+  "sessions": {
+    "6YdaW3xInG7gpdw2G5pSqtRtkmhAzlcwZM_hJhOp1Xs": {
+      "token": "6YdaW3xInG7gpdw2G5pSqtRtkmhAzlcwZM_hJhOp1Xs",
+      "userId": "u-f2b76b45d115",
+      "createdAt": "2026-09-21T06:15:13+00:00",
+      "expiresAt": "2026-10-21T06:15:13+00:00"
+    }
+  }
+}

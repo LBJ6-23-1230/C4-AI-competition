@@ -1,0 +1,239 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 2,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 58,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-21T06:15:15.416625+00:00"
+        }
+      ],
+      "history": [
+        {
+          "oldScore": 42,
+          "newScore": 58,
+          "evidenceIds": [
+            "evidence-submit-submit-001"
+          ],
+          "source": "assessment",
+          "timestamp": "2026-09-21T06:15:15.416625+00:00"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence-submit-submit-001",
+          "sourceType": "assessment",
+          "sourceId": "demo-user:set-demo-binary-tree-001:submit-001",
+          "knowledgePointId": "binary-tree-postorder",
+          "metric": "accuracy",
+          "value": 0.6667000000000001,
+          "timestamp": "2026-09-21T06:15:15.416625+00:00",
+          "reliability": 1.0
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 2,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 15,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 2,
+      "reason": "根据练习结果重规划"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    },
+    "trace-submit-submit-001": {
+      "traceId": "trace-submit-submit-001",
+      "events": [
+        {
+          "agent": "assessment",
+          "toolCalls": [
+            "grade_exercise"
+          ],
+          "inputSummary": "提交题集 set-demo-binary-tree-001",
+          "outputSummary": "得分 66.67",
+          "evidenceIds": [
+            "evidence-submit-submit-001"
+          ],
+          "stateVersion": 1,
+          "timestamp": "2026-09-21T06:15:15.416625+00:00",
+          "status": "completed",
+          "sessionId": null,
+          "stepId": "step-1",
+          "inputStateVersion": 1,
+          "outputStateVersion": 1
+        }
+      ]
+    }
+  },
+  "evidences": {
+    "evidence-submit-submit-001": {
+      "id": "evidence-submit-submit-001",
+      "sourceType": "assessment",
+      "sourceId": "demo-user:set-demo-binary-tree-001:submit-001",
+      "knowledgePointId": "binary-tree-postorder",
+      "metric": "accuracy",
+      "value": 0.6667000000000001,
+      "timestamp": "2026-09-21T06:15:15.416625+00:00",
+      "reliability": 1.0
+    }
+  },
+  "plan_histories": {
+    "plan-demo-001:v2": {
+      "oldVersion": 1,
+      "newVersion": 2,
+      "changedTasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 15,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "reason": "掌握度低于阈值",
+      "evidenceIds": [
+        "evidence-submit-submit-001"
+      ],
+      "timestamp": "2026-09-21T06:15:15.424058+00:00",
+      "planId": "plan-demo-001",
+      "adjustmentReason": "掌握度低于阈值",
+      "triggerEvidence": [
+        "evidence-submit-submit-001"
+      ]
+    }
+  },
+  "submissions": {
+    "demo-user:set-demo-binary-tree-001:submit-001": {
+      "response": {
+        "userId": "demo-user",
+        "submissionId": "demo-user:set-demo-binary-tree-001:submit-001",
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 42,
+          "suggestedNewMastery": 58,
+          "exerciseResultId": "demo-user:set-demo-binary-tree-001:submit-001"
+        },
+        "masteryUpdate": {
+          "knowledgePointId": "binary-tree-postorder",
+          "oldScore": 42,
+          "newScore": 58
+        },
+        "needReplan": true,
+        "replanDecision": {
+          "needReplan": true,
+          "reasons": [
+            "mastery_below_threshold",
+            "repeated_error"
+          ]
+        },
+        "traceId": "trace-submit-submit-001",
+        "evidenceIds": [
+          "evidence-submit-submit-001"
+        ],
+        "plan": {
+          "planId": "plan-demo-001",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "planDiff": {
+          "planId": "plan-demo-001",
+          "oldVersion": 1,
+          "newVersion": 2,
+          "changedTasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "taskId": "task-graph",
+              "knowledgePointId": "graph-algorithm",
+              "knowledgePointName": "图算法",
+              "durationMinutes": 15,
+              "status": "pending",
+              "priority": "medium"
+            }
+          ],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-submit-submit-001"
+          ],
+          "timestamp": "2026-09-21T06:15:15.424058+00:00",
+          "adjustmentReason": "掌握度低于阈值",
+          "triggerEvidence": [
+            "evidence-submit-submit-001"
+          ]
+        }
+      }
+    }
+  }
+}

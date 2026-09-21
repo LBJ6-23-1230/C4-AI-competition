@@ -1,0 +1,132 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    }
+  },
+  "knowledge_bases": {
+    "kb-c6f663d93976": {
+      "kbId": "kb-c6f663d93976",
+      "userId": "demo-user",
+      "courseName": "数据结构",
+      "name": "结构复习库",
+      "description": "",
+      "documentCount": 1,
+      "chunkCount": 3,
+      "knowledgePoints": [
+        "树与二叉树",
+        "二叉树遍历",
+        "后序遍历",
+        "递归理解"
+      ],
+      "createdAt": "2026-09-21T06:15:16.835006+00:00",
+      "updatedAt": "2026-09-21T06:15:16.838961+00:00"
+    }
+  },
+  "documents": {
+    "doc-5c2cceb5f7ef": {
+      "documentId": "doc-5c2cceb5f7ef",
+      "kbId": "kb-c6f663d93976",
+      "userId": "demo-user",
+      "fileName": "二叉树复习讲义.md",
+      "mimeType": "text/markdown",
+      "sizeBytes": 0,
+      "status": "ready",
+      "statusMessage": "",
+      "charCount": 188,
+      "chunkCount": 3,
+      "knowledgePoints": [
+        "树与二叉树",
+        "二叉树遍历",
+        "后序遍历",
+        "递归理解"
+      ],
+      "errorPointCandidates": [
+        "常见错误：把后序遍历与中序遍历的访问时机混淆"
+      ],
+      "uploadedAt": "2026-09-21T06:15:16.838961+00:00",
+      "parsedAt": "2026-09-21T06:15:16.838961+00:00"
+    }
+  },
+  "chunks": {
+    "chk-82c0be079f0d": {
+      "chunkId": "chk-82c0be079f0d",
+      "documentId": "doc-5c2cceb5f7ef",
+      "kbId": "kb-c6f663d93976",
+      "userId": "demo-user",
+      "text": "前序遍历的顺序是根-左-右。中序遍历的顺序是左-根-右。",
+      "headingPath": "第3章 树与二叉树 > 3.2 二叉树遍历",
+      "knowledgePoints": []
+    },
+    "chk-f8e03e9abc49": {
+      "chunkId": "chk-f8e03e9abc49",
+      "documentId": "doc-5c2cceb5f7ef",
+      "kbId": "kb-c6f663d93976",
+      "userId": "demo-user",
+      "text": "后序遍历的顺序是左-右-根，因此根节点总是最后被访问。\n常见错误：把后序遍历与中序遍历的访问时机混淆。",
+      "headingPath": "第3章 树与二叉树 > 3.2.3 后序遍历",
+      "knowledgePoints": [
+        "后序遍历"
+      ]
+    },
+    "chk-3b9db6936008": {
+      "chunkId": "chk-3b9db6936008",
+      "documentId": "doc-5c2cceb5f7ef",
+      "kbId": "kb-c6f663d93976",
+      "userId": "demo-user",
+      "text": "递归理解的核心是终止条件与调用栈。递归理解不到位会导致遍历写错。\n递归理解的练习建议从简单树开始。",
+      "headingPath": "第3章 树与二叉树 > 3.3 递归理解",
+      "knowledgePoints": [
+        "递归理解"
+      ]
+    }
+  }
+}

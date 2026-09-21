@@ -1,0 +1,147 @@
+==============================================================================
+  liantiao4 �� ǰ�������һ����֤
+==============================================================================
+[PASS] ��Լһ����բ�ţ�������Լ��Դ����������ǰ�� app/����������ȶԣ���version=api-contract-v0.3��82149 �ֽ�
+      ����ģʽ����ʵ LLM ��֤����������� DASHSCOPE_API_KEY��
+[SKIP] ��˲����׼���--skip-tests��
+      ���������ļ� .pytest-tmp\integration-5097.json�������� repository.json ���ֲ��䣩
+========================================================================
+  知学 Mate · 统一后端（B1 + B2 已合并为单一真源）
+========================================================================
+  契约版本   : api-contract-v0.3
+  监听地址   : http://0.0.0.0:5097
+  聊天层     : POST /api/agent/chat   (GET /api/agent/health 探针)
+  工作流层   : /api/v1/demo|workflows|profile|plans|exercises|traces|agent/proactive|experiments
+  LLM        : 已配置 DASHSCOPE_API_KEY，走真实大模型
+  API Key 头 : X-API-Contract-Version: api-contract-v0.3
+------------------------------------------------------------------------
+  前端 baseUrl 提示：
+    · HarmonyOS 模拟器 / Android 模拟器 -> http://10.0.2.2:5000
+    · HarmonyOS 真机（同一 WiFi）        -> http://<开发机局域网IP>:5000
+    · 桌面预览 / 本机浏览器              -> http://127.0.0.1:5000
+    可在 App 的「接口环境」页里直接修改并持久化。
+========================================================================
+ * Serving Flask app 'app'
+ * Debug mode: off
+[PASS] ������� http://127.0.0.1:5097
+==============================================================================
+  liantiao4 ǰ���������֤  ��  http://127.0.0.1:5097
+  ģʽ����ʵ LLM���������� Key ���������ԣ�
+==============================================================================
+[PASS] GET /health  | HTTP 200
+[PASS] GET /api/agent/health��ǰ����ͨ̽�룩  | HTTP 200 llm_ready=True
+[PASS] GET /����·����������  | contractVersion=api-contract-v0.3
+[PASS] ��Լ�汾��ƥ�� �� 409  | HTTP 409 errorCode=CONTRACT_VERSION_MISMATCH
+[PASS] v0.3 �ް汾ͷ���У�curl/�����ʾ�Ѻã�  | HTTP 200
+[PASS] δ֪���� �� 404 �Һ� errorCode  | HTTP 404 body={'details': {'userId': 'missing-user'}, 'errorCode': 'NOT_FOUND', 'message': 'profile not found'}
+[PASS] POST /api/v1/demo/reset  | HTTP 200
+[PASS] ǰ����ԼУ�� demo/reset  | POST /api/v1/demo/reset
+[PASS] ǰ����ԼУ�� profile (V1)  | GET /api/v1/profile/demo-user
+[PASS] ��ʼ mastery == 42  | masteryScore=42
+[PASS] ��ʼ profileVersion == 1  | profileVersion=1
+[PASS] ǰ����ԼУ�� plans/current (V1)  | GET /api/v1/plans/current
+[PASS] ��ʼ Plan V1 �汾 == 1  | version=1
+[PASS] ��ʼ Plan V1 ����ʱ�� == [30, 30]  | durations=[30, 30]
+[PASS] ǰ����ԼУ�� exercises �⼯  | GET /api/v1/exercises/set-demo-binary-tree-001
+[PASS] �⼯���� 3 ��  | len=3
+[PASS] �⼯��й© answerKey  | й©��Ŀ=[]
+[PASS] ǰ����ԼУ�� exercise submit  | POST /api/v1/exercises/set-demo-binary-tree-001/submit
+[PASS] �ύ �̡̡� �� score == 66.67  | score=66.67
+[PASS] masteryUpdate 42 �� 58  | 42 �� 58
+[PASS] needReplan == true  | needReplan=True
+[PASS] �ύ�ݵȣ�ͬ key ���ֽ�һ�£�  | ������Ӧһ��
+[PASS] ǰ����ԼУ�� profile (V2)  | GET /api/v1/profile/demo-user
+[PASS] �ύ�� mastery д�� == 58  | masteryScore=58
+[PASS] �ύ�� profileVersion == 2  | profileVersion=2
+[PASS] ǰ����ԼУ�� plans/current (V2)  | GET /api/v1/plans/current
+[PASS] �ع滮�� Plan V2 �汾 == 2  | version=2
+[PASS] Plan V2 ����ʱ�� == [45, 15]  | durations=[45, 15]
+[PASS] ǰ����ԼУ�� plan diff  | GET /api/v1/plans/plan-demo-001/diff
+[PASS] Plan diff V1 �� V2  | oldVersion=1 newVersion=2
+[PASS] plan diff adjustmentReason �ǿ�  | adjustmentReason=���նȵ�����ֵ
+[PASS] ǰ����ԼУ�� trace  | GET /api/v1/traces/trace-submit-verify-liantiao2-001
+[PASS] �ύ trace �ɲ�  | HTTP 200 events=1
+[PASS] ȫ���ύ �� score == 0.0���з�������㣩  | score=0.0
+[PASS] ȫ���� �̡̡� ������ͬ���ǹ̶�ֵ��  | ȫ��=0.0 vs �̡̡�=66.67
+[PASS] ȫ���ύ �� ���ն��½������ٳ���ȫ��Ҳ�Ƿ֣�  | 58 �� 54
+[PASS] ǰ����ԼУ�� workflow create  | POST /api/v1/workflows
+[PASS] POST /api/v1/workflows  | HTTP 200 sessionId=session-bea0522b781c
+[PASS] ǰ����ԼУ�� workflow status  | GET /api/v1/workflows/session-bea0522b781c
+[PASS] ���� run ���ύ�𰸣�stateVersion ���붳�ᣨP0-1 �޸���֤��  | stateVersion �켣=[2, 2, 2, 2, 2] agents=['exercise'] statuses=['running']  �� �Ѷ��ᣬ�޸���Ч
+[PASS] �ȴ���״̬����ɼ���awaitingAnswers ���壩  | currentAgent=exercise finalAction=�ύ�𰸺��������
+[PASS] ��ת������ trace �¼����ظ� run ��д�� trace��  | events=1������ǡ�� 1 �� exercise �¼���
+[PASS] ǰ����ԼУ�� workflow run  | POST /api/v1/workflows/session-bea0522b781c/run
+[PASS] �״� run ͣ�ڵȴ���� exercise �����źſ�ʶ��  | status=running currentAgent=exercise finalAction=�ύ�𰸺��������
+[PASS] �ύ�𰸺� workflow �ܵ� completed  | status=completed���� run 2 �Σ�
+[PASS] ���� workflow ���� ��2 �� agent��run ��Ӧ�ھ���  | agents=['exercise', 'finish']
+[PASS] ǰ����ԼУ�� workflow trace  | GET /api/v1/traces/trace-session-bea0522b781c
+[PASS] workflow trace ���� ��2 �� agent  | trace agents=['assessment', 'exercise', 'secretary']
+[PASS] ���� workflow ���� ��3 �� tool��trace �ھ���  | trace tools=['grade_exercise', 'select_exercises', 'update_mastery']
+[PASS] trace �¼��� �� run �������޾�Ĭ��ʧ��  | events=3 run=2
+[PASS] trace ����˼ά���ֶΣ��Ϲ���ߣ�  | ����=[]
+[PASS] ǰ����ԼУ�� agent/proactive  | POST /api/v1/agent/proactive
+[PASS] POST /api/v1/agent/proactive ����  | HTTP 200 shouldNotify=True
+[PASS] ����������������ʱ��Ļᴥ��֪ͨ  | shouldNotify=True channel=reminder
+[PASS] �������������������ɶ�������  | contextTags=['exam_within_7d', 'recent_gap_2d', 'pending_ddl_within_2d', 'no_study_for_2d', 'exam_within_7d_low_mastery']
+[PASS] ��������ǰ̨ʹ��ʱ���뾲Ĭ  | shouldNotify=False
+[PASS] ��������רע�Ự�б��뾲Ĭ  | shouldNotify=False
+[PASS] POST /api/v1/agent/partner-match ���ã����ȷ������֣�  | HTTP 200 matched=u002
+[PASS] POST /api/agent/chat ͬ���̿���  | HTTP 200 intent=get_suggestion
+[PASS] �����ܾ�������Լ�汾  | HTTP 409
+[PASS] ��������� LLM ģʽ��������ʶ����ͼ  | intent=analyze_wrong
+[PASS] ǰ����ԼУ�� auth register  | POST /api/v1/auth/register
+[PASS] ע�᷵�ػỰ���� token / expiresAt��  | HTTP 201
+[PASS] ע����Ӧ�ش������ֻ��ţ����ش��������룩  | phoneMasked=138****1463
+[PASS] ע��ȱ�ֻ��ű��ܣ�400��  | HTTP 400
+[PASS] ���ֻ��ŵ�¼�ǻ�ͬһ�˺�  | HTTP 200 sameUser=True
+[PASS] ǰ����ԼУ�� auth login-with-huawei  | POST /api/v1/auth/login-with-huawei
+[PASS] ��Ϊ�˺��״ε�¼�Զ�����  | HTTP 201 created=True
+[PASS] ��Ϊ�˺��ٴε�¼�����˺ţ����ظ����ţ�  | HTTP 200 created=False
+[PASS] ��Ϊ�˺ŵ�¼��й© OpenID  | ��Ӧ���� OpenID
+[PASS] �� token ���� /api/v1/auth/me  | HTTP 200
+[PASS] ǰ����ԼУ�� auth me  | GET /api/v1/auth/me
+[PASS] GET /api/v1/experiments/snapshot�����������زģ�  | HTTP 200 keys=['evidences', 'generatedAt', 'planDiffs', 'snapshotVersion', 'submissions', 'summary', 'traces']
+[PASS] ��ģ̬�������� LLM ģʽ��ȷʵ����ģ��  | HTTP 200 llmUsed=True reply[:40]='С�����������**����������**��**�ݹ�����**��Ƶ�������������ܿ����漰��'
+[PASS] ���ı��ظ����� LLM ģʽ��ȷʵ����ģ��  | llmUsed=True
+[PASS] ������ӦЯ���ṹ����Ƭ������תҳ�棩  | card.targetPage=pages/StudySuggestion
+[PASS] �ȴ����ڼ��ظ� run �����ƽ���ǰ�˿ɰ�ȫ���ԣ�  | 2 �� 2
+[PASS] �ύ�𰸺�� exercise �ߵ� completed  | status=completed currentAgent=finish
+[PASS] �ָ��� awaitingAnswers �����  | state.awaitingAnswers=False
+[PASS] �ָ��� trace �� agent ���иɾ������ظ� exercise��  | agents=['exercise', 'assessment', 'secretary']
+[PASS] ǰ����ԼУ�� knowledge-bases create  | POST /api/v1/knowledge-bases
+[PASS] ֪ʶ���������  | HTTP 200 hits=1
+[PASS] ǰ����ԼУ�� knowledge search  | POST /api/v1/knowledge-bases/{kbId}/search
+[PASS] ������ʽ����ʵ��ע��keyword+tag �� hybrid��  | retrievalMode=hybrid:semantic+keyword+tag
+[PASS] ����������Ȩ����Ǣ����αװ��  | semanticAvailable=True semanticWeight=0.6
+[PASS] ǰ����ԼУ�� agent history  | GET /api/agent/history
+[PASS] �Ի���ʷ���û����루��ֻ���õ��Լ��ģ�  | �׵���ʷ=['�׵�����']
+[PASS] �����׵���ʷ��Ӱ���ң�ԭ�� DELETE ����������ˣ�  | �ҵ���ʷ=['�ҵ�����']
+[PASS] ���������� �� 405 �ҷ��� JSON errorCode  | HTTP 405 body=dict
+[PASS] �� JSON ������ �� JSON 400������ HTML ����ҳ��  | HTTP 400 body=dict
+[PASS] CORS ���������� Origin��ԭ���� CORS(app)��  | Access-Control-Allow-Origin=None
+[PASS] CORS �Է��б���������Դ���ս���������������  | Access-Control-Allow-Origin='http://localhost:8080'
+[PASS] ��Լ���� llmUsed��ǰ�� ChatMain ��չʾ���ֶΣ�  | ��Լ������
+[PASS] ��Լ���� pendingTasks��ǰ�� ProactiveViewModel �ѷ��͸��ֶΣ�  | ��Լ������
+[PASS] ��Լ������������ֶΣ�ǰ�� KnowledgeBase ��չʾ retrievalMode��  | ��Լ������
+==============================================================================
+  �����95/95 ͨ����ͨ���� 100.0%��
+==============================================================================
+
+�����д�� C:\Users\86150\Desktop\liantiao4-backend\evidence\integration_2026-09-21_141722.json
+��˽����ѹ�ͣ���˿����ͷ�
+
+--- ��ʾ������ֵ�� ---
+  score���̡̡���        : 66.67  ���� 66.67
+  ȫ�� score           : 0.0  ���� 0.0
+  mastery             : 42 �� 58  ���� 42 �� 58
+  profileVersion      : [1, 2]  ���� [1, 2]
+  planVersion         : [1, 2]  ���� [1, 2]
+  ����ʱ��            : [[30, 30], [45, 15]]  ���� [[30,30], [45,15]]
+  workflow agents     : ['exercise', 'finish']
+  workflow tools      : []
+
+==============================================================================
+  ��Լ PASS | ��˲��� PASS | ���� PASS | ���� PASS
+  ���壺PASS
+  ����֤�ݣ�evidence\run_summary_2026-09-21_141722.json
+==============================================================================

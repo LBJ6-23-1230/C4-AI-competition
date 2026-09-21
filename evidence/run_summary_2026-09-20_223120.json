@@ -1,0 +1,68 @@
+{
+  "runAt": "2026-09-20T22:31:20",
+  "root": "E:\\C4-liantiao\\liantiao4",
+  "contract": {
+    "ok": true,
+    "detail": "契约一致，version=api-contract-v0.3，78258 字节"
+  },
+  "llmMode": {
+    "mode": "offline",
+    "label": "离线降级验证（后端未配置 Key，断言诚实降级行为）",
+    "skipDegradationChecks": false
+  },
+  "backendTests": {
+    "ok": true,
+    "summary": {
+      "total": 207,
+      "passed": 207,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0
+    }
+  },
+  "boot": {
+    "ok": true,
+    "base": "http://127.0.0.1:5098"
+  },
+  "integration": {
+    "ok": true,
+    "report": "evidence\\integration_2026-09-20_223120.json",
+    "summary": {
+      "total": 82,
+      "passed": 82,
+      "failed": 0,
+      "passRate": 100.0
+    }
+  },
+  "overall": "PASS",
+  "baselineOk": true,
+  "demoBaseline": {
+    "score": 66.67,
+    "allWrongScore": 0.0,
+    "oldMastery": 42,
+    "newMastery": 58,
+    "profileVersion": [
+      1,
+      2
+    ],
+    "planVersion": [
+      1,
+      2
+    ],
+    "planDurations": [
+      [
+        30,
+        30
+      ],
+      [
+        45,
+        15
+      ]
+    ],
+    "workflowAgents": [
+      "exercise",
+      "finish"
+    ],
+    "workflowTools": []
+  }
+}

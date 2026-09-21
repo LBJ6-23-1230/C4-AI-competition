@@ -1,0 +1,165 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ]
+    },
+    "u-b0c20aea063c": {
+      "userId": "u-b0c20aea063c",
+      "goal": "甲的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 0,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-21T06:15:34.146620+00:00"
+        }
+      ]
+    },
+    "u-de000eb58da5": {
+      "userId": "u-de000eb58da5",
+      "goal": "乙的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 0,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-21T06:15:34.158281+00:00"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    },
+    "plan-u-b0c20aea063c": {
+      "planId": "plan-u-b0c20aea063c",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "新账号起始计划：从二叉树后序遍历开始",
+      "userId": "u-b0c20aea063c"
+    },
+    "plan-u-de000eb58da5": {
+      "planId": "plan-u-de000eb58da5",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "新账号起始计划：从二叉树后序遍历开始",
+      "userId": "u-de000eb58da5"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    }
+  },
+  "users": {
+    "u-b0c20aea063c": {
+      "userId": "u-b0c20aea063c",
+      "nickname": "甲",
+      "grade": "",
+      "phone": "13500000003",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-21T06:15:34+00:00",
+      "lastLoginAt": "2026-09-21T06:15:34+00:00"
+    },
+    "u-de000eb58da5": {
+      "userId": "u-de000eb58da5",
+      "nickname": "乙",
+      "grade": "",
+      "phone": "13500000004",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-21T06:15:34+00:00",
+      "lastLoginAt": "2026-09-21T06:15:34+00:00"
+    }
+  },
+  "sessions": {
+    "M8lqDGXcsL9kJITIL2fc17NbW8RcpIKymfhucwYtwJM": {
+      "token": "M8lqDGXcsL9kJITIL2fc17NbW8RcpIKymfhucwYtwJM",
+      "userId": "u-b0c20aea063c",
+      "createdAt": "2026-09-21T06:15:34+00:00",
+      "expiresAt": "2026-10-21T06:15:34+00:00"
+    },
+    "nPck8UB4ioLBoBrM7wSpdFa2uPC1vwwr9tSBjpe1rIk": {
+      "token": "nPck8UB4ioLBoBrM7wSpdFa2uPC1vwwr9tSBjpe1rIk",
+      "userId": "u-de000eb58da5",
+      "createdAt": "2026-09-21T06:15:34+00:00",
+      "expiresAt": "2026-10-21T06:15:34+00:00"
+    }
+  }
+}

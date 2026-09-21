@@ -1,0 +1,272 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ]
+    },
+    "u-f4e82dc86631": {
+      "userId": "u-f4e82dc86631",
+      "goal": "甲的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 2,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 16,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-21T06:15:34.262985+00:00"
+        }
+      ],
+      "history": [
+        {
+          "oldScore": 0,
+          "newScore": 16,
+          "evidenceIds": [
+            "evidence-submit-impersonate-1"
+          ],
+          "source": "assessment",
+          "timestamp": "2026-09-21T06:15:34.262985+00:00"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence-submit-impersonate-1",
+          "sourceType": "assessment",
+          "sourceId": "u-f4e82dc86631:set-demo-binary-tree-001:impersonate-1",
+          "knowledgePointId": "binary-tree-postorder",
+          "metric": "accuracy",
+          "value": 0.6667000000000001,
+          "timestamp": "2026-09-21T06:15:34.262985+00:00",
+          "reliability": 1.0
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    },
+    "plan-u-f4e82dc86631": {
+      "planId": "plan-u-f4e82dc86631",
+      "version": 2,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 2,
+      "reason": "根据练习结果重规划"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    },
+    "trace-submit-impersonate-1": {
+      "traceId": "trace-submit-impersonate-1",
+      "events": [
+        {
+          "agent": "assessment",
+          "toolCalls": [
+            "grade_exercise"
+          ],
+          "inputSummary": "提交题集 set-demo-binary-tree-001",
+          "outputSummary": "得分 66.67",
+          "evidenceIds": [
+            "evidence-submit-impersonate-1"
+          ],
+          "stateVersion": 1,
+          "timestamp": "2026-09-21T06:15:34.262985+00:00",
+          "status": "completed",
+          "sessionId": null,
+          "stepId": "step-1",
+          "inputStateVersion": 1,
+          "outputStateVersion": 1
+        }
+      ]
+    }
+  },
+  "users": {
+    "u-f4e82dc86631": {
+      "userId": "u-f4e82dc86631",
+      "nickname": "甲",
+      "grade": "",
+      "phone": "13500000006",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-21T06:15:34+00:00",
+      "lastLoginAt": "2026-09-21T06:15:34+00:00"
+    }
+  },
+  "sessions": {
+    "fBzY55GWX6fgZzJAaMZCSuzZpwaMRz88-s3ZuKoe94Q": {
+      "token": "fBzY55GWX6fgZzJAaMZCSuzZpwaMRz88-s3ZuKoe94Q",
+      "userId": "u-f4e82dc86631",
+      "createdAt": "2026-09-21T06:15:34+00:00",
+      "expiresAt": "2026-10-21T06:15:34+00:00"
+    }
+  },
+  "evidences": {
+    "evidence-submit-impersonate-1": {
+      "id": "evidence-submit-impersonate-1",
+      "sourceType": "assessment",
+      "sourceId": "u-f4e82dc86631:set-demo-binary-tree-001:impersonate-1",
+      "knowledgePointId": "binary-tree-postorder",
+      "metric": "accuracy",
+      "value": 0.6667000000000001,
+      "timestamp": "2026-09-21T06:15:34.262985+00:00",
+      "reliability": 1.0
+    }
+  },
+  "plan_histories": {
+    "plan-u-f4e82dc86631:v2": {
+      "oldVersion": 1,
+      "newVersion": 2,
+      "changedTasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 45,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "reason": "掌握度低于阈值",
+      "evidenceIds": [
+        "evidence-submit-impersonate-1"
+      ],
+      "timestamp": "2026-09-21T06:15:34.278811+00:00",
+      "planId": "plan-u-f4e82dc86631",
+      "adjustmentReason": "掌握度低于阈值",
+      "triggerEvidence": [
+        "evidence-submit-impersonate-1"
+      ]
+    }
+  },
+  "submissions": {
+    "u-f4e82dc86631:set-demo-binary-tree-001:impersonate-1": {
+      "response": {
+        "userId": "u-f4e82dc86631",
+        "submissionId": "u-f4e82dc86631:set-demo-binary-tree-001:impersonate-1",
+        "assessment": {
+          "score": 66.67,
+          "perKnowledgeAccuracy": {
+            "binary-tree-postorder": 0.6667
+          },
+          "errorTypes": [
+            "traversal-order"
+          ],
+          "oldMastery": 0,
+          "suggestedNewMastery": 16,
+          "exerciseResultId": "u-f4e82dc86631:set-demo-binary-tree-001:impersonate-1"
+        },
+        "masteryUpdate": {
+          "knowledgePointId": "binary-tree-postorder",
+          "oldScore": 0,
+          "newScore": 16
+        },
+        "needReplan": true,
+        "replanDecision": {
+          "needReplan": true,
+          "reasons": [
+            "mastery_below_threshold",
+            "repeated_error"
+          ]
+        },
+        "traceId": "trace-submit-impersonate-1",
+        "evidenceIds": [
+          "evidence-submit-impersonate-1"
+        ],
+        "plan": {
+          "planId": "plan-u-f4e82dc86631",
+          "version": 2,
+          "tasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            }
+          ],
+          "generatedFromProfileVersion": 2,
+          "reason": "根据练习结果重规划"
+        },
+        "planDiff": {
+          "planId": "plan-u-f4e82dc86631",
+          "oldVersion": 1,
+          "newVersion": 2,
+          "changedTasks": [
+            {
+              "taskId": "task-postorder",
+              "knowledgePointId": "binary-tree-postorder",
+              "knowledgePointName": "二叉树后序遍历",
+              "durationMinutes": 45,
+              "status": "pending",
+              "priority": "high"
+            }
+          ],
+          "reason": "掌握度低于阈值",
+          "evidenceIds": [
+            "evidence-submit-impersonate-1"
+          ],
+          "timestamp": "2026-09-21T06:15:34.278811+00:00",
+          "adjustmentReason": "掌握度低于阈值",
+          "triggerEvidence": [
+            "evidence-submit-impersonate-1"
+          ]
+        }
+      }
+    }
+  }
+}

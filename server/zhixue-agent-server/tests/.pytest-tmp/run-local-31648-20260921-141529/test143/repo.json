@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "a": {
+      "c": "profiles"
+    }
+  },
+  "plans": {
+    "b": {
+      "c": "plans"
+    }
+  }
+}

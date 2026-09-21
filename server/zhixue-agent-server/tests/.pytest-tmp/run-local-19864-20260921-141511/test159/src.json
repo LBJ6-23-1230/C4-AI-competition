@@ -1,0 +1,24 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "profileVersion": 1
+    },
+    "u-x": {
+      "userId": "u-x",
+      "profileVersion": 3
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1
+    }
+  },
+  "traces": {
+    "t1": {
+      "traceId": "t1",
+      "events": []
+    }
+  }
+}

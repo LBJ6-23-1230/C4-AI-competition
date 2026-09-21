@@ -1,0 +1,1421 @@
+{
+  "summary": {
+    "total": 282,
+    "passed": 282,
+    "failed": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "records": [
+    {
+      "nodeid": "tests/test_auth.py::test_register_returns_user_and_token",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_register_never_leaks_token_or_subject",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_register_rejects_blank_and_overlong_nickname",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_register_rejects_unknown_grade",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_register_is_case_and_whitespace_tolerant",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_login_restores_session_with_saved_credentials",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_login_rejects_mismatched_or_unknown_credentials",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_me_requires_bearer_token",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_me_returns_current_user",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_logout_revokes_only_current_token",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_delete_account_deactivates_and_blocks_relogin",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_new_account_gets_usable_starter_profile",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_new_account_mastery_grows_through_real_submission",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_demo_baseline_is_unaffected_by_auth_feature",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_invalid_bearer_degrades_to_guest_instead_of_blocking",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_valid_bearer_does_not_change_demo_endpoints",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_auth_endpoints_require_contract_version_header_to_match",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_parse_bearer_formats",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_normalize_nickname_trims_and_validates",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth.py::test_session_expiry_is_enforced",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_or_register_reuses_existing_account",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_or_register_prefers_phone_over_nickname",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_or_register_creates_when_absent",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_by_phone_returns_same_account",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_by_phone_accepts_common_formats",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_by_unknown_phone_is_404",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_register_requires_phone",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_register_rejects_duplicate_phone",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_register_response_never_leaks_full_phone",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_by_unknown_nickname_is_404",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_by_nickname_is_trim_and_case_tolerant",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_by_ambiguous_nickname_is_409",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_with_user_id_and_token_still_works",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_prefers_credentials_over_nickname",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_register_remains_idempotent_at_the_account_level_for_new_nicknames",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_login.py::test_login_or_register_response_shape_matches_contract",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_register_requires_phone",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_register_rejects_malformed_phone",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_register_accepts_common_phone_formats",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_register_rejects_duplicate_phone",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_phone_is_persisted_normalized_and_masked",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_login_by_phone_returns_same_account",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_login_by_unknown_phone_is_404",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_login_or_register_prefers_phone_over_nickname",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_huawei_first_login_creates_account",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_huawei_repeat_login_reuses_account",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_huawei_different_openid_creates_distinct_account",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_huawei_without_openid_is_rejected",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_huawei_generates_placeholder_nickname_when_absent",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_huawei_account_never_leaks_openid",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_huawei_response_shape_matches_contract",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_phone_huawei.py::test_huawei_login_token_works_for_me",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_verification_code.py::test_send_code_returns_dev_code_but_only_persists_hash",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_verification_code.py::test_verify_code_auto_registers_and_is_single_use",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_verification_code.py::test_verify_code_logs_existing_phone_into_same_account",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_verification_code.py::test_send_code_enforces_sixty_second_resend_limit",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_verification_code.py::test_send_code_enforces_daily_limit",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_verification_code.py::test_verify_code_locks_phone_after_five_wrong_attempts",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_verification_code.py::test_verify_code_expires_and_clears_secret",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_auth_verification_code.py::test_send_code_validates_phone_and_production_never_leaks_dev_code",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_keyword_intent_fallback_is_deterministic[\\u6211\\u60f3\\u67e5\\u67e5\\u9519\\u9898-analyze_wrong]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_keyword_intent_fallback_is_deterministic[\\u5e2e\\u6211\\u5339\\u914d\\u4e00\\u4e2a\\u642d\\u5b50-match_partner]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_keyword_intent_fallback_is_deterministic[\\u8fd9\\u5468\\u7684\\u4efb\\u52a1\\u6709\\u54ea\\u4e9b-query_tasks]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_keyword_intent_fallback_is_deterministic[\\u6211\\u54ea\\u91cc\\u8584\\u5f31-analyze_weakness]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_keyword_intent_fallback_is_deterministic[\\u6211\\u638c\\u63e1\\u4e86\\u4e8c\\u53c9\\u6811\\u904d\\u5386-update_profile]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_keyword_intent_fallback_is_deterministic[\\u4eca\\u5929\\u5e94\\u8be5\\u5148\\u5b66\\u4ec0\\u4e48-get_suggestion]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_keyword_intent_fallback_is_deterministic[\\u968f\\u4fbf\\u804a\\u804a-get_suggestion]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_card_target_page_is_always_a_declared_page",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_reply_is_labelled_as_local_rule_when_llm_is_absent",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_image_without_llm_does_not_claim_multimodal_recognition",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_image_routes_to_multimodal_handler_when_llm_ready",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_detect_intent_short_circuits_on_image",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_detect_intent_without_image_still_uses_text_rules",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_multimodal_uses_configured_model_and_detects_png",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_llm_failure_degrades_honestly",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_chat_result_marks_failed_llm_as_unused",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_chat_result_marks_successful_llm_as_used",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_empty_payload_keeps_legacy_response_shape",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_session_id_is_only_echoed_when_client_supplies_one",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_history_endpoint_records_and_clears_conversation",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_health_probe_ignores_contract_version",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_chat_rejects_wrong_contract_version",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_chat_llm.py::test_single_process_serves_both_layers",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_knowledge_mastery_round_trips_contract_fields",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_exercise_set_round_trips_public_question_fields_without_answer_key",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_exercise_models_reject_invalid_question_and_duplicate_ids",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_exercise_result_serializes_submission",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_grade_exercise_returns_expected_score_and_knowledge_accuracy",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_update_mastery_is_bounded_and_deterministic",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_plan_tools_build_versioned_diff_and_history",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_knowledge_mastery_rejects_score_outside_range",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_profile_version_is_monotonic_when_advanced",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_learning_plan_round_trips_and_advances_version",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_learning_plan_rejects_non_positive_version",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_domain_history_and_trace_round_trip_contract_fields",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_event_store_appends_trace_events_with_runtime_versions",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_json_repository_survives_reopen",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_json_repository_is_safe_under_concurrent_writes",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_demo_reset_persists_profile_plan_and_trace",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_demo_api_exposes_profile_plan_exercises_and_health",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_question_bank_answer_keys_are_used_for_grading",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_legacy_chat_compatibility_endpoint_uses_stable_response_shape",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_experiment_snapshot_exports_anonymous_counts_and_records",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_model_adapters_require_structured_json_and_fallback_without_model",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_qwen_adapter_without_key_is_explicitly_unavailable",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_qwen_adapter_reads_explicit_configuration_without_exposing_secret",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_runtime_falls_back_when_model_adapter_fails_without_state_corruption",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_exercise_api_rejects_non_positive_count",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_missing_api_resource_uses_contract_error_shape",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_submit_exercises_scores_and_is_idempotent",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_submit_updates_profile_and_replans",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_workflow_creates_and_returns_persisted_status",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_workflow_run_integrates_exercise_assessment_and_trace",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_workflow_assessment_persists_mastery_evidence_and_replanned_plan",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_workflow_creation_with_existing_session_id_resumes_without_reset",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_workflow_requires_goal",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_workflow_rejects_invalid_max_steps_without_persisting_state",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_priority_engine_uses_all_five_factors_and_ranks_weak_point_first",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_priority_engine_normalizes_factors_and_is_deterministic",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_replan_rule_increases_weak_task_and_reduces_other_pending_task",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_replan_rule_does_not_repeat_high_mastery_topic",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_plan_diff_api_uses_contract_field_names",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_completed_empty_modules_provide_deterministic_helpers",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_select_exercises_filters_and_deduplicates",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_tool_registry_executes_registered_tool_for_allowed_agent",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_tool_registry_rejects_unknown_and_forbidden_calls",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_tool_registry_rejects_duplicate_registration",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_default_tool_registry_exposes_deterministic_tools_and_wraps_failures",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_workflow_fallback_selects_steps_from_observable_state",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_workflow_loop_writes_back_versions_and_stops_at_max_steps",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_domain_models.py::test_five_agents_return_structured_outputs_with_separate_responsibilities",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_identity_isolation.py::test_authenticated_user_reads_own_plan",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_identity_isolation.py::test_authenticated_user_reads_own_profile",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_identity_isolation.py::test_two_accounts_do_not_see_each_other",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_identity_isolation.py::test_read_is_open_but_write_is_isolated",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_identity_isolation.py::test_cannot_impersonate_via_request_body",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_identity_isolation.py::test_cannot_impersonate_via_workflow",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_identity_isolation.py::test_guest_still_gets_demo_user",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_identity_isolation.py::test_explicit_user_id_still_works_when_not_logged_in",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_identity_isolation.py::test_invalid_bearer_degrades_to_guest",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_input_guards.py::test_non_object_json_body_is_rejected_with_400",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_input_guards.py::test_missing_or_empty_body_is_still_accepted",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_input_guards.py::test_workflow_run_rejects_non_object_body",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_input_guards.py::test_submit_rejects_non_object_answer_elements",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_input_guards.py::test_autorun_path_shares_the_same_answers_guard",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_input_guards.py::test_oversized_idempotency_key_is_rejected",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_input_guards.py::test_oversized_goal_and_session_id_are_rejected",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_input_guards.py::test_demo_reset_does_not_invalidate_auth_sessions",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_input_guards.py::test_partner_match_tolerates_malformed_nested_fields",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_input_guards.py::test_partner_match_still_scores_correctly",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_input_guards.py::test_proactive_rejects_non_finite_numbers",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_upload_extracts_chunks_with_heading_path",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_knowledge_points_come_from_headings",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_error_point_candidates_are_extracted",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_search_ranks_relevant_chunk_first",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_search_reports_retrieval_mode_honestly",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_search_hit_carries_file_name_for_citation",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_search_rejects_bad_top_k",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_pdf_upload_fails_honestly_not_silently",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_unsupported_extension_fails_honestly",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_invalid_base64_fails_honestly",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_gbk_encoded_file_is_decoded",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_knowledge_bases_are_isolated_per_user",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_same_user_sees_own_knowledge_base",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_knowledge_base_summary_updates_after_upload",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_delete_document_clears_chunks",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_delete_knowledge_base",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_duplicate_knowledge_base_name_is_conflict",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_upload_rejects_path_traversal_in_file_name",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_upload_rejects_empty_payload",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_knowledge_base_requires_course_and_name",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_non_object_body_is_rejected",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_knowledge.py::test_upload_unknown_knowledge_base_is_404",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_partner_match.py::test_partner_match_uses_deterministic_backend_scoring",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_partner_match.py::test_partner_goal_factor_distinguishes_exact_and_course_overlap",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_partner_match.py::test_partner_time_overlap_factor_uses_documented_boundaries",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_partner_match.py::test_partner_knowledge_complement_is_bidirectional",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_partner_match.py::test_partner_basic_match_and_stability_factors_are_independent",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_partner_match.py::test_partner_match_returns_null_instead_of_force_matching_zero_score",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_recommends_focus_for_urgent_gap",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_avoids_notification_while_focus_session_active",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_is_deterministic_for_same_input",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_sends_no_alert_when_user_is_healthy",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_handles_missing_profile_context_gracefully",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_uses_location_tag_when_present",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_notifies_for_pending_ddl_within_two_days",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_pending_ddl_uses_task_identity_and_context_days_left",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_pending_ddl_ignores_completed_tasks_and_picks_most_urgent",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_pending_ddl_picks_earliest_task_with_stable_tie_break",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_pending_ddl_ignores_started_tasks",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_pending_ddl_absent_or_malformed_is_safe",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_notifies_after_two_days_without_study",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_does_not_notify_for_started_ddl_or_healthy_exam_context",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_notifies_for_exam_with_mastery_below_80",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_never_returns_actionable_notification_when_suppressed",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_api_accepts_pending_tasks_and_rejects_invalid_shapes",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_proactive.py::test_proactive_rejects_malformed_pending_tasks",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_cosine_identical_vectors_is_one",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_cosine_orthogonal_is_zero",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_cosine_opposite_is_minus_one",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_cosine_degenerate_inputs_return_zero_without_raising[left0-right0]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_cosine_degenerate_inputs_return_zero_without_raising[left1-right1]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_cosine_degenerate_inputs_return_zero_without_raising[left2-right2]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_cosine_degenerate_inputs_return_zero_without_raising[left3-right3]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_normalize_cosine_maps_to_unit_interval",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_blend_without_semantic_returns_keyword_score_unchanged",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_blend_weights_semantic_and_keyword",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_blend_weight_is_clamped",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_semantic_available_follows_api_key",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_encode_returns_none_without_key",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_encode_returns_none_on_empty_input",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_rerank_falls_back_to_keyword_when_encoder_unavailable",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_rerank_reports_hybrid_mode_when_encoder_works",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_rerank_returns_hybrid_even_with_no_chunks",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_rerank_handles_mismatched_vector_count",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_rerank_keeps_chunks_beyond_embed_limit",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_search_returns_tuple_and_keyword_mode_without_key",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_search_scores_are_descending",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_search_empty_query_returns_empty",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_search_use_semantic_false_skips_embedding",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_api_reports_keyword_mode_and_semantic_unavailable",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_api_reports_hybrid_mode_when_encoder_available",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_semantic_search.py::test_api_degrades_gracefully_when_embedding_request_fails",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_save_then_get_roundtrip[json]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_save_then_get_roundtrip[sqlite]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_get_missing_returns_none[json]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_get_missing_returns_none[sqlite]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_save_overwrites_existing[json]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_save_overwrites_existing[sqlite]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_list_is_scoped_to_collection[json]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_list_is_scoped_to_collection[sqlite]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_delete_removes_only_target[json]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_delete_removes_only_target[sqlite]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_clear_empties_collection_only[json]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_clear_empties_collection_only[sqlite]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_unicode_and_nested_values_survive[json]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_unicode_and_nested_values_survive[sqlite]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_json_string_is_stored_verbatim_not_double_encoded[json]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_json_string_is_stored_verbatim_not_double_encoded[sqlite]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_default_backend_is_json",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_sqlite_backend_creates_sqlite_file",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_sqlite_backend_explicit_path",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_unknown_backend_is_rejected",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_demo_baseline_identical_across_backends[json]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_demo_baseline_identical_across_backends[sqlite]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_migration_script_roundtrip",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_sqlite_backend.py::test_sqlite_repository_connection_is_reused",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_finish_on_last_allowed_step_is_not_marked_as_error[1]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_finish_on_last_allowed_step_is_not_marked_as_error[2]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_finish_on_last_allowed_step_is_not_marked_as_error[3]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_finish_on_last_allowed_step_is_not_marked_as_error[6]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_waiting_on_last_allowed_step_is_not_marked_as_error[1]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_waiting_on_last_allowed_step_is_not_marked_as_error[2]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_waiting_on_last_allowed_step_is_not_marked_as_error[3]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_genuine_step_exhaustion_is_reported_as_error",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_already_terminal_session_is_not_advanced",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_awaiting_answers_short_circuits_without_advancing",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_method_not_allowed_returns_json[get-/api/v1/workflows-405]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_method_not_allowed_returns_json[post-/api/v1/profile/demo-user-405]",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_non_json_body_returns_json_400_not_html",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_error_handlers_for_server_level_statuses_are_registered",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_404_still_json_after_handler_additions",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_history_is_isolated_per_user",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_clearing_one_user_history_does_not_touch_another",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_history_response_declares_identity",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_history_without_identity_falls_back_to_demo_user",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_legacy_flat_history_file_is_migrated_not_lost",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_history_store_is_keyed_by_user",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_cors_allows_localhost_origin",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_cors_allows_private_lan_origin_for_real_device",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_cors_does_not_reflect_arbitrary_origin",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_technical_improvements.py::test_cors_origins_overrideable_by_env",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_workflow_resume.py::test_repeated_run_without_answers_does_not_advance_state",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_workflow_resume.py::test_resume_with_answers_clears_waiting_flag_and_completes",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_workflow_resume.py::test_resume_with_submission_id_skips_duplicate_assessment",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_workflow_resume.py::test_runtime_short_circuits_awaiting_answers_without_actions",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_workflow_resume.py::test_experiment_snapshot_reports_workflow_agent_tool_and_mastery_metrics",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_workflow_resume.py::test_replan_rate_counts_workflow_path",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_workflow_resume.py::test_run_rejects_excessive_answers",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_workflow_resume.py::test_run_rejects_overlong_single_answer",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_workflow_resume.py::test_run_does_not_echo_or_persist_consumed_answers",
+      "outcome": "passed",
+      "longrepr": ""
+    },
+    {
+      "nodeid": "tests/test_workflow_resume.py::test_demo_reset_clears_workflows",
+      "outcome": "passed",
+      "longrepr": ""
+    }
+  ]
+}

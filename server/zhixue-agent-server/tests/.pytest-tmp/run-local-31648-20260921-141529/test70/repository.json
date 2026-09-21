@@ -1,0 +1,9 @@
+{
+  "profiles": {},
+  "traces": {
+    "trace-001": {
+      "traceId": "trace-001",
+      "events": []
+    }
+  }
+}

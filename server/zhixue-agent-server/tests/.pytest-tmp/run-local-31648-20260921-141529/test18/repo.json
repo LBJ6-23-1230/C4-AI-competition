@@ -1,0 +1,17 @@
+{
+  "users": {
+    "u-67f9c5afeaa4": {
+      "userId": "u-67f9c5afeaa4",
+      "nickname": "小明",
+      "grade": "",
+      "phone": "13800000017",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-21T06:15:30+00:00",
+      "lastLoginAt": "2026-09-21T06:15:30+00:00"
+    }
+  },
+  "sessions": {}
+}

@@ -1,0 +1,27 @@
+{
+    "userId": "u001",
+    "basicInfo":{
+        "name":"小明",
+        "grade":"大二",
+        "major":"计算机科学与技术"
+    },
+    "learningGoal":{
+        "course":"数据结构",
+        "goal":"期末80+"
+    },
+    "time":{
+        "freeTime":[
+            "20:00-22:00"
+        ]
+    },
+    "knowledge":{
+        "weakness":[
+            "二叉树遍历",
+            "递归理解"
+        ],
+
+        "strength":[
+            "图算法"
+        ]
+    }
+}

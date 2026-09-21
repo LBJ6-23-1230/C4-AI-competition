@@ -1,0 +1,145 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 2,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ],
+      "history": [
+        {
+          "oldScore": 42,
+          "newScore": 71,
+          "evidenceIds": [
+            "evidence-submit-graph-answer-001"
+          ],
+          "source": "assessment",
+          "timestamp": "2026-09-21T06:15:33.377452+00:00"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence-submit-graph-answer-001",
+          "sourceType": "assessment",
+          "sourceId": "demo-user:set-demo-data-structures-001:graph-answer-001",
+          "knowledgePointId": "graph-algorithm",
+          "metric": "accuracy",
+          "value": 1.0,
+          "timestamp": "2026-09-21T06:15:33.377452+00:00",
+          "reliability": 1.0
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    },
+    "trace-submit-graph-answer-001": {
+      "traceId": "trace-submit-graph-answer-001",
+      "events": [
+        {
+          "agent": "assessment",
+          "toolCalls": [
+            "grade_exercise"
+          ],
+          "inputSummary": "提交题集 set-demo-data-structures-001",
+          "outputSummary": "得分 100.0",
+          "evidenceIds": [
+            "evidence-submit-graph-answer-001"
+          ],
+          "stateVersion": 1,
+          "timestamp": "2026-09-21T06:15:33.377452+00:00",
+          "status": "completed",
+          "sessionId": null,
+          "stepId": "step-1",
+          "inputStateVersion": 1,
+          "outputStateVersion": 1
+        }
+      ]
+    }
+  },
+  "evidences": {
+    "evidence-submit-graph-answer-001": {
+      "id": "evidence-submit-graph-answer-001",
+      "sourceType": "assessment",
+      "sourceId": "demo-user:set-demo-data-structures-001:graph-answer-001",
+      "knowledgePointId": "graph-algorithm",
+      "metric": "accuracy",
+      "value": 1.0,
+      "timestamp": "2026-09-21T06:15:33.377452+00:00",
+      "reliability": 1.0
+    }
+  },
+  "submissions": {
+    "demo-user:set-demo-data-structures-001:graph-answer-001": {
+      "response": {
+        "userId": "demo-user",
+        "submissionId": "demo-user:set-demo-data-structures-001:graph-answer-001",
+        "assessment": {
+          "score": 100.0,
+          "perKnowledgeAccuracy": {
+            "graph-algorithm": 1.0
+          },
+          "errorTypes": [],
+          "oldMastery": 42,
+          "suggestedNewMastery": 71,
+          "exerciseResultId": "demo-user:set-demo-data-structures-001:graph-answer-001"
+        },
+        "masteryUpdate": {
+          "knowledgePointId": "binary-tree-postorder",
+          "oldScore": 42,
+          "newScore": 71
+        },
+        "needReplan": false,
+        "replanDecision": {
+          "needReplan": false,
+          "reasons": []
+        },
+        "traceId": "trace-submit-graph-answer-001",
+        "evidenceIds": [
+          "evidence-submit-graph-answer-001"
+        ]
+      }
+    }
+  }
+}

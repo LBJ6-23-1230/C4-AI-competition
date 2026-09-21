@@ -1,0 +1,28 @@
+{
+  "traces": {
+    "trace-001": {
+      "traceId": "trace-001",
+      "events": [
+        {
+          "agent": "planner",
+          "toolCalls": [
+            "calculate_learning_priority"
+          ],
+          "inputSummary": "读取画像",
+          "outputSummary": "生成计划",
+          "evidenceIds": [
+            "ev-001"
+          ],
+          "stateVersion": 2,
+          "timestamp": "2026-09-21T06:15:29.243820+00:00",
+          "status": "completed",
+          "sessionId": "session-001",
+          "traceId": "trace-001",
+          "stepId": "step-1",
+          "inputStateVersion": 1,
+          "outputStateVersion": 2
+        }
+      ]
+    }
+  }
+}

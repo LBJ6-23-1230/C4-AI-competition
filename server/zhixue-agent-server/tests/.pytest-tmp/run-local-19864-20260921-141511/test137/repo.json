@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "masteryScore": 42
+        }
+      ]
+    }
+  }
+}

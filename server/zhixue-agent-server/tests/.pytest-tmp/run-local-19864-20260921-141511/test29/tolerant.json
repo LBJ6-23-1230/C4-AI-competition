@@ -1,0 +1,130 @@
+{
+  "profiles": {
+    "demo-user": {
+      "userId": "demo-user",
+      "goal": "数据结构考试80+",
+      "examDate": "2026-09-30",
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 42,
+          "confidence": 0.7,
+          "lastUpdated": "2026-09-02T09:00:00+00:00"
+        }
+      ]
+    },
+    "u-cc20013cb8fd": {
+      "userId": "u-cc20013cb8fd",
+      "goal": "Tom的学习目标",
+      "examDate": null,
+      "freeTimeSlots": [
+        "20:00-22:00"
+      ],
+      "profileVersion": 1,
+      "mastery": [
+        {
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "masteryScore": 0,
+          "confidence": 0.2,
+          "lastUpdated": "2026-09-21T06:15:12.598502+00:00"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "plan-demo-001": {
+      "planId": "plan-demo-001",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "taskId": "task-graph",
+          "knowledgePointId": "graph-algorithm",
+          "knowledgePointName": "图算法",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "medium"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "巩固二叉树后序遍历",
+      "userId": "demo-user"
+    },
+    "plan-u-cc20013cb8fd": {
+      "planId": "plan-u-cc20013cb8fd",
+      "version": 1,
+      "tasks": [
+        {
+          "taskId": "task-postorder",
+          "knowledgePointId": "binary-tree-postorder",
+          "knowledgePointName": "二叉树后序遍历",
+          "durationMinutes": 30,
+          "status": "pending",
+          "priority": "high"
+        }
+      ],
+      "generatedFromProfileVersion": 1,
+      "reason": "新账号起始计划：从二叉树后序遍历开始",
+      "userId": "u-cc20013cb8fd"
+    }
+  },
+  "traces": {
+    "trace-demo-reset-001": {
+      "traceId": "trace-demo-reset-001",
+      "events": []
+    }
+  },
+  "users": {
+    "u-cc20013cb8fd": {
+      "userId": "u-cc20013cb8fd",
+      "nickname": "Tom",
+      "grade": "大二",
+      "phone": "13900000008",
+      "avatar": "",
+      "authProvider": "local",
+      "authSubject": "",
+      "status": "active",
+      "createdAt": "2026-09-21T06:15:12+00:00",
+      "lastLoginAt": "2026-09-21T06:15:12+00:00"
+    }
+  },
+  "sessions": {
+    "LenkUw4u6_eoe8HlMwFlp51ZULaztN2KgdMjQaDRcTM": {
+      "token": "LenkUw4u6_eoe8HlMwFlp51ZULaztN2KgdMjQaDRcTM",
+      "userId": "u-cc20013cb8fd",
+      "createdAt": "2026-09-21T06:15:12+00:00",
+      "expiresAt": "2026-10-21T06:15:12+00:00"
+    },
+    "Xq3f8JMFSmbK-_1UbgX4o-JyWjnmenzLX5FGTQTL0BM": {
+      "token": "Xq3f8JMFSmbK-_1UbgX4o-JyWjnmenzLX5FGTQTL0BM",
+      "userId": "u-cc20013cb8fd",
+      "createdAt": "2026-09-21T06:15:12+00:00",
+      "expiresAt": "2026-10-21T06:15:12+00:00"
+    },
+    "7VXszSMatrVxONMPxh8JmGkl0YozJGxvyFX5Q9hvrss": {
+      "token": "7VXszSMatrVxONMPxh8JmGkl0YozJGxvyFX5Q9hvrss",
+      "userId": "u-cc20013cb8fd",
+      "createdAt": "2026-09-21T06:15:12+00:00",
+      "expiresAt": "2026-10-21T06:15:12+00:00"
+    },
+    "b7y2rsyjCMNSEwpkmYm4-CHp0uG_7APJUinv7D7YIpU": {
+      "token": "b7y2rsyjCMNSEwpkmYm4-CHp0uG_7APJUinv7D7YIpU",
+      "userId": "u-cc20013cb8fd",
+      "createdAt": "2026-09-21T06:15:12+00:00",
+      "expiresAt": "2026-10-21T06:15:12+00:00"
+    }
+  }
+}
