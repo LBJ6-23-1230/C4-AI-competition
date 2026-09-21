@@ -1,0 +1,38 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.pytest-tmp/
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# ---- 环境与密钥（绝不入库 / 绝不进交付 zip）----
+.env
+*.env
+!.env.example
+
+# ---- 联调运行态（首启自动重建，绝不入库）----
+# evidence/ 是要归档的证据，不要忽略
+# data/repository.json 是运行期状态（profiles/sessions），不是内容数据；
+# data/question_bank.json 是题库内容，**必须入库**，别误伤。
+server/zhixue-agent-server/data/repository.json
+server/zhixue-agent-server/data/repository.json.tmp
+server/zhixue-agent-server/chat/history.json
+
+# ---- HarmonyOS / DevEco ----
+oh_modules/
+.hvigor/
+.idea/
+.cxx/
+build/
+*.hap
+*.har
+local.properties
+
+# ---- 编辑器 / 系统 ----
+.vscode/settings.json
+Thumbs.db
+desktop.ini
+~$*
+*.log

@@ -1,0 +1,36 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "知学Mate主模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "知学Mate应用入口"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "知学Mate"
+    },
+    {
+      "name": "microphone_permission_reason",
+      "value": "用于语音输入学习问题"
+    },
+    {
+      "name": "media_permission_reason",
+      "value": "用于上传错题图片"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "用于连接AI学习助手"
+    },
+    {
+      "name": "learning_card_display_name",
+      "value": "今日学习建议"
+    },
+    {
+      "name": "learning_card_description",
+      "value": "在桌面查看知学Mate生成的下一项学习任务"
+    }
+  ]
+}

@@ -1,0 +1,716 @@
+{
+  "base": "http://127.0.0.1:5150",
+  "contract": "api-contract-v0.3",
+  "total": 95,
+  "passed": 95,
+  "failed": 0,
+  "passRate": 100.0,
+  "baseline": {
+    "score": 66.67,
+    "allWrongScore": 0.0,
+    "oldMastery": 42,
+    "newMastery": 58,
+    "profileVersion": [
+      1,
+      2
+    ],
+    "planVersion": [
+      1,
+      2
+    ],
+    "planDurations": [
+      [
+        30,
+        30
+      ],
+      [
+        45,
+        15
+      ]
+    ],
+    "workflowAgents": [
+      "exercise",
+      "finish"
+    ],
+    "workflowTools": []
+  },
+  "checks": [
+    {
+      "check": "GET /health",
+      "ok": true,
+      "detail": "HTTP 200",
+      "expected": "200 {'status':'ok'}",
+      "actual": "200 {'status': 'ok'}"
+    },
+    {
+      "check": "GET /api/agent/health（前端连通探针）",
+      "ok": true,
+      "detail": "HTTP 200 llm_ready=False",
+      "expected": "200",
+      "actual": "200"
+    },
+    {
+      "check": "GET /（根路径自描述）",
+      "ok": true,
+      "detail": "contractVersion=api-contract-v0.3",
+      "expected": "api-contract-v0.3",
+      "actual": "api-contract-v0.3"
+    },
+    {
+      "check": "契约版本不匹配 → 409",
+      "ok": true,
+      "detail": "HTTP 409 errorCode=CONTRACT_VERSION_MISMATCH",
+      "expected": "409 CONTRACT_VERSION_MISMATCH",
+      "actual": "409 CONTRACT_VERSION_MISMATCH"
+    },
+    {
+      "check": "v0.3 无版本头放行（curl/答辩演示友好）",
+      "ok": true,
+      "detail": "HTTP 200",
+      "expected": "200",
+      "actual": "200"
+    },
+    {
+      "check": "未知画像 → 404 且含 errorCode",
+      "ok": true,
+      "detail": "HTTP 404 body={'details': {'userId': 'missing-user'}, 'errorCode': 'NOT_FOUND', 'message': 'profile not found'}",
+      "expected": "404 {errorCode,message,details}",
+      "actual": "{'details': {'userId': 'missing-user'}, 'errorCode': 'NOT_FOUND', 'message': 'profile not found'}"
+    },
+    {
+      "check": "POST /api/v1/demo/reset",
+      "ok": true,
+      "detail": "HTTP 200",
+      "expected": "200",
+      "actual": "200"
+    },
+    {
+      "check": "前端契约校验 demo/reset",
+      "ok": true,
+      "detail": "POST /api/v1/demo/reset",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "前端契约校验 profile (V1)",
+      "ok": true,
+      "detail": "GET /api/v1/profile/demo-user",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "初始 mastery == 42",
+      "ok": true,
+      "detail": "masteryScore=42",
+      "expected": 42,
+      "actual": 42
+    },
+    {
+      "check": "初始 profileVersion == 1",
+      "ok": true,
+      "detail": "profileVersion=1",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "check": "前端契约校验 plans/current (V1)",
+      "ok": true,
+      "detail": "GET /api/v1/plans/current",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "初始 Plan V1 版本 == 1",
+      "ok": true,
+      "detail": "version=1",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "check": "初始 Plan V1 任务时长 == [30, 30]",
+      "ok": true,
+      "detail": "durations=[30, 30]",
+      "expected": [
+        30,
+        30
+      ],
+      "actual": [
+        30,
+        30
+      ]
+    },
+    {
+      "check": "前端契约校验 exercises 题集",
+      "ok": true,
+      "detail": "GET /api/v1/exercises/set-demo-binary-tree-001",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "题集返回 3 题",
+      "ok": true,
+      "detail": "len=3",
+      "expected": 3,
+      "actual": 3
+    },
+    {
+      "check": "题集不泄漏 answerKey",
+      "ok": true,
+      "detail": "泄漏题目=[]",
+      "expected": "[]",
+      "actual": "[]"
+    },
+    {
+      "check": "前端契约校验 exercise submit",
+      "ok": true,
+      "detail": "POST /api/v1/exercises/set-demo-binary-tree-001/submit",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "提交 √√× → score == 66.67",
+      "ok": true,
+      "detail": "score=66.67",
+      "expected": 66.67,
+      "actual": 66.67
+    },
+    {
+      "check": "masteryUpdate 42 → 58",
+      "ok": true,
+      "detail": "42 → 58",
+      "expected": "42 → 58",
+      "actual": "42 → 58"
+    },
+    {
+      "check": "needReplan == true",
+      "ok": true,
+      "detail": "needReplan=True",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "check": "提交幂等（同 key 逐字节一致）",
+      "ok": true,
+      "detail": "两次响应一致",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "check": "前端契约校验 profile (V2)",
+      "ok": true,
+      "detail": "GET /api/v1/profile/demo-user",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "提交后 mastery 写回 == 58",
+      "ok": true,
+      "detail": "masteryScore=58",
+      "expected": 58,
+      "actual": 58
+    },
+    {
+      "check": "提交后 profileVersion == 2",
+      "ok": true,
+      "detail": "profileVersion=2",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "check": "前端契约校验 plans/current (V2)",
+      "ok": true,
+      "detail": "GET /api/v1/plans/current",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "重规划后 Plan V2 版本 == 2",
+      "ok": true,
+      "detail": "version=2",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "check": "Plan V2 任务时长 == [45, 15]",
+      "ok": true,
+      "detail": "durations=[45, 15]",
+      "expected": [
+        45,
+        15
+      ],
+      "actual": [
+        45,
+        15
+      ]
+    },
+    {
+      "check": "前端契约校验 plan diff",
+      "ok": true,
+      "detail": "GET /api/v1/plans/plan-demo-001/diff",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "Plan diff V1 → V2",
+      "ok": true,
+      "detail": "oldVersion=1 newVersion=2",
+      "expected": "1 → 2",
+      "actual": "1 → 2"
+    },
+    {
+      "check": "plan diff adjustmentReason 非空",
+      "ok": true,
+      "detail": "adjustmentReason=掌握度低于阈值",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "check": "前端契约校验 trace",
+      "ok": true,
+      "detail": "GET /api/v1/traces/trace-submit-verify-liantiao2-001",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "提交 trace 可查",
+      "ok": true,
+      "detail": "HTTP 200 events=1",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "check": "全错提交 → score == 0.0（判分真的在算）",
+      "ok": true,
+      "detail": "score=0.0",
+      "expected": 0.0,
+      "actual": 0.0
+    },
+    {
+      "check": "全错与 √√× 分数不同（非固定值）",
+      "ok": true,
+      "detail": "全错=0.0 vs √√×=66.67",
+      "expected": "不相等",
+      "actual": "0.0 vs 66.67"
+    },
+    {
+      "check": "全错提交 → 掌握度下降（不再出现全错也涨分）",
+      "ok": true,
+      "detail": "58 → 54",
+      "expected": "< 58",
+      "actual": 54
+    },
+    {
+      "check": "前端契约校验 workflow create",
+      "ok": true,
+      "detail": "POST /api/v1/workflows",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "POST /api/v1/workflows",
+      "ok": true,
+      "detail": "HTTP 200 sessionId=session-1734821f1425",
+      "expected": "2xx + sessionId",
+      "actual": "200 session-1734821f1425"
+    },
+    {
+      "check": "前端契约校验 workflow status",
+      "ok": true,
+      "detail": "GET /api/v1/workflows/session-1734821f1425",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "连续 run 不提交答案：stateVersion 必须冻结（P0-1 修复验证）",
+      "ok": true,
+      "detail": "stateVersion 轨迹=[2, 2, 2, 2, 2] agents=['exercise'] statuses=['running']  ← 已冻结，修复生效",
+      "expected": "重复 run 应保持 stateVersion 不变",
+      "actual": "versions=[2, 2, 2, 2, 2]"
+    },
+    {
+      "check": "等答题状态对外可见（awaitingAnswers 语义）",
+      "ok": true,
+      "detail": "currentAgent=exercise finalAction=提交答案后继续评估",
+      "expected": "currentAgent=exercise + finalAction 提示提交答案",
+      "actual": "提交答案后继续评估"
+    },
+    {
+      "check": "空转不新增 trace 事件（重复 run 不写脏 trace）",
+      "ok": true,
+      "detail": "events=1（期望恰好 1 条 exercise 事件）",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "check": "前端契约校验 workflow run",
+      "ok": true,
+      "detail": "POST /api/v1/workflows/session-1734821f1425/run",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "首次 run 停在等答题的 exercise 步（信号可识别）",
+      "ok": true,
+      "detail": "status=running currentAgent=exercise finalAction=提交答案后继续评估",
+      "expected": "currentAgent=exercise + finalAction 提示提交答案",
+      "actual": "exercise / 提交答案后继续评估"
+    },
+    {
+      "check": "提交答案后 workflow 跑到 completed",
+      "ok": true,
+      "detail": "status=completed（共 run 2 次）",
+      "expected": "completed",
+      "actual": "completed"
+    },
+    {
+      "check": "单次 workflow 覆盖 ≥2 个 agent（run 响应口径）",
+      "ok": true,
+      "detail": "agents=['exercise', 'finish']",
+      "expected": ">=2",
+      "actual": 2
+    },
+    {
+      "check": "前端契约校验 workflow trace",
+      "ok": true,
+      "detail": "GET /api/v1/traces/trace-session-1734821f1425",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "workflow trace 留痕 ≥2 个 agent",
+      "ok": true,
+      "detail": "trace agents=['assessment', 'exercise', 'secretary']",
+      "expected": ">=2",
+      "actual": 3
+    },
+    {
+      "check": "单次 workflow 覆盖 ≥3 个 tool（trace 口径）",
+      "ok": true,
+      "detail": "trace tools=['grade_exercise', 'select_exercises', 'update_mastery']",
+      "expected": ">=3",
+      "actual": 3
+    },
+    {
+      "check": "trace 事件数 ≥ run 次数（无静默丢失）",
+      "ok": true,
+      "detail": "events=3 run=2",
+      "expected": ">= 2",
+      "actual": 3
+    },
+    {
+      "check": "trace 不含思维链字段（合规红线）",
+      "ok": true,
+      "detail": "命中=[]",
+      "expected": "[]",
+      "actual": "[]"
+    },
+    {
+      "check": "前端契约校验 agent/proactive",
+      "ok": true,
+      "detail": "POST /api/v1/agent/proactive",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "POST /api/v1/agent/proactive 可用",
+      "ok": true,
+      "detail": "HTTP 200 shouldNotify=True",
+      "expected": 200,
+      "actual": "200"
+    },
+    {
+      "check": "主动服务：满足条件时真的会触发通知",
+      "ok": true,
+      "detail": "shouldNotify=True channel=reminder",
+      "expected": "shouldNotify=true + channel=reminder",
+      "actual": "True"
+    },
+    {
+      "check": "主动服务：三条触发理由都能命中",
+      "ok": true,
+      "detail": "contextTags=['exam_within_7d', 'recent_gap_2d', 'pending_ddl_within_2d', 'no_study_for_2d', 'exam_within_7d_low_mastery']",
+      "expected": "含 pending_ddl_within_2d / no_study_for_2d / exam_within_7d_low_mastery",
+      "actual": "['exam_within_7d', 'recent_gap_2d', 'pending_ddl_within_2d', 'no_study_for_2d', 'exam_within_7d_low_mastery']"
+    },
+    {
+      "check": "主动服务：前台使用时必须静默",
+      "ok": true,
+      "detail": "shouldNotify=False",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "check": "主动服务：专注会话中必须静默",
+      "ok": true,
+      "detail": "shouldNotify=False",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "check": "POST /api/v1/agent/partner-match 可用（后端确定性算分）",
+      "ok": true,
+      "detail": "HTTP 200 matched=u002",
+      "expected": 200,
+      "actual": "200"
+    },
+    {
+      "check": "POST /api/agent/chat 同进程可用",
+      "ok": true,
+      "detail": "HTTP 200 intent=get_suggestion",
+      "expected": "200 + reply",
+      "actual": "200 intent=get_suggestion"
+    },
+    {
+      "check": "聊天层拒绝错误契约版本",
+      "ok": true,
+      "detail": "HTTP 409",
+      "expected": 409,
+      "actual": "409"
+    },
+    {
+      "check": "聊天层意图路由（错题）",
+      "ok": true,
+      "detail": "intent=analyze_wrong",
+      "expected": "analyze_wrong",
+      "actual": "analyze_wrong"
+    },
+    {
+      "check": "前端契约校验 auth register",
+      "ok": true,
+      "detail": "POST /api/v1/auth/register",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "注册返回会话（含 token / expiresAt）",
+      "ok": true,
+      "detail": "HTTP 201",
+      "expected": "2xx + token",
+      "actual": "201"
+    },
+    {
+      "check": "注册响应回传脱敏手机号（不回传完整号码）",
+      "ok": true,
+      "detail": "phoneMasked=138****8372",
+      "expected": "138****xxxx 且不含完整号码",
+      "actual": "138****8372"
+    },
+    {
+      "check": "注册缺手机号被拒（400）",
+      "ok": true,
+      "detail": "HTTP 400",
+      "expected": 400,
+      "actual": "400"
+    },
+    {
+      "check": "按手机号登录登回同一账号",
+      "ok": true,
+      "detail": "HTTP 200 sameUser=True",
+      "expected": "200 且 userId 一致",
+      "actual": "200"
+    },
+    {
+      "check": "前端契约校验 auth login-with-huawei",
+      "ok": true,
+      "detail": "POST /api/v1/auth/login-with-huawei",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "华为账号首次登录自动建号",
+      "ok": true,
+      "detail": "HTTP 201 created=True",
+      "expected": "201 + created=true",
+      "actual": "201"
+    },
+    {
+      "check": "华为账号再次登录复用账号（不重复建号）",
+      "ok": true,
+      "detail": "HTTP 200 created=False",
+      "expected": "200 + created=false + 同一 userId",
+      "actual": "200"
+    },
+    {
+      "check": "华为账号登录不泄漏 OpenID",
+      "ok": true,
+      "detail": "响应中无 OpenID",
+      "expected": "不含 OpenID",
+      "actual": "无"
+    },
+    {
+      "check": "带 token 访问 /api/v1/auth/me",
+      "ok": true,
+      "detail": "HTTP 200",
+      "expected": 200,
+      "actual": "200"
+    },
+    {
+      "check": "前端契约校验 auth me",
+      "ok": true,
+      "detail": "GET /api/v1/auth/me",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "GET /api/v1/experiments/snapshot（答辩可量化素材）",
+      "ok": true,
+      "detail": "HTTP 200 keys=['evidences', 'generatedAt', 'planDiffs', 'snapshotVersion', 'submissions', 'summary', 'traces']",
+      "expected": 200,
+      "actual": "200"
+    },
+    {
+      "check": "无 LLM Key 时不伪装多模态识别（llmUsed=false + 明示降级）",
+      "ok": true,
+      "detail": "HTTP 200 llmUsed=False reply[:40]='图片已收到。当前未接入多模态识别，请进入错题分析页手动确认知识点，或在服务端配置'",
+      "expected": "200 + llmUsed=false",
+      "actual": "200 llmUsed=False"
+    },
+    {
+      "check": "无 Key 时纯文本回复也标注本地规则兜底",
+      "ok": true,
+      "detail": "llmUsed=False",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "check": "聊天响应携带结构化卡片（可跳转页面）",
+      "ok": true,
+      "detail": "card.targetPage=pages/StudySuggestion",
+      "expected": "targetPage 非空",
+      "actual": "pages/StudySuggestion"
+    },
+    {
+      "check": "等答题期间重复 run 不再推进（前端可安全重试）",
+      "ok": true,
+      "detail": "2 → 2",
+      "expected": "两次 stateVersion 相同",
+      "actual": "2 vs 2"
+    },
+    {
+      "check": "提交答案后从 exercise 走到 completed",
+      "ok": true,
+      "detail": "status=completed currentAgent=finish",
+      "expected": "completed / finish",
+      "actual": "completed"
+    },
+    {
+      "check": "恢复后 awaitingAnswers 被清除",
+      "ok": true,
+      "detail": "state.awaitingAnswers=False",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "check": "恢复后 trace 的 agent 序列干净（无重复 exercise）",
+      "ok": true,
+      "detail": "agents=['exercise', 'assessment', 'secretary']",
+      "expected": "['exercise','assessment','secretary']",
+      "actual": "['exercise', 'assessment', 'secretary']"
+    },
+    {
+      "check": "前端契约校验 knowledge-bases create",
+      "ok": true,
+      "detail": "POST /api/v1/knowledge-bases",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "知识库检索可用",
+      "ok": true,
+      "detail": "HTTP 200 hits=1",
+      "expected": "HTTP 200 且 hits 非空",
+      "actual": "HTTP 200"
+    },
+    {
+      "check": "前端契约校验 knowledge search",
+      "ok": true,
+      "detail": "POST /api/v1/knowledge-bases/{kbId}/search",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "检索方式被诚实标注（keyword+tag 或 hybrid）",
+      "ok": true,
+      "detail": "retrievalMode=keyword+tag",
+      "expected": "keyword+tag | hybrid:semantic+keyword+tag | vector",
+      "actual": "keyword+tag"
+    },
+    {
+      "check": "语义能力与权重自洽（不伪装）",
+      "ok": true,
+      "detail": "semanticAvailable=False semanticWeight=0.0",
+      "expected": "无能力→权重0；有能力→权重>0",
+      "actual": "False/0.0"
+    },
+    {
+      "check": "前端契约校验 agent history",
+      "ok": true,
+      "detail": "GET /api/agent/history",
+      "expected": "ApiResponseValidator.isValid == true",
+      "actual": "true"
+    },
+    {
+      "check": "对话历史按用户隔离（甲只看得到自己的）",
+      "ok": true,
+      "detail": "甲的历史=['甲的问题']",
+      "expected": "['甲的问题']",
+      "actual": "['甲的问题']"
+    },
+    {
+      "check": "清理甲的历史不影响乙（原先 DELETE 会清空所有人）",
+      "ok": true,
+      "detail": "乙的历史=['乙的问题']",
+      "expected": "['乙的问题']",
+      "actual": "['乙的问题']"
+    },
+    {
+      "check": "方法不允许 → 405 且返回 JSON errorCode",
+      "ok": true,
+      "detail": "HTTP 405 body=dict",
+      "expected": "405 且 errorCode=BAD_REQUEST",
+      "actual": "HTTP 405"
+    },
+    {
+      "check": "非 JSON 请求体 → JSON 400（不是 HTML 错误页）",
+      "ok": true,
+      "detail": "HTTP 400 body=dict",
+      "expected": "400 且 errorCode=BAD_REQUEST",
+      "actual": "HTTP 400"
+    },
+    {
+      "check": "CORS 不反射任意 Origin（原先裸 CORS(app)）",
+      "ok": true,
+      "detail": "Access-Control-Allow-Origin=None",
+      "expected": "不反射 evil.example.com、不为 *",
+      "actual": "None"
+    },
+    {
+      "check": "CORS 仍放行本机开发来源（收紧不能误伤联调）",
+      "ok": true,
+      "detail": "Access-Control-Allow-Origin='http://localhost:8080'",
+      "expected": "http://localhost:8080",
+      "actual": "http://localhost:8080"
+    },
+    {
+      "check": "契约声明 llmUsed（前端 ChatMain 已展示该字段）",
+      "ok": true,
+      "detail": "契约已声明",
+      "expected": "contracts/openapi.json 含 llmUsed",
+      "actual": "有"
+    },
+    {
+      "check": "契约声明 pendingTasks（前端 ProactiveViewModel 已发送该字段）",
+      "ok": true,
+      "detail": "契约已声明",
+      "expected": "contracts/openapi.json 含 pendingTasks",
+      "actual": "有"
+    },
+    {
+      "check": "契约声明语义检索字段（前端 KnowledgeBase 已展示 retrievalMode）",
+      "ok": true,
+      "detail": "契约已声明",
+      "expected": "契约含 retrievalMode.hybrid / semanticAvailable / semanticWeight",
+      "actual": "有"
+    }
+  ]
+}

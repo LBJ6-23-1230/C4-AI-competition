@@ -1,0 +1,53 @@
+[{
+    "userId": "u002",
+    "basicInfo":{
+        "name":"小红",
+        "grade":"大二",
+        "major":"计算机科学与技术"
+    },
+    "learningGoal":{
+        "course":"数据结构",
+        "goal":"期末80+"
+    },
+    "time":{
+        "freeTime":[
+            "21:00-23:00"
+        ]
+    },
+    "knowledge":{
+        "weakness":[
+            "图算法"
+        ],
+
+        "strength":[
+            "递归理解"
+        ]
+    }
+},
+{
+    "userId": "u003",
+    "basicInfo":{
+        "name":"小刚",
+        "grade":"大二",
+        "major":"计算机科学与技术"
+    },
+    "learningGoal":{
+        "course":"数据结构",
+        "goal":"期末80+"
+    },
+    "time":{
+        "freeTime":[
+            "19:00-20:00"
+        ]
+    },
+    "knowledge":{
+        "weakness":[
+            "递归理解"
+        ],
+
+        "strength":[
+            "二叉树遍历"
+        ]
+    }
+}
+]

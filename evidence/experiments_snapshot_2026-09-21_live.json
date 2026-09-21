@@ -1,0 +1,243 @@
+{
+  "evidences": [
+    {
+      "data": {
+        "id": "evidence-session-95cd4c183e40",
+        "knowledgePointId": "binary-tree-postorder",
+        "metric": "accuracy",
+        "reliability": 1.0,
+        "sourceId": "workflow:session-95cd4c183e40",
+        "sourceType": "assessment",
+        "timestamp": "2026-09-21T14:23:11.84853+08:00",
+        "value": 0.6667000000000001
+      },
+      "recordId": "record-0001"
+    }
+  ],
+  "generatedAt": "2026-09-21T14:23:12.613312+08:00",
+  "planDiffs": [
+    {
+      "data": {
+        "changedTasks": [
+          {
+            "durationMinutes": 45,
+            "knowledgePointId": "binary-tree-postorder",
+            "knowledgePointName": "二叉树后序遍历",
+            "priority": "high",
+            "status": "pending",
+            "taskId": "task-postorder"
+          },
+          {
+            "durationMinutes": 15,
+            "knowledgePointId": "graph-algorithm",
+            "knowledgePointName": "图算法",
+            "priority": "medium",
+            "status": "pending",
+            "taskId": "task-graph"
+          }
+        ],
+        "evidenceIds": [
+          "evidence-session-95cd4c183e40"
+        ],
+        "newVersion": 2,
+        "oldVersion": 1,
+        "planId": "plan-demo-001",
+        "reason": "掌握度低于阈值",
+        "timestamp": "2026-09-21T14:23:11.859467+08:00"
+      },
+      "recordId": "record-0001"
+    }
+  ],
+  "snapshotVersion": "experiment-snapshot-v1",
+  "submissions": [
+    {
+      "data": {
+        "response": {
+          "assessment": {
+            "errorTypes": [
+              "traversal-order"
+            ],
+            "exerciseResultId": "workflow:session-95cd4c183e40",
+            "oldMastery": 42,
+            "perKnowledgeAccuracy": {
+              "binary-tree-postorder": 0.6667
+            },
+            "score": 66.67,
+            "suggestedNewMastery": 58
+          },
+          "evidenceIds": [
+            "evidence-session-95cd4c183e40"
+          ],
+          "masteryUpdate": {
+            "knowledgePointId": "binary-tree-postorder",
+            "newScore": 58,
+            "oldScore": 42
+          },
+          "needReplan": true,
+          "plan": {
+            "generatedFromProfileVersion": 2,
+            "planId": "plan-demo-001",
+            "reason": "mastery_below_threshold;repeated_error",
+            "tasks": [
+              {
+                "durationMinutes": 45,
+                "knowledgePointId": "binary-tree-postorder",
+                "knowledgePointName": "二叉树后序遍历",
+                "priority": "high",
+                "status": "pending",
+                "taskId": "task-postorder"
+              },
+              {
+                "durationMinutes": 15,
+                "knowledgePointId": "graph-algorithm",
+                "knowledgePointName": "图算法",
+                "priority": "medium",
+                "status": "pending",
+                "taskId": "task-graph"
+              }
+            ],
+            "version": 2
+          },
+          "planDiff": {
+            "changedTasks": [
+              {
+                "durationMinutes": 45,
+                "knowledgePointId": "binary-tree-postorder",
+                "knowledgePointName": "二叉树后序遍历",
+                "priority": "high",
+                "status": "pending",
+                "taskId": "task-postorder"
+              },
+              {
+                "durationMinutes": 15,
+                "knowledgePointId": "graph-algorithm",
+                "knowledgePointName": "图算法",
+                "priority": "medium",
+                "status": "pending",
+                "taskId": "task-graph"
+              }
+            ],
+            "evidenceIds": [
+              "evidence-session-95cd4c183e40"
+            ],
+            "newVersion": 2,
+            "oldVersion": 1,
+            "planId": "plan-demo-001",
+            "reason": "掌握度低于阈值",
+            "timestamp": "2026-09-21T14:23:11.859467+08:00"
+          },
+          "replanDecision": {
+            "needReplan": true,
+            "reasons": [
+              "mastery_below_threshold",
+              "repeated_error"
+            ]
+          },
+          "submissionId": "workflow:session-95cd4c183e40",
+          "traceId": "trace-session-95cd4c183e40"
+        }
+      },
+      "recordId": "record-0001"
+    }
+  ],
+  "summary": {
+    "averageMasteryDelta": 16.0,
+    "averageSteps": 1.5,
+    "coveredAgentCount": 3,
+    "coveredAgents": [
+      "assessment",
+      "exercise",
+      "secretary"
+    ],
+    "coveredToolCount": 3,
+    "coveredTools": [
+      "grade_exercise",
+      "select_exercises",
+      "update_mastery"
+    ],
+    "eventCount": 3,
+    "eventStatusCounts": {
+      "completed": 2,
+      "waiting": 1
+    },
+    "evidenceCount": 1,
+    "planDiffCount": 1,
+    "replanCount": 1,
+    "replanDenominator": 1,
+    "replanRate": 1.0,
+    "replanRateBasis": "plan_histories/submissions",
+    "submissionCount": 1,
+    "traceComplianceViolations": [],
+    "traceCompliant": true,
+    "traceCount": 2
+  },
+  "traces": [
+    {
+      "data": {
+        "events": [],
+        "traceId": "trace-demo-reset-001"
+      },
+      "recordId": "record-0001"
+    },
+    {
+      "data": {
+        "events": [
+          {
+            "agent": "exercise",
+            "evidenceIds": [],
+            "inputStateVersion": 1,
+            "inputSummary": "plan has an available exercise step",
+            "outputStateVersion": 2,
+            "outputSummary": "提交答案后继续评估",
+            "sessionId": "session-95cd4c183e40",
+            "stateVersion": 2,
+            "status": "waiting",
+            "stepId": "step-1",
+            "timestamp": "2026-09-21T14:23:10.967278+08:00",
+            "toolCalls": [
+              "select_exercises"
+            ],
+            "traceId": "trace-session-95cd4c183e40"
+          },
+          {
+            "agent": "assessment",
+            "evidenceIds": [
+              "evidence-session-95cd4c183e40"
+            ],
+            "inputStateVersion": 2,
+            "inputSummary": "submission is waiting for grading",
+            "outputStateVersion": 3,
+            "outputSummary": "{'score': 66.67, 'perKnowledgeAccuracy': {'binary-tree-postorder': 0.6667}, 'errorTypes': ['traversal-order'], 'oldMastery': 42, 'suggestedNewMastery': 58, 'exerciseResultId': 'workflow:session-95cd4c183e40', 'assessment': {'score': 66.67, 'perKnowledgeAccuracy': {'binary-tree-postorder': 0.6667}, 'errorTypes': ['traversal-order'], 'oldMastery': 42, 'suggestedNewMastery': 58, 'exerciseResultId': 'workflow:session-95cd4c183e40'}, 'pendingSubmission': False, 'needReplan': False, 'assessmentPersisted': True, 'evidenceIds': ['evidence-session-95cd4c183e40'], 'plan': {'planId': 'plan-demo-001', 'version': 2, 'tasks': [{'taskId': 'task-postorder', 'knowledgePointId': 'binary-tree-postorder', 'knowledgePointName': '二叉树后序遍历', 'durationMinutes': 45, 'status': 'pending', 'priority': 'high'}, {'taskId': 'task-graph', 'knowledgePointId': 'graph-algorithm', 'knowledgePointName': '图算法', 'durationMinutes': 15, 'status': 'pending', 'priority': 'medium'}], 'generatedFromProfileVersion': 2, 'reason': 'mastery_below_threshold;repeated_error', 'userId': 'demo-user'}, 'planDiff': {'oldVersion': 1, 'newVersion': 2, 'changedTasks': [{'taskId': 'task-postorder', 'knowledgePointId': 'binary-tree-postorder', 'knowledgePointName': '二叉树后序遍历', 'durationMinutes': 45, 'status': 'pending', 'priority': 'high'}, {'taskId': 'task-graph', 'knowledgePointId': 'graph-algorithm', 'knowledgePointName': '图算法', 'durationMinutes': 15, 'status': 'pending', 'priority': 'medium'}], 'reason': '掌握度低于阈值', 'evidenceIds': ['evidence-session-95cd4c183e40'], 'timestamp': '2026-09-21T06:23:11.859467+00:00', 'planId': 'plan-demo-001'}, 'submissionId': 'workflow:session-95cd4c183e40', 'toolCalls': ['grade_exercise', 'update_mastery']}",
+            "sessionId": "session-95cd4c183e40",
+            "stateVersion": 3,
+            "status": "completed",
+            "stepId": "step-2",
+            "timestamp": "2026-09-21T14:23:11.866133+08:00",
+            "toolCalls": [
+              "grade_exercise",
+              "update_mastery"
+            ],
+            "traceId": "trace-session-95cd4c183e40"
+          },
+          {
+            "agent": "secretary",
+            "evidenceIds": [],
+            "inputStateVersion": 3,
+            "inputSummary": "assessment completed",
+            "outputStateVersion": 4,
+            "outputSummary": "学习流程已完成",
+            "sessionId": "session-95cd4c183e40",
+            "stateVersion": 4,
+            "status": "completed",
+            "stepId": "step-3",
+            "timestamp": "2026-09-21T14:23:12.59987+08:00",
+            "toolCalls": [],
+            "traceId": "trace-session-95cd4c183e40"
+          }
+        ],
+        "traceId": "trace-session-95cd4c183e40"
+      },
+      "recordId": "record-0002"
+    }
+  ]
+}
