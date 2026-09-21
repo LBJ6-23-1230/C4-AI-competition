@@ -453,6 +453,10 @@ setx DEVECO_SDK_HOME "D:\DevEco\DevEco Studio\sdk"
 | 复赛提交截止 | 2026-09-30 24:00 |
 | 竞赛官网 | https://developer.huawei.com/home/C4-AI |
 
+## 许可
+
+本项目基于 [MIT License](LICENSE) 开源，Copyright (c) 2026 Ziheng Xu。
+
 ---
 
 <div align="center">
