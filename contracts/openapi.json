@@ -3,7 +3,7 @@
   "info": {
     "title": "Zhixue Mate Agent API",
     "version": "api-contract-v0.3",
-    "description": "知学 Mate 前后端唯一接口契约。字段变更必须先升契约版本并通知前端。 声明层已于 2026-09-22 按实跑结果补全：补齐 5 个已实现端点、所有 operation 的 405、register 的 409、exercises 的 4 个查询参数与 400、knowledge-bases 的 400、可空字段的 nullable、版本头参数，并移除死枚举值 LLM_FALLBACK。实现未改动。"
+    "description": "知学 Mate 前后端唯一接口契约。字段变更必须先升契约版本并通知前端。 声明层已于 2026-09-22 按实跑结果补全：补齐 5 个已实现端点、所有 operation 的 405、register 的 409、exercises 的 4 个查询参数与 400、knowledge-bases 的 400、可空字段的 nullable、版本头参数，并移除死枚举值 LLM_FALLBACK。实现未改动。 KnowledgeBaseDetailResponse.documents 已于 2026-09-22 补声明（后端返回、前端在读，此前契约未声明）。"
   },
   "servers": [
     {
@@ -3515,6 +3515,79 @@
         "allOf": [
           {
             "$ref": "#/components/schemas/KnowledgeBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "documents"
+            ],
+            "properties": {
+              "documents": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "documentId",
+                    "kbId",
+                    "userId",
+                    "fileName",
+                    "status"
+                  ],
+                  "properties": {
+                    "documentId": {
+                      "type": "string"
+                    },
+                    "kbId": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "mimeType": {
+                      "type": "string"
+                    },
+                    "sizeBytes": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusMessage": {
+                      "type": "string"
+                    },
+                    "charCount": {
+                      "type": "integer"
+                    },
+                    "chunkCount": {
+                      "type": "integer"
+                    },
+                    "knowledgePoints": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "errorPointCandidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "uploadedAt": {
+                      "type": "string"
+                    },
+                    "parsedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "该知识库下的文档列表。后端 `get_knowledge_base()` 会一并返回；前端 `KnowledgeBase.ets` 据此渲染文档列表。"
+              }
+            }
           }
         ]
       },
