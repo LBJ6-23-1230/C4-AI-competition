@@ -150,25 +150,50 @@ def submit_exercises(set_id: str):
 		profile = _repository.get("profiles", user_id) if _repository else None
 		if profile is None:
 			return jsonify({"errorCode": "NOT_FOUND", "message": "profile not found", "details": {"userId": user_id}}), 404
-		old_mastery = 42
 		profile_model = LearnerProfile.from_dict(profile)
-		for mastery in profile_model.mastery:
-			if mastery.knowledge_point_id == "binary-tree-postorder":
-				old_mastery = mastery.mastery_score
 		knowledge_points = {item["exerciseId"]: item["knowledgePointId"] for item in _EXERCISE_BANK}
+
+		# ⚠️ `old_mastery` 必须取自**本次作答覆盖的那个知识点**，不能写死
+		# `binary-tree-postorder`。
+		#
+		# 原缺陷：`old_mastery` 固定取二叉树那条（否则 42），而判分按每题真实
+		# knowledgePointId 归集，响应的 `masteryUpdate.knowledgePointId` 也被硬编码 ——
+		# 于是提交其它知识点题集时，返回的"掌握度提升"落不到画像上、
+		# 真正的薄弱点永远不被记录、重规划也按错的知识点触发。
+		# 实测：提交 graph-algorithm 题集，响应称 binary-tree-postorder 42→46，
+		# 而画像里该知识点仍是 42。
+		#
+		# 先按"题面知识点"取一次初值给判分用；判分完成后用 dominant_knowledge_point()
+		# 精确定位主知识点，再校正响应字段（见下）。
+		covered_points = {knowledge_points.get(str(a.get("exerciseId")), "")
+						  for a in answers if isinstance(a, dict)}
+		covered_points.discard("")
+		lead_point = sorted(covered_points)[0] if covered_points else "binary-tree-postorder"
+		old_mastery = 42
+		for mastery in profile_model.mastery:
+			if mastery.knowledge_point_id == lead_point:
+				old_mastery = mastery.mastery_score
+
 		assessment = grade_exercise(answers, _ANSWER_KEYS, knowledge_points, old_mastery, result_id)
 		score = assessment.score
 		new_mastery = assessment.suggested_new_mastery
+		# 本次提交真正主要练的知识点（按被判分题量，并列取字典序）
+		report_point = assessment.dominant_knowledge_point()
+		if report_point == "unknown":
+			report_point = lead_point
+		# 该知识点自己的新旧分值（供响应与重规划使用）
+		report_old = old_mastery
+		report_new = assessment.per_knowledge_mastery.get(report_point, new_mastery)
 		response = {
 			"userId": user_id,
 			"submissionId": result_id,
 			"assessment": assessment.to_dict(),
-			"masteryUpdate": {"knowledgePointId": "binary-tree-postorder", "oldScore": old_mastery,
-				"newScore": new_mastery},
+			"masteryUpdate": {"knowledgePointId": report_point, "oldScore": report_old,
+				"newScore": report_new},
 			"needReplan": False,
 		}
-		response["replanDecision"] = should_replan({"masteryScore": new_mastery,
-			"knowledgePointId": "binary-tree-postorder", "repeatedError": score < 80})
+		response["replanDecision"] = should_replan({"masteryScore": report_new,
+			"knowledgePointId": report_point, "repeatedError": score < 80})
 		response["needReplan"] = response["replanDecision"]["needReplan"]
 		if _repository:
 			trace_id = f"trace-submit-{idempotency_key}"
@@ -185,8 +210,8 @@ def submit_exercises(set_id: str):
 					plan = next((item for item in plans if item.get("planId") == "plan-demo-001"), None)
 					plan = plan or (plans[0] if plans else None)
 					if plan is not None:
-						replan_result = replan_learning_path(plan, {"masteryScore": new_mastery,
-							"knowledgePointId": "binary-tree-postorder", "repeatedError": score < 80})
+						replan_result = replan_learning_path(plan, {"masteryScore": report_new,
+							"knowledgePointId": report_point, "repeatedError": score < 80})
 						updated_plan = replan_result["plan"]
 						updated_tasks = updated_plan["tasks"]
 						new_plan = LearningPlan(plan["planId"], updated_plan["version"], updated_tasks,

@@ -85,12 +85,27 @@ def bounded_str(value: Any, field: str, limit: int, *, required: bool = True,
 
 
 def validate_answers(answers: Any):
-    """校验答案数组：必须是对象数组，且数量与单条长度都有上限。
+    """校验答案数组：必须是**非空**对象数组，且数量与单条长度都有上限。
 
     返回 `(answers, error_response)`。
+
+    ⚠️ 为什么必须拒绝空数组与"无有效题号"的提交：
+
+    原实现放行 `answers: []`（空数组合法 JSON，也是本项目测试里用过的载荷），
+    判分侧用 `max(1, len(valid_ids))` 掩盖除零 → 直接得 `score=0.0`，于是
+      * 掌握度被扣 4 分（`update_mastery(old, 0)` → delta = -4）
+      * `needReplan=true`，计划被重规划成 [45,15]
+      * `profileVersion` +1、history 记一条"42 → 38"
+      * **但** `perKnowledgeAccuracy` 为空，`persist_mastery` 什么都没改 ——
+        画像仍 42
+    即：历史/响应与真实数据互相矛盾，且**用户被无理由罚分**。
+    实测已复现。空提交就不该进入判分，应在护栏层拒绝。
     """
     if not isinstance(answers, list):
         return None, bad_request("answers 必须是数组", {"field": "answers"})
+    if len(answers) == 0:
+        return None, bad_request("answers 不能为空数组（没有可判分的题目）",
+                                 {"field": "answers", "received": 0})
     if len(answers) > MAX_ANSWERS:
         return None, bad_request(f"answers 最多 {MAX_ANSWERS} 条，收到 {len(answers)} 条",
                                  {"field": "answers", "limit": MAX_ANSWERS, "received": len(answers)})
@@ -98,6 +113,11 @@ def validate_answers(answers: Any):
         if not isinstance(item, dict):
             return None, bad_request("answers 中每一项都必须是对象",
                                      {"field": "answers", "received": type(item).__name__})
+        exercise_id = item.get("exerciseId")
+        if not isinstance(exercise_id, str) or not exercise_id.strip():
+            return None, bad_request("answers 中每一项都必须带非空的 exerciseId",
+                                     {"field": "exerciseId",
+                                      "received": type(exercise_id).__name__})
         answer = item.get("answer")
         if isinstance(answer, str) and len(answer) > MAX_ANSWER_CHARS:
             return None, bad_request(f"单个 answer 最长 {MAX_ANSWER_CHARS} 字符",

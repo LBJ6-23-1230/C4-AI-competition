@@ -6,7 +6,7 @@ from typing import Any
 
 from app.domain.assessment import AssessmentResult
 from app.domain.evidence import Evidence, MasteryHistory
-from app.domain.profile import LearnerProfile
+from app.domain.profile import KnowledgeMastery, LearnerProfile
 
 
 def grade_exercise(
@@ -39,7 +39,14 @@ def grade_exercise(
 		per_knowledge_accuracy=accuracy,
 		error_types=error_types,
 		old_mastery=old_mastery,
+		# 标量仍按**整卷总分**算 —— 它是演示基线的对外数值（√√× → 58），不能动。
 		suggested_new_mastery=update_mastery(old_mastery, score),
+		# 落盘用的**按知识点**建议值：每个知识点看自己的正确率，
+		# 而不是把整卷的标量套到所有知识点上（见 AssessmentResult 的字段说明）。
+		per_knowledge_mastery={
+			point: update_mastery(old_mastery, round(point_accuracy * 100, 2))
+			for point, point_accuracy in accuracy.items()
+		},
 		exercise_result_id=exercise_result_id,
 	)
 
@@ -70,10 +77,30 @@ def persist_mastery(repository: Any, user_id: str, assessment: AssessmentResult,
 		return None
 	timestamp = timestamp or datetime.now(timezone.utc)
 	profile_model = LearnerProfile.from_dict(profile)
+	# 逐个知识点写自己的建议值；缺失时回退整卷标量（保持既有调用方行为不变）。
+	touched_points: list[str] = []
 	for mastery in profile_model.mastery:
 		if mastery.knowledge_point_id in assessment.per_knowledge_accuracy:
-			mastery.mastery_score = assessment.suggested_new_mastery
+			mastery.mastery_score = assessment.per_knowledge_mastery.get(
+				mastery.knowledge_point_id, assessment.suggested_new_mastery)
 			mastery.last_updated = timestamp
+			touched_points.append(mastery.knowledge_point_id)
+	# ⚠️ 画像里**没有记录**的知识点必须补建，否则"练了但没记上"。
+	# 原实现只更新已存在的条目 —— 提交一个新知识点的题集时，
+	# 掌握度变化在响应里可见、在画像里却查无此点，历史与事实不符。
+	existing_points = {m.knowledge_point_id for m in profile_model.mastery}
+	for point in assessment.per_knowledge_accuracy:
+		if point in existing_points or point == "unknown":
+			continue
+		profile_model.mastery.append(KnowledgeMastery(
+			knowledge_point_id=point,
+			knowledge_point_name=point,
+			mastery_score=assessment.per_knowledge_mastery.get(
+				point, assessment.suggested_new_mastery),
+			confidence=0.5,
+			last_updated=timestamp,
+		))
+		touched_points.append(point)
 	profile_model.advance_version()
 	profile_dict = profile_model.to_dict()
 	profile_dict["history"] = profile.get("history", []) + [

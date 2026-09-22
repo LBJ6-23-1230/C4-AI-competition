@@ -250,3 +250,89 @@ def test_plan_factors_explain_the_lead_task(tmp_path):
     if lead_point == "binary-tree-postorder":
         assert mastery["value"] == pytest.approx(0.58, abs=0.001), \
             "因子卡讲错了知识点（不是计划首个任务）"
+
+
+# --------------------------------------------------------------------------- 掌握度归属
+def test_mastery_update_is_attributed_to_the_practiced_knowledge_point(tmp_path):
+    """掌握度必须记在**本次练习的那个知识点**上。
+
+    原缺陷（后端审计 P1-5）：
+      * `old_mastery` 固定取 `binary-tree-postorder` 那条（否则 42）
+      * 响应的 `masteryUpdate.knowledgePointId` 被硬编码成同一值
+      * `persist_mastery` 把**同一个** `suggested_new_mastery` 写给所有被判分知识点
+    后果：提交其它知识点题集时，"掌握度提升"落不到画像上，真正的薄弱点永不被记录。
+
+    断言：提交 graph-algorithm 的题后，响应里报告的就是 graph-algorithm，
+    而不是 binary-tree-postorder。
+    """
+    client = create_app(tmp_path / "mastery-attribution.json").test_client()
+    client.post("/api/v1/demo/reset")
+
+    resp = client.post("/api/v1/exercises/set-demo-data-structures-001/submit", json={
+        "userId": "demo-user",
+        "idempotencyKey": "mastery-attribution-001",
+        "answers": [{"exerciseId": "exercise-graph-001", "answer": "A"}],
+    })
+    assert resp.status_code == 200, resp.get_data(as_text=True)
+    body = resp.get_json()
+    reported = body["masteryUpdate"]["knowledgePointId"]
+    assert reported == "graph-algorithm", \
+        f"掌握度被记到了 {reported!r}，而不是本次练习的 graph-algorithm"
+
+
+def test_mastery_update_creates_missing_knowledge_point(tmp_path):
+    """画像里没有记录的知识点，练习后必须被补建。
+
+    原缺陷：`persist_mastery` 只遍历**已存在**的 mastery 条目，
+    新知识点练完在响应里可见、画像里却查无此点 —— 统计与事实不符。
+    """
+    client = create_app(tmp_path / "mastery-create.json").test_client()
+    client.post("/api/v1/demo/reset")
+
+    import app.api.exercises as exercises_module
+
+    resp = client.post("/api/v1/exercises/set-demo-data-structures-001/submit", json={
+        "userId": "demo-user",
+        "idempotencyKey": "mastery-create-001",
+        "answers": [{"exerciseId": "exercise-graph-001", "answer": "A"}],
+    })
+    assert resp.status_code == 200
+
+    profile = exercises_module._repository.get("profiles", "demo-user")
+    points = {m.get("knowledgePointId") for m in (profile or {}).get("mastery", [])}
+    assert "graph-algorithm" in points, \
+        "练习过的知识点没有在画像里建档（画像里查无此点）"
+
+
+def test_empty_answers_do_not_penalize_mastery(tmp_path):
+    """空答案不得被当成"全错"扣掌握度并触发重规划。
+
+    原缺陷（后端审计 P1-6）：`validate_answers` 放行 `answers: []`，
+    判分用 `max(1, len(valid_ids))` 掩盖除零 → `score=0.0` →
+    掌握度 -4、`needReplan=true`、计划被改成 [45,15]、profileVersion +1、
+    history 记一条 —— 但 `perKnowledgeAccuracy` 为空，
+    `persist_mastery` 什么都没改，于是历史/响应与真实数据不一致，
+    **用户被无理由罚分**。
+
+    断言：空答案返回 400，且画像掌握度不变。
+    """
+    client = create_app(tmp_path / "empty-answers.json").test_client()
+    client.post("/api/v1/demo/reset")
+
+    import app.api.exercises as exercises_module
+
+    before = exercises_module._repository.get("profiles", "demo-user")
+    before_mastery = {m["knowledgePointId"]: m["masteryScore"] for m in before["mastery"]}
+
+    resp = client.post("/api/v1/exercises/set-demo-binary-tree-001/submit", json={
+        "userId": "demo-user",
+        "idempotencyKey": "empty-answers-001",
+        "answers": [],
+    })
+    assert resp.status_code == 400, \
+        f"空答案应被拒绝，实际 {resp.status_code}：{resp.get_data(as_text=True)[:200]}"
+
+    after = exercises_module._repository.get("profiles", "demo-user")
+    after_mastery = {m["knowledgePointId"]: m["masteryScore"] for m in after["mastery"]}
+    assert before_mastery == after_mastery, "空答案改变了掌握度（无理由罚分）"
+
