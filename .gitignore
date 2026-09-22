@@ -26,7 +26,12 @@ oh_modules/
 .idea/
 .cxx/
 build/
+# *.hap 通用规则是为了防止把「编译产物」误提交（entry/build 下每构建一次就变）。
+# 但 deliverables/ 下那一份签名 HAP 是**有意的交付物** ——
+# 竞赛规程「演示：应用赛题须提交实际可演示的文件」要求它存在，
+# 所以下面用 `!` 单独放行。改动这一条前请先读 docs/29 与 deliverables/README-签名HAP.md。
 *.hap
+!deliverables/*.hap
 *.har
 local.properties
 
