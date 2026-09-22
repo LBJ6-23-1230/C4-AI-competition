@@ -241,6 +241,7 @@ def main() -> int:
         mapping = [
             ("README-提交说明.md", DST / "README-提交说明.md"),
             ("提交清单与待办.md", DST / "提交清单与待办.md"),
+            ("仓库结构说明.md", DST / "仓库结构说明.md"),
             ("01-作品说明文档-README-改稿须知.md",
              docdir / "README-改稿须知.md"),
             ("02-演示视频-README-待录制.md",
