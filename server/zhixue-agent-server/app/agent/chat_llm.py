@@ -62,6 +62,17 @@ INTENT_CARDS: dict[str, tuple[str, str, str]] = {
 # 前端 ChatModels 的 ChatIntent 取值（free_chat 为前端自有）
 KNOWN_INTENTS = tuple(INTENT_CARDS.keys())
 
+# LLM 允许返回的意图集合 = 6 个可落地意图 + unknown。
+#
+# ⚠️ 为什么必须单独加 unknown（否则是个会伪装成"模型故障"的坑）：
+#   `MainAgentPrompt.txt` 明确要求模型「不属于上述 6 种就返回 {"intent":"unknown"}」
+#   （见 prompt 第 84、127 行），`_LOCAL_REPLY` 也为 unknown 备了兜底文案。
+#   但若 unknown 不在受理集合里，模型**依指令正确返回 unknown** 时会被判为
+#   "意图识别失败" → 丢弃结果 → 退回关键词匹配 → `llm_used=False`
+#   → 用户看到"本次大模型调用失败"，而模型其实刚刚成功响应过。
+#   这是**对模型成功结果的误报**，违反本项目"诚实降级、不伪装"的原则。
+LLM_ACCEPTED_INTENTS = KNOWN_INTENTS + ("unknown",)
+
 # 无 LLM 时的本地规则回复
 _LOCAL_REPLY: dict[str, str] = {
     "query_tasks": "我已按当前课程与作业 DDL 整理出任务优先级，你可以打开学习计划查看。",
@@ -468,11 +479,12 @@ def detect_intent(message: str, has_image: bool = False) -> tuple[str, bool]:
         )
         parsed = extract_json(raw) or {}
         intent = str(parsed.get("intent", "")).strip()
-        if intent in KNOWN_INTENTS:
+        if intent in LLM_ACCEPTED_INTENTS:
             return intent, True
     except Exception as error:  # noqa: BLE001 - 聊天层必须降级而非抛错
         print(f"[chat] 意图识别失败，退回关键词匹配: {error}")
     return keyword_intent(message), False
+
 
 
 # --------------------------------------------------------------------------- 子 Agent
@@ -575,6 +587,7 @@ def chat(message: str, image_base64: str | None = None,
     intent, llm_used = detect_intent(message, has_image=bool(image_base64))
 
     reply = ""
+    llm_attempted = llm_used  # 模型的意图判定是否真的成功（后续据此决定能否说"调用失败"）
     if llm_used:
         try:
             if intent == "analyze_wrong":
@@ -586,6 +599,7 @@ def chat(message: str, image_base64: str | None = None,
         except Exception as error:  # noqa: BLE001
             print(f"[chat] 子 Agent 调用失败，退回本地规则: {error}")
             llm_used = False
+            llm_attempted = False
             reply = ""
 
     if not reply.strip():
@@ -593,7 +607,13 @@ def chat(message: str, image_base64: str | None = None,
         if image_base64:
             reply = ("图片已收到。当前未接入多模态识别，请进入错题分析页手动确认知识点，"
                      "或在服务端配置 DASHSCOPE_API_KEY 后重试。")
-        llm_used = False
+            llm_attempted = False
+        # ⚠️ 只有"模型调用确实失败"才把 llmUsed 置 False。
+        # `unknown` 是模型**依 prompt 正确返回**的兜底意图（prompt 第 84/127 行），
+        # 它没有对应子 Agent handler，因此 reply 为空、落到 `_LOCAL_REPLY["unknown"]`。
+        # 若此处不加区分地置 False，`/api/agent/chat` 就会回复
+        # "本次大模型调用失败" —— 而模型其实刚刚成功响应过，属于**对成功结果的误报**。
+        llm_used = llm_attempted
 
     if not llm_used and llm_ready():
         # LLM 已配置但本次调用失败：诚实说明，不伪装成模型输出
