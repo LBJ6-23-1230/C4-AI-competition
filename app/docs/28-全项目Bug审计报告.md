@@ -17,9 +17,9 @@
 > 契约 P0-1 与前端 P0-1 是**同一缺陷被两个独立方向分别发现**（都附实跑证据），
 > 这本身说明该缺陷的确定性很高。
 
-**当前修复进度：已修 17 项**（5×P0 + 12×P1），剩 17 项（多为 P2）。
-另新增 **19 项回归测试**固化（`tests/test_audit_regressions.py`），
-测试总数 295 → **314**。
+**当前修复进度：已修 25 项**（5×P0 + 15×P1 + 5×P2），剩 9 项（全部为 P2 或需真机）。
+另新增 **23 项回归测试**固化（`tests/test_audit_regressions.py`），
+测试总数 295 → **318**。
 
 ---
 
@@ -197,6 +197,64 @@ history 记一条 —— 但 `perKnowledgeAccuracy` 为空、`persist_mastery` �
 
 **修复**：护栏层拒绝空数组，并要求每项带非空 `exerciseId`。
 
+### 🟠 P1 · trace 并发追加丢事件 / 工作流推进重复记账（后端）
+
+`EventStore.append` 与 `_run_saved_workflow` 都是"读—改—写"序列；
+`JsonRepository.save()` 有自己的写锁，但**锁不住这段序列**。
+实测：48 次并发 append 只留 **5 条**事件（trace 是"Agent 决策可追溯"的核心证据，
+`experiments/snapshot` 统计也基于它）；6 次并发 run 同一 session →
+`profileVersion` 1→7、history 6 条共用同一 `evidenceId`。
+
+**修复**：`_TRACE_LOCK` 与 `_WORKFLOW_RUN_LOCK`（可重入）分别串行化；
+`autoRun` 分支同样持锁 —— 那条旁路原先绕过 `/run` 的护栏，是同一个陷阱。
+回归测试：24 线程并发 append 断言事件数正好 24。
+
+### 🟠 P1 · 「更新档案」是静默 no-op + 假成功（后端）
+
+`_handle_update_profile` 只取模型返回的 `reply`，把整个 `updates` 丢弃，
+且 chat 全链路**没有 repository 写入口** → 用户说"把目标改成 XX"得到
+"已帮你更新信息。"，而 profiles 一字未改。
+
+**修复**（为什么不直接全写进去：后端 `profiles` 只持有
+`goal/examDate/freeTimeSlots/mastery`，**课程与任务是前端本地数据**）：
+
+1. `chat_llm` 新增 `set_profile_update_hook()` 把持久化边界注入对话层
+2. `app/api/chat.py` 实现 `_apply_profile_updates()`，只写后端真正拥有的字段
+   并递增 `profileVersion`
+3. 回复文案改为**有据可依**：写明实际写入的字段；课程/任务类改动明确告知
+   "由 App 本地维护，已随本次结果一并下发"
+4. `chat()` 与 HTTP 响应新增 `profileUpdates` 供前端应用
+
+回归测试 2 项：真的落盘 + 版本号递增；后端不持有的字段**不得**写进 profiles。
+
+### 🟠 P1 · 搭子打分规则写在 prompt 里让 LLM 算（后端）
+
+`MatchPartnerPrompt.txt` 把整套打分规则写进 prompt，而同一套规则在
+`partner_match.py:62-81` 已有确定性实现 → 同一问题在两个接口
+**返回互相矛盾的分数**，违反"业务计算必须留在确定性代码里"。
+
+**修复**：prompt 删除全部打分规则并明确"你不做任何打分计算、必须原样引用
+外部给出的分数"；`_handle_match_partner` 先用 `match_partners()` 算出权威
+排名与分项得分再注入 prompt，让 LLM 只负责解释。
+
+### 🟡 P2 · 契约声明层系统性偏窄（契约审计 14 项）
+
+审计结论：骨架层健康，但**响应码声明层不健康**。新增
+[`tools/patch_contract_declarations.py`](../tools/patch_contract_declarations.py)，
+**每条补充都先实跑探测确认**，只改声明不改实现：
+
+* 补声明 5 个已实现端点（`/`、`/health`、`/api/agent/health`、
+  `GET|DELETE /api/agent/history`、`/api/agent/user-data`）
+* 所有 operation 补 **405**（后端专门实现统一 JSON 错误体，契约里原出现 0 次）
+* `auth/register` 补 **409**、`exercises/{setId}` 补 **400** 与 4 个在用 query 参数、
+  `knowledge-bases` 补 **400**
+* 新增 `ContractVersionHeader` 并挂到 31 个 operation（版本闸门真实生效但契约不可见）
+* 移除死枚举值 **`LLM_FALLBACK`**（全后端静态扫描 0 处引用）
+
+真源与镜像同步写出，均 106,328 B、sha256 相同、CRLF 无 BOM。
+配套修复 `tools/diff_contracts.py`（默认路径错写成 `tools/` 自身，
+不带参数必然 `FileNotFoundError`，工具等于坏的）。
+
 ---
 
 ## 二、已评估但**判定不成立**的发现（避免后续重复排查）
@@ -268,22 +326,23 @@ history 记一条 —— 但 `perKnowledgeAccuracy` 为空、`persist_mastery` �
 - 必填响应字段实测齐全（`ExerciseSubmitResponse` 8/8、`AssessmentResult` 5/5、
   `Exercise` 5/5、`LearnerProfile` 5/5、`TraceEvent` 8/8）
 
-**不健康的部分（系统性"实现比声明更宽"）**：
+**不健康的部分（系统性"实现比声明更宽"）—— 已修 C1~C4、C7、C9、C10**：
 
-| # | 问题 |
-|---|---|
-| C1 | `register` 实返 **409**，契约只声明 201/400 |
-| C2 | `GET /exercises/{setId}` 实返 **400**，且前端在用的 4 个 query 参数（`knowledgePointId`/`difficulty`/`count`/`excludeExerciseId`）**一个都没声明** |
-| C3 | `GET /knowledge-bases` 实返 **400**，契约只声明 200 |
-| C4 | 契约全文 **无任何 405 声明**，而后端专门实现 405 JSON 且联调脚本断言它 |
-| C5 | `KnowledgeBaseDetailResponse` 未声明 `documents`，后端返回、前端在读 |
-| C6 | `finalAction` / `examDate` 声明为非 nullable，实返 `null` |
-| C7 | `LLM_FALLBACK` 是死枚举值（从不返回） |
-| C8 | `submit` 声明的 409 **不可达**（幂等重放返回 200 且体逐字节相同） |
-| C9 | `X-API-Contract-Version` 版本闸门真实生效（v0.2→409、无头→200），但契约里**出现 0 次** |
-| C10 | 5 个后端已实现端点未声明（`GET /`、`/health`、`/api/agent/health`、`GET\|DELETE /api/agent/history`、`/api/agent/user-data`） |
-| C11 | 4 个已声明 operation 无前端客户端方法 |
-| C12 | `AuthClient.register()` 从不发 `phone`，而契约 required 含 phone → 只会 400（当前为死代码） |
+| # | 问题 | 状态 |
+|---|---|---|
+| C1 | `register` 实返 **409**，契约只声明 201/400 | ✅ 已补声明 |
+| C2 | `GET /exercises/{setId}` 实返 **400**，且前端在用的 4 个 query 参数（`knowledgePointId`/`difficulty`/`count`/`excludeExerciseId`）**一个都没声明** | ✅ 已补声明；**并修掉 `count` 被静默忽略**（实测 `?count=1` 仍返 3 题） |
+| C3 | `GET /knowledge-bases` 实返 **400**，契约只声明 200 | ✅ 已补声明 |
+| C4 | 契约全文 **无任何 405 声明**，而后端专门实现 405 JSON 且联调脚本断言它 | ✅ 33 个 operation 全部补声明 |
+| C5 | `KnowledgeBaseDetailResponse` 未声明 `documents`，后端返回、前端在读 | ⏳ 待处理 |
+| C6 | `finalAction` / `examDate` 声明为非 nullable，实返 `null` | ❌ **该条不成立**：复核发现两者**本就带 `"nullable": true`**，审计此条有误 |
+| C7 | `LLM_FALLBACK` 是死枚举值（从不返回） | ✅ 已移除（全后端静态扫描 0 处引用） |
+| C8 | `submit` 声明的 409 **不可达**（幂等重放返回 200 且体逐字节相同） | ⏳ 属"多声明一个永不发生的结果"，改动会牵动幂等语义，暂留 |
+| C9 | `X-API-Contract-Version` 版本闸门真实生效（v0.2→409、无头→200），但契约里**出现 0 次** | ✅ 新增 `ContractVersionHeader` 并挂到 31 个 operation |
+| C10 | 5 个后端已实现端点未声明（`GET /`、`/health`、`/api/agent/health`、`GET\|DELETE /api/agent/history`、`/api/agent/user-data`） | ✅ 已全部补声明（paths 28 → 33） |
+| C11 | 4 个已声明 operation 无前端客户端方法 | ⏳ 待处理 |
+| C12 | `AuthClient.register()` 从不发 `phone`，而契约 required 含 phone → 只会 400（当前为死代码） | ⏳ 待处理（休眠炸弹：无调用点，但随时会被误用） |
+
 | C13 | `recoverable` 契约/后端都没有，前端在读 → 恒 `undefined` |
 | C14 | `ApiDefaults.CONTRACT_VERSION` 是第二份版本真源，零引用 |
 
