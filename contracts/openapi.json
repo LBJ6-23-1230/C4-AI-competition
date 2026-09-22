@@ -3,7 +3,7 @@
   "info": {
     "title": "Zhixue Mate Agent API",
     "version": "api-contract-v0.3",
-    "description": "知学 Mate 前后端唯一接口契约。字段变更必须先升契约版本并通知前端。 声明层已于 2026-09-22 按实跑结果补全：补齐 5 个已实现端点、所有 operation 的 405、register 的 409、exercises 的 4 个查询参数与 400、knowledge-bases 的 400、可空字段的 nullable、版本头参数，并移除死枚举值 LLM_FALLBACK。实现未改动。 KnowledgeBaseDetailResponse.documents 已于 2026-09-22 补声明（后端返回、前端在读，此前契约未声明）。"
+    "description": "知学 Mate 前后端唯一接口契约。字段变更必须先升契约版本并通知前端。 声明层已于 2026-09-22 按实跑结果补全：补齐 5 个已实现端点、所有 operation 的 405、register 的 409、exercises 的 4 个查询参数与 400、knowledge-bases 的 400、可空字段的 nullable、版本头参数，并移除死枚举值 LLM_FALLBACK。实现未改动。 KnowledgeBaseDetailResponse.documents 已于 2026-09-22 补声明（后端返回、前端在读，此前契约未声明）。 LegacyChatResponse.card.summary 已于 2026-09-22 补声明（前端在读、后端已补返回，此前两边都缺）。"
   },
   "servers": [
     {
@@ -2091,6 +2091,10 @@
               },
               "sessionId": {
                 "type": "string"
+              },
+              "summary": {
+                "type": "string",
+                "description": "卡片的一行描述，由前端渲染在卡片标题下方。后端 `build_card()` 按意图给出；缺失会导致描述行空白。"
               }
             },
             "description": "意图对应的结构化卡片；targetPage 必须是 App 已注册路由。"

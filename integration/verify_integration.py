@@ -26,6 +26,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 CONTRACT = "api-contract-v0.3"
+
+#: 普通接口的超时（秒）。这些接口都是纯确定性计算，毫秒级返回。
+HTTP_TIMEOUT = 15
+
+#: **走真实大模型**的接口超时（秒）。
+#:
+#: 实测 live 模式下 `/api/agent/chat` 单次响应需 **25–30 秒**（qwen-vl-max
+#: 生成几百字中文回复 + 意图识别两次调用）。原先所有请求共用 15 秒，
+#: 于是联调跑到聊天一节就 `TimeoutError` 崩栈退出 —— 看起来像产品接口挂了，
+#: 实际是脚本超时太紧。凡打 LLM 的调用都要传这个值。
+LLM_TIMEOUT = 120
+
 _LIVE_IMAGE_BASE64 = (
     "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGO4"
     "o6FBEmIY1TCqYfhqAAAyBCwQhvh37QAAAABJRU5ErkJggg==")
@@ -46,11 +58,22 @@ def record(name, ok, detail="", expected=None, actual=None):
     return ok
 
 
-def http(method, url, body=None, contract=CONTRACT, raw_text=None, content_type=None):
+def http(method, url, body=None, contract=CONTRACT, raw_text=None, content_type=None,
+         timeout=None):
     """发一个真实 HTTP 请求，返回 `(status, parsed_body, headers)`。
 
     `raw_text` / `content_type` 用于构造**非 JSON** 请求体（例如验证
     "非 JSON 请求体应返回 JSON 400 而不是 HTML"）。两者互斥于 `body`。
+
+    ## 超时（`timeout`）
+
+    默认 `HTTP_TIMEOUT`（15s）。**走真实大模型的接口必须显式放宽** ——
+    实测 `/api/agent/chat` 在 live 模式下单次响应需 **25–30 秒**
+    （qwen-vl-max 要生成几百字中文回复），15 秒必然 `TimeoutError`。
+
+    这个缺陷会造成很坏的误导：整个联调在"鉴权/聊天"一节直接崩栈退出，
+    看起来像产品接口挂了，实际是**测试脚本自己的超时太紧**。
+    因此凡是打 LLM 的调用都传 `timeout=LLM_TIMEOUT`。
     """
     if raw_text is not None:
         data = raw_text.encode("utf-8")
@@ -63,7 +86,8 @@ def http(method, url, body=None, contract=CONTRACT, raw_text=None, content_type=
     if data is not None:
         request.add_header("Content-Type", content_type or "application/json")
     try:
-        with urllib.request.urlopen(request, timeout=15) as response:
+        with urllib.request.urlopen(
+                request, timeout=(timeout if timeout is not None else HTTP_TIMEOUT)) as response:
             raw = response.read().decode("utf-8")
             return response.status, (json.loads(raw) if raw.strip() else None), dict(response.headers)
     except urllib.error.HTTPError as error:
@@ -584,15 +608,18 @@ def main():
            expected=200, actual=str(status))
 
     # ---- 11. 聊天层（与工作流层同进程） ---------------------------------
-    status, chat, _ = http("POST", f"{base}/api/agent/chat", {"message": "今天我应该先学什么？"})
+    status, chat, _ = http("POST", f"{base}/api/agent/chat", {"message": "今天我应该先学什么？"},
+              timeout=LLM_TIMEOUT)
     record("POST /api/agent/chat 同进程可用", status == 200 and isinstance(chat, dict) and bool(chat.get("reply")),
            f"HTTP {status} intent={chat.get('intent') if isinstance(chat, dict) else '?'}",
            expected="200 + reply", actual=f"{status} intent={chat.get('intent') if isinstance(chat, dict) else None}")
 
-    status, chat_bad, _ = http("POST", f"{base}/api/agent/chat", {"message": "测试"}, contract="api-contract-v0.2")
+    status, chat_bad, _ = http("POST", f"{base}/api/agent/chat", {"message": "测试"},
+              contract="api-contract-v0.2", timeout=LLM_TIMEOUT)
     record("聊天层拒绝错误契约版本", status == 409, f"HTTP {status}", expected=409, actual=str(status))
 
-    status, chat_wrong, _ = http("POST", f"{base}/api/agent/chat", {"message": "帮我分析错题"})
+    status, chat_wrong, _ = http("POST", f"{base}/api/agent/chat", {"message": "帮我分析错题"},
+              timeout=LLM_TIMEOUT)
     if skip_degradation:
         record("聊天层在真 LLM 模式下能正常识别意图",
                isinstance(chat_wrong, dict) and bool(chat_wrong.get("intent")),
@@ -697,7 +724,8 @@ def main():
     # （llmUsed 会变成 true），所以按模式跳过，避免看到假失败。
     status, img_chat, _ = http(
         "POST", f"{base}/api/agent/chat",
-        {"message": "帮我分析这道题", "image": _LIVE_IMAGE_BASE64})
+        {"message": "帮我分析这道题", "image": _LIVE_IMAGE_BASE64},
+        timeout=LLM_TIMEOUT)
     reply_text = img_chat.get("reply", "") if isinstance(img_chat, dict) else ""
     llm_used = img_chat.get("llmUsed") if isinstance(img_chat, dict) else None
     if skip_degradation:
@@ -712,7 +740,8 @@ def main():
                f"HTTP {status} llmUsed={llm_used} reply[:40]={reply_text[:40]!r}",
                expected="200 + llmUsed=false", actual=f"{status} llmUsed={llm_used}")
 
-    status, txt_chat, _ = http("POST", f"{base}/api/agent/chat", {"message": "今天我应该先学什么？"})
+    status, txt_chat, _ = http("POST", f"{base}/api/agent/chat", {"message": "今天我应该先学什么？"},
+              timeout=LLM_TIMEOUT)
     if skip_degradation:
         record("纯文本回复在真 LLM 模式下确实走了模型",
                isinstance(txt_chat, dict) and txt_chat.get("llmUsed") is True and bool(txt_chat.get("reply")),
@@ -814,8 +843,10 @@ def main():
     # ---- 18. 对话历史按用户隔离（原先全局可读可删）------------------------
     http("DELETE", f"{base}/api/agent/history?userId=probe-a")
     http("DELETE", f"{base}/api/agent/history?userId=probe-b")
-    http("POST", f"{base}/api/agent/chat", {"message": "甲的问题", "userId": "probe-a"})
-    http("POST", f"{base}/api/agent/chat", {"message": "乙的问题", "userId": "probe-b"})
+    http("POST", f"{base}/api/agent/chat", {"message": "甲的问题", "userId": "probe-a"},
+         timeout=LLM_TIMEOUT)
+    http("POST", f"{base}/api/agent/chat", {"message": "乙的问题", "userId": "probe-b"},
+         timeout=LLM_TIMEOUT)
 
     status, hist_a, _ = http("GET", f"{base}/api/agent/history?userId=probe-a")
     check_contract("agent history", "GET", "/api/agent/history", hist_a)

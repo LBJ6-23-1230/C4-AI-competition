@@ -570,5 +570,44 @@
       ]
     },
     "createdAt": "2026-09-20T19:38:10.968025"
+  },
+  {
+    "questionId": "u001_5e3a2c8d-4b1f-4e9f-9c2d-7f8e1a2b3c4d",
+    "userId": "u001",
+    "input": {
+      "image": null,
+      "myAnswer": null,
+      "correctAnswer": null
+    },
+    "AIAnalysis": {
+      "course": "数据结构",
+      "knowledge": [
+        {
+          "name": "二叉树遍历",
+          "confidence": 0.92
+        },
+        {
+          "name": "递归理解",
+          "confidence": 0.88
+        }
+      ],
+      "wrongType": "知识盲区",
+      "reason": "用户未提供具体错题内容，但从学习记录推断其在二叉树遍历和递归逻辑方面存在系统性薄弱，可能因缺乏练习导致理解不深。",
+      "Tag": [
+        "二叉树遍历薄弱",
+        "递归理解薄弱"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "二叉树遍历",
+          "task": "复习前序、中序、后序遍历定义，手动画出3棵不同结构的二叉树并写出三种遍历序列。"
+        },
+        {
+          "studyTag": "递归理解",
+          "task": "重新学习递归三要素（终止条件、递推关系、返回值），完成链表反转的经典递归题，并写注释解释每一步。"
+        }
+      ]
+    },
+    "createdAt": "2026-09-22T17:17:23.768627"
   }
 ]

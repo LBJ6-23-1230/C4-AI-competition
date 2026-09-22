@@ -46,18 +46,29 @@ def test_keyword_intent_fallback_is_deterministic(message, expected):
 
 
 def test_card_target_page_is_always_a_declared_page(client):
-    """卡片跳转页必须是前端 main_pages.json 里真实存在的页面。"""
+    """卡片跳转页必须是前端 main_pages.json 里真实存在的页面。
+
+    ⚠️ 这里原先断言 `set(card) == {"type","title","actionLabel","targetPage"}`
+    —— 那是**把缺陷固化了**：前端 `AgentBridge.parseCard()` 一直读
+    `card['summary']` 并渲染在卡片描述行上，而集合法断言恰恰排除了这个字段，
+    于是"联机模式卡片描述恒为空"这个缺陷不会被任何测试发现。
+    现在改为断言**必须包含** summary，且不允许出现未声明的多余字段。
+    """
     declared = {
         "pages/ChatMain", "pages/CourseImport", "pages/Index", "pages/StudySuggestion",
         "pages/WrongQuestion", "pages/StudyTags", "pages/ExercisePractice", "pages/ApiEnvironment",
         "pages/AgentTrace", "pages/PartnerMatch", "pages/StudyPlan", "pages/ReviewSummary",
         "pages/FocusSetup", "pages/FocusTimer", "pages/FocusResult", "pages/LearningHistory",
     }
+    expected_keys = {"type", "title", "summary", "actionLabel", "targetPage"}
     for message in ("查错题", "找搭子", "看任务", "看薄弱点", "给建议"):
         card = client.post("/api/agent/chat", json={"message": message}).get_json()["card"]
         assert card is not None, message
-        assert set(card) == {"type", "title", "actionLabel", "targetPage"}
+        assert set(card) == expected_keys, (message, sorted(card))
         assert card["targetPage"] in declared, (message, card["targetPage"])
+        # 描述行必须有内容 —— 前端会把它渲染出来，空串等于界面上凭空少一行
+        assert isinstance(card["summary"], str) and card["summary"].strip(), \
+            (message, "卡片缺少可读的 summary")
 
 
 # --------------------------------------------------------------------------- 不伪装

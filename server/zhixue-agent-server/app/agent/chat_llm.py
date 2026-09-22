@@ -74,14 +74,27 @@ def _var_dir() -> Path:
     return Path(override) if override else _CHAT_DIR
 
 
-# 意图 → (标题, 兜底跳转页, 按钮文案)
-INTENT_CARDS: dict[str, tuple[str, str, str]] = {
-    "analyze_wrong": ("错题分析", "pages/WrongQuestion", "查看错题分析"),
-    "query_tasks": ("今日任务", "pages/StudyPlan", "查看任务清单"),
-    "analyze_weakness": ("薄弱点诊断", "pages/StudyTags", "查看薄弱画像"),
-    "match_partner": ("学习搭子", "pages/PartnerMatch", "查看搭子详情"),
-    "update_profile": ("学习画像", "pages/StudyTags", "查看学习画像"),
-    "get_suggestion": ("学习建议", "pages/StudySuggestion", "查看今日建议"),
+# 意图 → (标题, 卡片描述, 兜底跳转页, 按钮文案)
+#
+# ⚠️ 第二个字段（卡片描述）是后补的。原先只有三元组，`build_card()` 也只输出
+# `type/title/actionLabel/targetPage` —— 但前端 `AgentBridge.parseCard()`
+# 一直在读 `card['summary']` 并渲染在卡片描述行上。字段不存在时
+# `stringField()` 返回空串，于是**联机模式下卡片的描述行恒为空白**
+# （离线 Fixture 的数据带 summary，呈现"离线好看、联机消失"的假象）。
+# 详见审计报告的 P1-2。
+INTENT_CARDS: dict[str, tuple[str, str, str, str]] = {
+    "analyze_wrong": ("错题分析", "定位错因与薄弱知识点，给出补强建议",
+                      "pages/WrongQuestion", "查看错题分析"),
+    "query_tasks": ("今日任务", "按截止时间与优先级排好的待办清单",
+                    "pages/StudyPlan", "查看任务清单"),
+    "analyze_weakness": ("薄弱点诊断", "汇总错题证据，指出最该补的知识点",
+                         "pages/StudyTags", "查看薄弱画像"),
+    "match_partner": ("学习搭子", "按目标、时间与知识互补度匹配同伴",
+                      "pages/PartnerMatch", "查看搭子详情"),
+    "update_profile": ("学习画像", "目标、时间与掌握度的当前状态",
+                       "pages/StudyTags", "查看学习画像"),
+    "get_suggestion": ("学习建议", "结合考试倒计时给出的下一步行动",
+                       "pages/StudySuggestion", "查看今日建议"),
 }
 
 # 前端 ChatModels 的 ChatIntent 取值（free_chat 为前端自有）
@@ -712,10 +725,13 @@ def build_card(intent: str) -> dict[str, Any] | None:
     template = INTENT_CARDS.get(intent)
     if template is None:
         return None
-    title, target_page, action_label = template
+    title, summary, target_page, action_label = template
     return {
         "type": intent,
         "title": title,
+        # `summary` 必须输出：前端 `AgentBridge.parseCard()` 读它并渲染在
+        # 卡片描述行；缺了就是一片空白（见 INTENT_CARDS 的注释）。
+        "summary": summary,
         "actionLabel": action_label,
         "targetPage": target_page,
     }
