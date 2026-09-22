@@ -38,14 +38,6 @@ const INTENT_CHIPS: IntentChip[] = [
   { intent: 'update_profile', label: '学习画像', prompt: '我掌握了二叉树遍历，帮我更新画像' },
 ];
 
-const WELCOME_MESSAGE: ChatMessage = {
-  id: 'welcome-1',
-  role: 'agent',
-  text: '晚上好，我会根据你的课程、DDL、错题和空闲时间，把下一步学习动作说清楚。',
-  time: '刚刚',
-  status: 'done'
-};
-
 @Entry
 @Component
 struct ChatMain {
@@ -676,7 +668,12 @@ struct ChatMain {
   }
 
   private resetChat(): void {
-    this.messages = [WELCOME_MESSAGE];
+    // 原缺陷：这里写成 `this.messages = [WELCOME_MESSAGE]`，数组长度变成 1，
+    // 而欢迎引导块只在 `messages.length === 0` 时渲染（见 MessageList），
+    // 于是点「新对话」后首屏再也回不到"无消息"的初始态，欢迎块不再出现。
+    // 现在与 aboutToAppear 的无历史分支保持一致，都用空数组；
+    // 下面 appState.hasActiveChat / appState.chatMessages 的清理逻辑保持不变。
+    this.messages = [];
     this.inputText = '';
     this.pendingImage = '';
     this.selectedIntent = 'get_suggestion';
@@ -776,6 +773,11 @@ struct ChatMain {
       status: 'sending'
     };
 
+    // 原缺陷：调用 callAgent 时直接把 this.messages 递过去，而它**已经含本条 userMessage**
+    //（buildRequest 只过滤 status === 'sending' 的占位消息，拦不住它），
+    // 于是同一条输入在请求体里出现两次：`message` 字段一份、`history` 末项一份，
+    // 模型每轮都会看到重复问题。这里先取"发送前"的历史快照，本条消息只由 `message` 承载。
+    const historyBeforeSend: ChatMessage[] = this.messages;
     this.messages = [...this.messages, userMessage, loadingMessage];
     this.inputText = '';
     this.pendingImage = '';
@@ -783,7 +785,7 @@ struct ChatMain {
     this.scrollToLatestMessage();
 
     try {
-      const response = await AgentBridge.callAgent(text, image, this.messages);
+      const response = await AgentBridge.callAgent(text, image, historyBeforeSend);
       this.messages = this.messages.filter((item: ChatMessage) => item.id !== loadingMessage.id);
       const agentMessage: ChatMessage = {
         id: `agent-${Date.now()}`,

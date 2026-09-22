@@ -35,10 +35,11 @@ struct WrongQuestion {
     if (appState.latestWrongAnalysis !== null) {
       this.analysisResult = appState.latestWrongAnalysis;
       this.showAnalysis = true;
-      this.reviewAdded = appState.hasPendingWrongQuestionReview(
-        appState.latestWrongAnalysis.course,
-        appState.latestWrongAnalysis.knowledge[0] ?? '错题知识点'
-      );
+      // reviewAdded 只表示"本次真的新增了"（见 addToTomorrowPlan）：
+      // 重开页面时即使该知识点早已在复习计划里，也不置为 true，
+      // 否则按钮会说成"刚刚加入"；这种情况由 reviewButtonText() 依计划状态
+      // 显示「已在明日复习计划中」，与 handoff 文案同一口径。
+      this.reviewAdded = false;
     }
   }
 
@@ -127,7 +128,11 @@ struct WrongQuestion {
       LocalAgentService.createWrongQuestionReviewTask(this.analysisResult),
       'Agent 已将这道错题加入明日复习，并提高了它的优先级。'
     );
-    this.reviewAdded = true;
+    // 原缺陷：这里无条件写 `this.reviewAdded = true`，而 addReviewTask() 在该知识点
+    // 已在计划中时会返回 false（没有重复添加）。于是按钮显示「已加入明日复习」，
+    // 而同一次操作写进对话的文案是「已经在明日复习计划中，没有重复添加」——
+    // 同屏两套说法。现在 reviewAdded 严格等于"本次是否真的新增"。
+    this.reviewAdded = added;
     appState.completeChatTask(
       added ? '这道错题已加入明日复习，并已提高优先级。' : '这道错题已经在明日复习计划中，没有重复添加。',
       '现在可以确认本周复习计划。',
@@ -135,6 +140,27 @@ struct WrongQuestion {
       'pages/StudyPlan'
     );
     ChatNavigation.returnToChat();
+  }
+
+  /**
+   * FollowUpCard 次要按钮（加入明日复习）的文案。
+   *
+   * 三态取值，与 addToTomorrowPlan() 写进对话的 handoff 文案同一口径：
+   *   · 本次新增成功           → 「已加入明日复习」（handoff：这道错题已加入明日复习…）
+   *   · 计划里本来就有该知识点 → 「已在明日复习计划中」（handoff：已经在明日复习计划中，没有重复添加）
+   *   · 还没有                 → 「加入明日复习」
+   * 为什么不复用 reviewAdded 的二值：`addReviewTask()` 返回 false 时**不是失败**，
+   * 而是"已经在计划中"，按钮既不能说成"什么都没做成"，也不能与 handoff 说反话。
+   */
+  private reviewButtonText(): string {
+    if (this.reviewAdded) {
+      return '已加入明日复习';
+    }
+    if (this.analysisResult !== null && this.analysisResult.knowledge.length > 0 &&
+      appState.hasPendingWrongQuestionReview(this.analysisResult.course, this.analysisResult.knowledge[0])) {
+      return '已在明日复习计划中';
+    }
+    return '加入明日复习';
   }
 
   @Builder
@@ -225,7 +251,7 @@ Text('✅ 分析完成')
           : '立刻做几道同类题，掌握度才会真正更新。',
         primaryText: '做 3 道同类专项题',
         primaryTarget: 'pages/ExercisePractice',
-        secondaryText: this.reviewAdded ? '已加入明日复习' : '加入明日复习',
+        secondaryText: this.reviewButtonText(),
         showAgentTraceLink: true,
         onSecondary: (): void => { this.addToTomorrowPlan(); }
       })

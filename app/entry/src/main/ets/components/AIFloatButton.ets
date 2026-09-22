@@ -73,11 +73,16 @@ export struct AIFloatButton {
       time: this.getTimeLabel(),
       status: 'sending'
     };
+    // 原缺陷：与 ChatMain.sendMessage 同一形态——递给 callAgent 的数组里已经含本条
+    // userMessage（buildRequest 只过滤 status === 'sending'，拦不住 done 的用户消息），
+    // 同一条输入会同时出现在请求体的 `message` 与 `history` 末项里。
+    // 这里先取"发送前"的历史快照，本条消息由 `message` 字段承载。
+    const historyBeforeSend: ChatMessage[] = this.messages;
     this.messages = [...this.messages, userMessage, loadingMessage];
     this.scrollToBottom();
 
     try {
-      const response = await AgentBridge.callAgent(text, undefined, this.messages);
+      const response = await AgentBridge.callAgent(text, undefined, historyBeforeSend);
       // 移除 loading 消息，加入真实回复
       this.messages = this.messages.filter((item: ChatMessage) => item.id !== loadingMessage.id);
       const agentMessage: ChatMessage = {
@@ -175,7 +180,12 @@ export struct AIFloatButton {
                   }
                   .width('100%')
                 }
-              }, (msg: ChatMessage, index: number) => `${msg.id}-${index}`)
+              // 原缺陷：key 生成器是 `${msg.id}-${index}`，而上面（成功 / 失败分支）
+              // 会从中间删掉 loading 消息，其后所有元素的 index 都往前挪一位，
+              // ArkUI 据此判定"换了一批元素"→ 整列气泡销毁重建：
+              // 表现为闪烁，滚动位置与子组件状态全部丢失。
+              // `makeId()` 已保证 msg.id 全局唯一且稳定，key 只用它即可。
+              }, (msg: ChatMessage) => msg.id)
             }
             .width('100%')
             .padding(12)

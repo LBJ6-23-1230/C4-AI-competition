@@ -46,7 +46,9 @@ import { DeviceLayout } from '../utils/DeviceLayout';
  *   · 输入框下方有明确文案标注这是演示版免密。
  *
  * 生产化路径：接入 **AGC 认证服务**（手机号验证码 / 华为账号），
- * 由华为托管凭据，本页只需把 `AuthClient.register()` 换成 AGC 的登录调用。
+ * 由华为托管凭据，本页只需把 `AuthClient.loginOrRegister()` 换成 AGC 的登录调用
+ * （注意用 `loginOrRegister` 而不是 `register`：后者要求显式传手机号，
+ * 且不做"已存在则登录"的兜底）。
  *
  * 「一键体验 / 跳过登录」必须保留且足够显眼：评审现场任何摩擦都是风险。
  */

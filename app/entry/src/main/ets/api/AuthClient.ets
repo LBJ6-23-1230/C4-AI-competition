@@ -66,8 +66,18 @@ export class AuthClient {
 
   /**
    * 注册并登录。失败时**不改变**当前登录态，由调用方展示错误并允许重试或走游客入口。
+   *
+   * ⚠️ `phone` 是**必填**（契约 `AuthRegisterRequest.required = [nickname, phone]`，
+   * 后端 `_PHONE_REQUIRED = True`）。这里把它提成必填参数而不是可选，
+   * 是为了让"忘记传手机号"变成**编译期错误**而不是运行期 400。
+   *
+   * 修复的历史缺陷：该方法原先签名为 `register(nickname, grade)`，
+   * **从不发送 phone** —— 任何调用点都必然得到
+   * `400 VALIDATION_ERROR 手机号不能为空`。因为当时没有调用点，
+   * 它是一颗休眠炸弹：谁按注释去用它就会踩。
+   * 现在类型层面挡住了这条路。
    */
-  static async register(nickname: string, grade: string): Promise<AuthResult> {
+  static async register(nickname: string, phone: string, grade?: string): Promise<AuthResult> {
     const invalid: string = AuthClient.validateNickname(nickname);
     if (invalid.length > 0) {
       return { ok: false, user: null, source: 'local', message: invalid };
@@ -75,7 +85,8 @@ export class AuthClient {
 
     const result = await AgentApiClient.authRegister({
       nickname: nickname.trim(),
-      grade: grade.length > 0 ? grade : undefined
+      phone: phone.trim(),
+      grade: grade !== undefined && grade.length > 0 ? grade : undefined
     });
     if (!result.ok) {
       return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };

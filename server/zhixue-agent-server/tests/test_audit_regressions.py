@@ -455,3 +455,59 @@ def test_update_profile_hook_ignores_fields_backend_does_not_own(tmp_path):
     assert "weakness" not in profile and "knowledge" not in profile
 
 
+def test_chat_layer_hook_is_wired_by_create_app(tmp_path):
+    """`create_app()` 必须把画像落盘钩子注册给对话层。
+
+    为什么要单独测"接线"：只测 `_apply_profile_updates()` 本身，
+    无法发现"钩子没被注册"这种断线 —— 而断了线就退回到原来的
+    静默 no-op（回复说已更新、实际没落盘），正是本次要修的问题。
+    """
+    create_app(tmp_path / "hook-wiring.json")
+    from app.agent import chat_llm
+
+    assert chat_llm._PROFILE_UPDATE_HOOK is not None, \
+        "create_app() 没有注册画像落盘钩子（chat 层会退回静默 no-op）"
+
+    # 通过钩子走一遍，确认它真的写到了 profiles
+    applied = chat_llm._PROFILE_UPDATE_HOOK("demo-user", {
+        "user": {"learningGoal": {"goal": "接线验证目标"}}
+    })
+    assert applied, "钩子没有报告任何改动"
+    import app.api.chat as chat_module
+
+    profile = chat_module._repository.get("profiles", "demo-user")
+    assert profile["goal"] == "接线验证目标", "钩子被调用但没有落盘"
+
+
+def test_update_profile_handler_returns_updates_for_frontend(tmp_path):
+    """`_handle_update_profile` 必须把 updates 交给调用方，而不是丢掉。
+
+    原缺陷：该函数只 `return reply`，把整份 updates 丢弃 ——
+    于是 prompt 里"返回 updates 让调用方应用"的设计完全落空，
+    课程/任务类改动永远无法生效。
+    这里不调真实 LLM（会需要网络与配额），改为验证**返回值契约**：
+    正常路径返回 `(reply, updates)` 二元组，且 updates 是 dict。
+    """
+    from app.agent import chat_llm
+
+    original = chat_llm._call_llm
+    try:
+        # 伪造模型输出：符合 UpdateProfilePrompt 约定
+        chat_llm._call_llm = lambda *a, **k: (
+            '{"intent":"update_profile","reply":"好的，已记录。",'
+            '"updates":{"user":{"learningGoal":{"goal":"数据结构 90+"}},'
+            '"course":[{"courseName":"数据结构","tasks":[]}]}}'
+        )
+        reply, updates = chat_llm._handle_update_profile("把目标改成 90+", {}, "demo-user")
+    finally:
+        chat_llm._call_llm = original
+
+    assert isinstance(updates, dict), "updates 没有被返回给调用方"
+    assert updates.get("user"), "updates.user 丢失"
+    assert updates.get("course"), "updates.course 丢失（前端无法应用课程改动）"
+    # 课程类改动后端接不住，回复里必须**如实说明**，不能默默假装成功了
+    assert "App 本地维护" in reply, \
+        f"回复没有如实说明课程改动由前端维护：{reply!r}"
+
+
+

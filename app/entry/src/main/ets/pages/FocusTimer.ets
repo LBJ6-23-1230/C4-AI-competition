@@ -24,6 +24,31 @@ struct FocusTimer {
     this.stopTimer();
   }
 
+  /**
+   * 页面隐藏时触发：既包括应用切到后台，也包括被别的页面路由覆盖。
+   *
+   * 原缺陷：全文件没有 onPageHide，`interruptionCount` 除了 resetFromTask() 清零之外
+   * 再无自增（buildSession 只在 status === 'interrupted' 时 +1），
+   * 于是切后台完全不记录，结算页「中断 N 次」严格模式恒为 1、普通模式恒为 0。
+   *
+   * 这里只把"专注真的被打断"记一次，**必须排除两类情况**：
+   *
+   * 1. **正常跳转**：进结算页（openResult）和"不保存返回"（leaveWithoutRecord）
+   *    都会先 `stopTimer()`，此时 `timerId < 0`。计时仍在跑说明这次隐藏
+   *    不是我们自己发起的跳转，而是切后台/被动离开。
+   * 2. **已暂停**：`paused` 为真时计时并没有在推进，用户是**主动**停下的，
+   *    这次停下已经记进 `pauseCount` 了。若再计一次中断，同一件事会被数两遍
+   *    （严格模式下暂停被 `togglePause()` 直接禁用，所以只有普通模式会遇到）。
+   *
+   * 判据组合起来就是"计时真的在往前走的时候被隐藏了"。
+   */
+  onPageHide(): void {
+    if (this.timerId < 0 || this.paused) {
+      return;
+    }
+    this.interruptionCount++;
+  }
+
   private resetFromTask(): void {
     const focusTask: FocusTask | null = appState.activeFocusTask;
     this.elapsedSeconds = 0;

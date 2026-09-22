@@ -27,8 +27,15 @@ export interface AuthUser {
 export interface AuthRegisterRequest {
   nickname: string;
   grade?: string;
-  /** 手机号。**注册必填**（唯一身份标识）；后端做格式校验与唯一约束。 */
-  phone?: string;
+  /**
+   * 手机号。**注册必填**（唯一身份标识）；后端做格式校验与唯一约束。
+   *
+   * ⚠️ 声明为必填（而非 `phone?`）是刻意的：契约里
+   * `AuthRegisterRequest.required = [nickname, phone]`，后端 `_PHONE_REQUIRED = True`，
+   * 少了它必然 400。原来的可选声明让"漏传"能通过类型检查、
+   * 到运行时才以 400 暴露 —— `AuthClient.register()` 就曾因此成为休眠炸弹。
+   */
+  phone: string;
 }
 
 /**

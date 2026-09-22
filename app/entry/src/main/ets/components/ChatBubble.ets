@@ -92,13 +92,31 @@ export struct ChatBubble {
     .borderRadius(8)
   }
 
+  /**
+   * 卡片类型 → 卡片名称标签。
+   *
+   * 口径必须与 `pages/ChatMain.getCardLabel` **完全一致**：一律用页面标题
+   * （今日学习建议 / 学情画像 / 学习搭子 / 今日任务 / 错题诊断），
+   * 否则同一张卡在对话页和浮标气泡里会有两个名字。
+   *
+   * 原缺陷：这里只特判了 weakness / partner，而且 weakness 返回的是「错题诊断」——
+   *   · 错题诊断卡（wrong）与今日任务卡（tasks）都落到默认分支显示「学习建议」，
+   *     与卡片标题（如「今日任务」）自相矛盾；
+   *   · 同一张 weakness 卡在对话页写「学情画像」、在浮标里写「错题诊断」，两边打架。
+   */
   private getCardLabel(card: ChatCard): string {
     if (card.type === 'weakness') {
-      return '错题诊断';
+      return '学情画像';
     }
     if (card.type === 'partner') {
       return '学习搭子';
     }
-    return '学习建议';
+    if (card.type === 'tasks') {
+      return '今日任务';
+    }
+    if (card.type === 'wrong') {
+      return '错题诊断';
+    }
+    return '今日学习建议';
   }
 }

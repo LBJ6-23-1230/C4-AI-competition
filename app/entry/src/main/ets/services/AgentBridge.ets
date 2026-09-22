@@ -18,6 +18,22 @@ const INTENT_RULES: IntentRule[] = [
   { intent: 'analyze_weakness', keywords: ['薄弱', '短板', '诊断', '弱', '查漏补缺', '哪里不好', '没掌握'] },
 ];
 
+/**
+ * 聊天接口错误的分类标记。
+ *
+ * ⚠️ 取值沿用 `api/ApiResult` 的 `ApiError.code` 与 `AgentApiClient` 既有的错误码口径，
+ * 不新造一套：
+ *   · `INVALID_RESPONSE` / `EMPTY_RESPONSE` —— HTTP 已经通了，但响应结构/内容不符合契约；
+ *   · `HTTP_ERROR`                          —— 服务端返回的业务失败（4xx/5xx + 后端 message）；
+ *   · 没有标记                              —— http 层抛出的真网络 / 超时异常。
+ * 用法：`taggedError()` 拼出「码 + 分隔符 + 人话」，外层 catch 用 `errorCodeOf()` 取分类、
+ * 用 `errorTextOf()` 剥掉码再展示，避免靠中文字符串前缀去猜。
+ */
+const CODE_INVALID_RESPONSE: string = 'INVALID_RESPONSE';
+const CODE_EMPTY_RESPONSE: string = 'EMPTY_RESPONSE';
+const CODE_HTTP_ERROR: string = 'HTTP_ERROR';
+const CODE_SEPARATOR: string = '::';
+
 export class AgentBridge {
   static matchIntentLocal(message: string): ChatIntent {
     const normalized: string = message.trim().toLowerCase();
@@ -33,9 +49,20 @@ export class AgentBridge {
   }
 
   static buildRequest(message: string, image: string | undefined, history: ChatMessage[]): AgentRequest {
-    const latestHistory: ChatMessage[] = history
-      .filter((item: ChatMessage) => item.status === 'done')
-      .slice(-20);
+    // 「过滤 sending 状态」这条既有逻辑保留：它是为了滤掉"思考中"占位气泡。
+    const doneHistory: ChatMessage[] = history
+      .filter((item: ChatMessage) => item.status === 'done');
+    // 原缺陷：占位气泡滤掉了，但**本条 user 消息**（status 已是 done）留了下来，
+    // 而它同时又是请求体的 `message` 字段 —— 同一条输入于是发了两遍，
+    // 模型每轮都会看到重复问题。
+    // 这里做兜底（调用方现在也已经改传"发送前"的历史快照）：
+    // 若 history 末项与本条 message 同源（同为 user、文本一致），就把它剔除，
+    // 它由 `message` 字段承载，不该再进 history。
+    const lastIndex: number = doneHistory.length - 1;
+    const echoOfCurrent: boolean = lastIndex >= 0 &&
+      doneHistory[lastIndex].role === 'user' && doneHistory[lastIndex].text === message;
+    const withoutEcho: ChatMessage[] = echoOfCurrent ? doneHistory.slice(0, lastIndex) : doneHistory;
+    const latestHistory: ChatMessage[] = withoutEcho.slice(-20);
     const mappedHistory: AgentHistoryItem[] = [];
     for (let i: number = 0; i < latestHistory.length; i++) {
       const item: ChatMessage = latestHistory[i];
@@ -102,26 +129,71 @@ export class AgentBridge {
       if (httpResponse.responseCode >= 200 && httpResponse.responseCode < 300) {
         const resultStr: string = (httpResponse.result as string).trim();
         if (resultStr.length === 0) {
-          throw new Error('服务未返回可解析的数据。');
+          // (a) 类：HTTP 200 但响应体是空的，属于响应不符合契约，不是连不上
+          throw AgentBridge.taggedError(CODE_EMPTY_RESPONSE, '服务未返回可解析的数据。');
         }
         try {
           const data: Record<string, Object> = JSON.parse(resultStr) as Record<string, Object>;
           return AgentBridge.parseResponse(data);
         } catch (parseError) {
-          throw new Error('服务返回的数据格式不正确，请检查聊天接口响应。');
+          // (a) 类：JSON 语法不对、或 parseResponse() 判定字段不符合契约
+          //（如 `reply must be a non-empty string.`）。
+          // 原缺陷：这里把具体原因压成一句"格式不正确"，外层再统一兜成
+          //「连接超时或网络不可用」，用户据此去查网络，重试永远不会好。
+          // 现在保留具体原因并打上分类标记，外层据此给出可区分的提示。
+          const parseDetail: string = parseError instanceof Error ? parseError.message : '';
+          const contractDetail: string = parseDetail.length > 0 ? parseDetail : '响应内容无法解析';
+          throw AgentBridge.taggedError(CODE_INVALID_RESPONSE, `服务响应不符合接口约定：${contractDetail}`);
         }
       }
+      // (b) 类：服务端返回了业务失败（HTTP 4xx/5xx + errorCode/message），原文带出便于定位
       const serverFailure = AgentApiClient.parseServerError(httpResponse.result as string, httpResponse.responseCode);
-      throw new Error(`服务请求失败：${serverFailure.error.message}`);
+      throw AgentBridge.taggedError(CODE_HTTP_ERROR, `服务请求失败：${serverFailure.error.message}`);
     } catch (err) {
+      // 原缺陷：这里只把以「服务」二字开头的错误原样抛出，其余一律替换成
+      //「连接超时或网络不可用」—— 于是"HTTP 200 但结构不对"这类契约错误也会被
+      // 说成网络问题：提示与真实原因不符，用户重试也不会好。
+      // 现在按上面三类标记分别给提示（三句互不相同，便于一眼区分）：
+      //   (a) 契约 / 解析不符：HTTP 已返回，重试无用，要去查响应结构
+      //   (b) 服务端业务失败：保留后端文案
+      //   (c) 无标记的异常：只有这一类才是真的网络 / 超时失败
       const detail: string = err instanceof Error ? err.message : '';
-      if (detail.startsWith('服务')) {
-        throw new Error(detail);
+      const code: string = AgentBridge.errorCodeOf(detail);
+      const reason: string = AgentBridge.errorTextOf(detail);
+      if (code === CODE_INVALID_RESPONSE) {
+        throw new Error(`${reason}（这不是网络问题，重试不会好转，请检查服务端返回结构）`);
+      }
+      if (code === CODE_EMPTY_RESPONSE) {
+        throw new Error(`${reason}（这不是网络问题，请检查服务端是否真的返回了 JSON）`);
+      }
+      if (code.length > 0) {
+        throw new Error(reason);
       }
       throw new Error('连接超时或网络不可用，请检查服务地址后重试。');
     } finally {
       httpRequestInstance.destroy();
     }
+  }
+
+  /**
+   * 把分类码拼进 message：`CODE::人话`。
+   * 用普通 Error 承载（与工程既有风格一致，不新引入错误类），
+   * 外层 catch 靠码分类、展示前再剥掉码。
+   */
+  private static taggedError(code: string, message: string): Error {
+    return new Error(`${code}${CODE_SEPARATOR}${message}`);
+  }
+
+  /** 取错误里的分类码；没有码说明是 http 层抛出的原始异常（只能按网络失败处理）。 */
+  private static errorCodeOf(detail: string): string {
+    const separator: number = detail.indexOf(CODE_SEPARATOR);
+    return separator > 0 ? detail.substring(0, separator) : '';
+  }
+
+  /** 取剥掉分类码之后的人话部分。 */
+  private static errorTextOf(detail: string): string {
+    const separator: number = detail.indexOf(CODE_SEPARATOR);
+    return separator > 0 ? detail.substring(separator + CODE_SEPARATOR.length) : detail;
   }
 
   static parseResponse(data: Record<string, Object>): AgentResponse {

@@ -340,7 +340,7 @@ history 记一条 —— 但 `perKnowledgeAccuracy` 为空、`persist_mastery` �
 | C8 | `submit` 声明的 409 **不可达**（幂等重放返回 200 且体逐字节相同） | ⏳ 属"多声明一个永不发生的结果"，改动会牵动幂等语义，暂留 |
 | C9 | `X-API-Contract-Version` 版本闸门真实生效（v0.2→409、无头→200），但契约里**出现 0 次** | ✅ 新增 `ContractVersionHeader` 并挂到 31 个 operation |
 | C10 | 5 个后端已实现端点未声明（`GET /`、`/health`、`/api/agent/health`、`GET\|DELETE /api/agent/history`、`/api/agent/user-data`） | ✅ 已全部补声明（paths 28 → 33） |
-| C11 | 4 个已声明 operation 无前端客户端方法 | ⏳ 待处理 |
+| C11 | 4 个已声明 operation 无前端客户端方法 | ⏳ 待处理（属声明了但没人用，无功能影响） |
 | C12 | `AuthClient.register()` 从不发 `phone`，而契约 required 含 phone → 只会 400（当前为死代码） | ⏳ 待处理（休眠炸弹：无调用点，但随时会被误用） |
 
 | C13 | `recoverable` 契约/后端都没有，前端在读 → 恒 `undefined` |
