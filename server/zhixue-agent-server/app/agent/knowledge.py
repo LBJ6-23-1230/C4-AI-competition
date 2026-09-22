@@ -343,11 +343,27 @@ def search(chunks: list[dict[str, Any]], query: str, top_k: int = 5,
 
 # --------------------------------------------------------------------------- 文档处理
 def process_document(file_name: str, content_base64: str,
-                     vocabulary: list[str] | None = None) -> dict[str, Any]:
+                     vocabulary: list[str] | None = None,
+                     scope: str = "") -> dict[str, Any]:
     """解析一份上传内容 → 文档元信息 + 切片。
 
     返回结构直接可塞进 `documents` / `chunks` 集合。
     失败时返回 `status=failed` 与**可读的失败原因**（不抛异常，不假装成功）。
+
+    ## `scope` 参数（重要）
+
+    它参与 `chunkId` 的计算，调用方必须传入**能唯一标识归属的串**
+    （约定为 `<userId>:<kbId>:<documentId>`）。
+
+    ⚠️ 为什么必须加：`chunkId` 原先只由 `(fileName, 序号, text[:64])` 决定，
+    而它同时是 `chunks` 集合的**主键**。于是两个用户（或同一用户的两个知识库）
+    上传**同名同内容**的文件时，后者的切片会**直接覆盖**前者的记录，
+    连 `userId`/`kbId` 都被改写 —— 前者的检索命中从 1 变 0，
+    而它的知识库汇总仍显示 `chunkCount=2`（统计与事实不符）。
+    共享课件、通用的 `notes.md` 这类文件名极常见，实测已复现。
+
+    `scope` 为空时保留旧行为（仅为兼容不关心归属的调用方）；
+    正式上传路径必须传。
     """
     category, reason = classify(file_name)
     if category == "unsupported":
@@ -377,7 +393,9 @@ def process_document(file_name: str, content_base64: str,
 
     points = extract_knowledge_points(raw_chunks, vocabulary)
     for index, chunk in enumerate(raw_chunks, 1):
-        chunk["chunkId"] = f"chk-{_digest(file_name, str(index), chunk['text'][:64])}"
+        # `scope` 参与摘要，保证不同用户/知识库的同名文件不会撞主键。
+        # 见 process_document 的 `scope` 说明。
+        chunk["chunkId"] = f"chk-{_digest(scope, file_name, str(index), chunk['text'][:64])}"
         chunk["knowledgePoints"] = [p for p in points if p in chunk["text"]]
 
     return {

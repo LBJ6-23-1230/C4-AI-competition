@@ -225,8 +225,13 @@ def upload_document(kb_id: str):
     if not isinstance(content, str) or not content:
         return bad_request("contentBase64 不能为空", {"field": "contentBase64"})
 
-    parsed = knowledge.process_document(file_name, content, _vocabulary(user_id))
+    # 先算 documentId，再解析 —— 因为 chunkId 必须把归属信息（含 documentId）
+    # 纳入摘要，否则不同用户/知识库上传同名同内容文件时会撞主键、
+    # 互相覆盖切片记录（详见 knowledge.process_document 的 scope 说明）。
     document_id = f"doc-{knowledge._digest(user_id, kb_id, file_name, knowledge._now())}"
+    parsed = knowledge.process_document(
+        file_name, content, _vocabulary(user_id),
+        scope=f"{user_id}:{kb_id}:{document_id}")
     timestamp = knowledge._now()
 
     record = {

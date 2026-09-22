@@ -31,12 +31,22 @@ def _as_float(value: Any, default: float = 0.0) -> float:
     return number
 
 
-def _parse_iso8601(value: str | None) -> datetime | None:
-    if not value:
+def _parse_iso8601(value: Any) -> datetime | None:
+    """宽松解析 ISO-8601 时间串；**任何非字符串输入都返回 None**，不抛异常。
+
+    ⚠️ 原实现只捕 `ValueError`，对非字符串直接调 `.replace()` ——
+    于是 `{"now": 1758530000}`（epoch 秒，客户端最常见的写法）
+    会抛 `AttributeError: 'int' object has no attribute 'replace'`
+    → 冒泡成 **HTTP 500**，而契约把这两个字段声明为 string/date-time，
+    接口只声明了 200/400。类型不符应当被当成"信号缺失"处理，不是服务器故障。
+
+    同时兜住 `TypeError`：`datetime.fromisoformat` 对某些畸形串会抛它。
+    """
+    if not isinstance(value, str) or not value:
         return None
     try:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
+    except (ValueError, TypeError):
         return None
 
 
@@ -80,7 +90,14 @@ def proactive_decision(payload: dict[str, Any]) -> dict[str, Any]:
     error_intensity = _as_float(context.get("errorIntensity", 67), 67.0)
     days_left = _as_float(context.get("daysLeft", 5), 5.0)
     importance = _as_float(context.get("importance", 90), 90.0)
-    location = (context.get("location") or "unknown").strip() or "unknown"
+    # ⚠️ `location` 必须显式判类型。
+    # 原写法 `(context.get("location") or "unknown").strip()`：
+    # 空值能被 `or` 兜住，但**非空非字符串**（数字/数组/对象）会穿透 ——
+    # `{"location": 5}` 直接抛 `AttributeError: 'int' object has no attribute 'strip'`
+    # → HTTP 500，而契约把 location 声明为 string（nullable）。
+    raw_location = context.get("location")
+    location = raw_location.strip() if isinstance(raw_location, str) else "unknown"
+    location = location or "unknown"
     last_study_at = _parse_iso8601(context.get("lastStudyAt"))
     has_study_signal = "lastStudyAt" in context
     has_exam_signal = "daysLeft" in context and "masteryScore" in context
