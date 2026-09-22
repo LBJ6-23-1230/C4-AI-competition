@@ -79,6 +79,27 @@ def walk_files(root: Path, exclude_dirs: set[str]):
         yield path, rel
 
 
+def force_rmtree(path: Path) -> None:
+    """强删目录，能处理只读文件。
+
+    为什么需要：V2 会被当成 git 工作区（提交版就是这样），
+    而 git 的对象文件是**只读**的 —— `shutil.rmtree` 遇到会抛
+    `PermissionError: [WinError 5] 拒绝访问`，构建直接中断
+    （2026-09-22 实际踩到）。这里先清只读位再删。
+    """
+    import os
+    import stat
+
+    def on_error(func, target, _exc_info):
+        try:
+            os.chmod(target, stat.S_IWRITE)
+            func(target)
+        except OSError:
+            pass
+
+    shutil.rmtree(path, onerror=on_error)
+
+
 def copy_tree(src: Path, dst: Path, exclude_dirs: set[str]) -> int:
     n = 0
     for path, rel in walk_files(src, exclude_dirs):
@@ -107,32 +128,49 @@ def main() -> int:
         if check_only:
             print("--check 模式：V2 已存在，仅报告")
         else:
-            print("  清理已存在的 V2 …")
-            shutil.rmtree(DST)
+            print("  清理已存在的 V2 …（含只读的 .git 对象）")
+            force_rmtree(DST)
 
     if check_only:
         return 0
 
     DST.mkdir(parents=True)
 
-    # ---------------- 1. 源代码（三个子目录）----------------
+    # ---------------- 1. 源代码 ----------------
+    #
+    # 放**两份**，各有明确用途：
+    #
+    #   a) `03-演示文件与源代码/` —— 开发工作区的原样副本。
+    #      规程要求"演示文件需压缩为包"，而 V2 工作区里源码在编号目录下，
+    #      保持一致可让本地工作区与仓库内容一一对应。
+    #
+    #   b) **V2 根目录下的 `app/ server/ contracts/ ...`** —— 摊平一份。
+    #      因为仓库根就是提交版，评审点进 GitHub 看到的是根目录；
+    #      摊平后 `app/` 就是标准 HarmonyOS 工程、`server/` 可直接 `run.py`，
+    #      无需先钻进编号目录。DevEco 也要求"打开含 build-profile.json5 的目录"，
+    #      摊平后即符合。
+    #
+    # 两者内容相同，体积代价约 5 MB（源码本身很小），换来两边都好用。
     print("[1/6] 复制源代码")
     srcdir = DST / "03-演示文件与源代码"
-    counts = {}
     for name in ("app", "server", "contracts", "integration", "tools"):
         src = SRC / name
         if not src.exists():
             print("      !! 缺少 %s" % name)
             continue
         n = copy_tree(src, srcdir / name, EXCLUDE_DIRS)
-        counts[name] = n
-        print("      %-14s %4d 文件" % (name, n))
+        m = copy_tree(src, DST / name, EXCLUDE_DIRS)
+        print("      %-14s %4d 文件（编号目录 + 根目录各一份）" % (name, n))
+        if n != m:
+            print("      !! 两份数量不一致: %d vs %d" % (n, m))
 
-    # 根级说明文件
+    # 根级说明文件（两份都放）
     for name in ("README.md", "LICENSE", ".gitignore", ".gitattributes"):
         src = SRC / name
         if src.exists():
             shutil.copy2(src, srcdir / name)
+            shutil.copy2(src, DST / name)
+    print("      README.md / LICENSE / .gitignore / .gitattributes")
 
     # ---------------- 2. 签名 HAP ----------------
     print("[2/6] 复制签名 HAP")
@@ -140,7 +178,11 @@ def main() -> int:
     hap_dst = srcdir / "hap" / "知学Mate-signed.hap"
     hap_dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(hap_src, hap_dst)
-    print("      %.1f MB" % (hap_dst.stat().st_size / 1048576))
+    # 根目录也放一份，便于在仓库里直接下载
+    root_hap = DST / "hap" / "知学Mate-signed.hap"
+    root_hap.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(hap_src, root_hap)
+    print("      %.1f MB（编号目录 + 根目录各一份）" % (hap_dst.stat().st_size / 1048576))
 
     # ---------------- 3. 项目文档与实证材料 ----------------
     print("[3/6] 复制文档与证据")

@@ -38,21 +38,35 @@
 
 ## 二、目录结构
 
+> 📌 **两种布局，路径写法不同 —— 按你手上的看哪一份：**
+>
+> | 你在哪 | 源码在哪 | 说明文档在哪 |
+> |---|---|---|
+> | **仓库**（GitHub 上浏览/clone） | `app/`（根目录） | 根目录的 `*.md` |
+> | **本地 V2 工作区** | `03-演示文件与源代码/app/` | 根目录的 `*.md` |
+>
+> 下面以**仓库布局**为准；若你打开的是本地 V2 工作区，
+> 把 `app/` 读作 `03-演示文件与源代码/app/`，以此类推。
+
 ```
-V2/
+（仓库根 = 本提交版）
 ├── README-提交说明.md              ← 本文件
 ├── 提交清单与待办.md                ← 逐项状态 + 还需要做什么
-├── 知学Mate+暗影骑士王们.zip        ← **真正要上传的包**
+├── 知学Mate+暗影骑士王们.zip        ← **真正要上传的包**（含 HAP + 源码 + 文档）
 ├── 01-作品说明文档/                 ← 必交
 ├── 02-演示视频/                     ← 必交（待录制，内有说明）
-├── 03-演示文件与源代码/              ← 必交
-│   ├── hap/知学Mate-signed.hap
-│   ├── app/ server/ contracts/ integration/ tools/
-│   ├── 联调与验证/                  ← 联调脚本，可现场重跑
-│   └── README.md
+├── 03-演示文件与源代码/              ← 开发工作区的源码副本（见下方说明）
+├── app/ server/ contracts/ integration/ tools/   ← 源码（直接可读）
+├── hap/知学Mate-signed.hap        ← 签名 HAP 的可读副本
 ├── 项目文档/                        ← 28 份（含审计报告、分布式报告等）
 └── 实证材料/                        ← 40 份（联调汇总、界面截图、大屏证据）
 ```
+
+> **为什么 `03-演示文件与源代码/` 与根目录的 `app/ server/ ...` 内容重复？**
+> 前者是**开发机上 V2 工作区**的原样副本（那份工作区里源码在编号目录下），
+> 后者是把它摊平到仓库根、方便直接浏览。
+> **提交时用的是打包好的 zip**（`知学Mate+暗影骑士王们.zip`），
+> 仓库里这份目录只是便于在线查看，不参与打包。
 
 ---
 
@@ -93,7 +107,9 @@ profileVersion [1,2]      planVersion [1,2]
 ### 后端（Python 3.12 + Flask）
 
 ```bash
-cd 03-演示文件与源代码/server/zhixue-agent-server
+# 仓库布局用这条：
+cd server/zhixue-agent-server
+# 本地 V2 工作区布局用这条：cd 03-演示文件与源代码/server/zhixue-agent-server
 python -m venv .venv && .venv/Scripts/activate      # Windows
 pip install -r requirements.txt
 cp .env.example .env                                 # 填入 DASHSCOPE_API_KEY（可选）
@@ -105,14 +121,15 @@ python run.py
 
 ### 前端（HarmonyOS）
 
-1. DevEco Studio 打开 `03-演示文件与源代码/app/`
+1. DevEco Studio 打开 `app/`（本地 V2 工作区则是 `03-演示文件与源代码/app/`）
 2. `File > Project Structure > 签名配置` → **取消勾选「自动生成签名文件」**
 3. 选 `entry` 模块运行到模拟器 / 真机
 
 ### 一键自检（答辩前 30 秒）
 
 ```bash
-python 03-演示文件与源代码/integration/run_liantiao5.py    # 契约 + 单测 + 95 项 HTTP + 归档
+python integration/run_liantiao5.py            # 契约 + 单测 + 95 项 HTTP + 归档
+# 本地 V2 工作区：python 03-演示文件与源代码/integration/run_liantiao5.py
 ```
 
 ### 联调地址（最常见坑）
@@ -178,22 +195,26 @@ python 03-演示文件与源代码/integration/run_liantiao5.py    # 契约 + �
 本提交版的构建过程已脚本化，可完整复跑：
 
 ```bash
-# 重新生成 V2（含提交 zip 与全部说明文档）
-python submission/build_v2.py
+# 重新生成 V2 提交版（含提交 zip 与全部说明文档）
+#   ⚠️ 需在开发工作区运行 —— 脚本按绝对路径读源工程 liantiao5/，
+#      在 git clone 出来的副本里无法直接跑（缺源工程那一层）。
+python tools/build_v2.py
 
 # 契约真源与镜像是否漂移
-python 03-演示文件与源代码/tools/diff_contracts.py
+python tools/diff_contracts.py
 
 # 契约声明与实际行为是否一致（21 项）
-python 03-演示文件与源代码/tools/verify_contract_declarations.py
+python tools/verify_contract_declarations.py
 
 # 闸门是否覆盖前端所有实际调用
-python 03-演示文件与源代码/tools/check_frontend_validator_coverage.py
+python tools/check_frontend_validator_coverage.py
 
 # 交付物里是否混入运行态数据
-# ⚠️ 该脚本默认按"自身位置的上一级"当工程根；在 V2 里跑要显式传 V2 路径：
-python 03-演示文件与源代码/tools/check_runtime_data.py "E:/C4-liantiao/V2"
+# ⚠️ 该脚本默认按"自身位置的上一级"当工程根，需显式传路径
+python tools/check_runtime_data.py "<仓库根绝对路径>"
 ```
+
+各检查脚本的实测结论见 `实证材料/` 与 `项目文档/28-全项目Bug审计报告.md`。
 
 ---
 
