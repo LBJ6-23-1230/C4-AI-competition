@@ -27,23 +27,89 @@ def get_current_plan():
 		return jsonify({"errorCode": "NOT_FOUND", "message": "current plan not found", "details": {"userId": user_id}}), 404
 	plan = dict(plans[0])
 	if plan.get("tasks"):
+		# ⚠️ 五因子必须用**该用户的真实画像**，不能喂常量。
+		#
+		# 原实现把 `masteryScore`/`errorIntensity`/`importance`/`urgency` 全部写死
+		# （`58 if knowledgePointId == "binary-tree-postorder" else 80`、`importance: 90` …），
+		# 后果：`GET /api/v1/plans/current` 返回的 `factors` 与 `reason`
+		# （前端「为什么是它」决策因子卡的数据源，也是答辩主叙事之一）
+		# **与调用者是谁完全无关** —— 一个新账号、mastery 为 0，
+		# 也会看到 "mastery 0.42 / importance 0.90" 这套数字。
+		# 这等于用假输入污染了"确定性引擎"的对外解释力。
+		#
+		# 现在改为：掌握度取画像真实值，错误强度由该知识点的错题证据推导，
+		# importance / urgency / 先修影响沿用既有决策口径。
+		profile = _repository.get("profiles", user_id) if _repository else None
+		mastery_by_point: dict[str, float] = {}
+		if isinstance(profile, dict):
+			for item in (profile.get("mastery") or []):
+				if isinstance(item, dict):
+					point = item.get("knowledgePointId")
+					if isinstance(point, str):
+						mastery_by_point[point] = float(item.get("masteryScore", 0) or 0)
+
+		error_intensity_by_point: dict[str, float] = {}
+		evidence_count_by_point: dict[str, int] = {}
+		for evidence in (_repository.list("evidences") if _repository else []):
+			if not isinstance(evidence, dict):
+				continue
+			point = evidence.get("knowledgePointId")
+			if not isinstance(point, str):
+				continue
+			evidence_count_by_point[point] = evidence_count_by_point.get(point, 0) + 1
+
+		# ⚠️ 量纲必须是 **0~100**：`calculate_learning_priority` 内部统一 `/100` 归一化
+		# （见 app/decision/priority.py:48-52）。传 0~1 会让 mastery 项恒为 ~1.0、
+		# 其余项恒为 ~0.0，五因子卡会显示成"掌握度贡献压倒一切"的错误结论。
+		for point, count in evidence_count_by_point.items():
+			error_intensity_by_point[point] = min(100.0, 40.0 + 20.0 * count)
+
+		days_left = 5
+		for task in plan["tasks"]:
+			raw_days = task.get("daysLeft")
+			if isinstance(raw_days, int) and raw_days >= 0:
+				days_left = raw_days
+				break
+
 		knowledge_points = [
 			{
 				"knowledgePointId": task.get("knowledgePointId", "binary-tree-postorder"),
-				"masteryScore": 58 if task.get("knowledgePointId") == "binary-tree-postorder" else 80,
-				"errorIntensity": 67 if task.get("knowledgePointId") == "binary-tree-postorder" else 10,
-				"importance": 90,
-				"urgency": 53,
-				"prerequisiteImpact": 20,
+				"masteryScore": mastery_by_point.get(
+					task.get("knowledgePointId", ""), 0.0),
+				"errorIntensity": error_intensity_by_point.get(
+					task.get("knowledgePointId", ""), 0.0),
+				"importance": 90 if task.get("source") == "agent" else 60,
+				# ⚠️ 这里**故意不传 `urgency`**：引擎的写法是
+				# `item.get("urgency", urgency)`，只在**键缺失**时才用按 daysLeft
+				# 算出的默认值。传 `"urgency": 0` 会被当成真实值，
+				# 于是紧迫度项恒为 0（五因子卡永远少一行贡献）。
+				# 不传键，才让它走默认分支。
+				"prerequisiteImpact": 20 if task.get("canCollaborate") else 10,
 			}
 			for task in plan["tasks"]
 		]
 		top_priority = __import__("app.decision.priority", fromlist=["calculate_learning_priority"]).calculate_learning_priority(
-			knowledge_points, {"daysLeft": 5}
+			knowledge_points, {"daysLeft": days_left}
 		)
 		if top_priority:
-			plan["factors"] = _factor_rows(top_priority[0].get("factors", {}))
-			plan["reason"] = top_priority[0].get("reason", plan.get("reason", ""))
+			# ⚠️ `factors` / `reason` 解释的是**当前计划的首个任务**，不是"重新排名后的第一名"。
+			#
+			# 为什么必须这样：前端「为什么是它」面板是计划页上"这个任务"的展开说明 ——
+			# 用户看到的是 `tasks[0]`（task-postorder / 二叉树后序遍历），
+			# 若因子卡讲的是另一个知识点，两者就对不上了。
+			#
+			# 之前不会暴露这个问题，是因为旧实现给所有知识点喂了同一组常量
+			# （都是 58/67/90/53/20），并列时取列表首项，恰好等于 `tasks[0]`。
+			# 换成真实数据后，画像里**没有掌握度记录**的知识点（本例 graph-algorithm
+			# 回退 0）mastery 因子恒为 1.0，必然排到第一，于是因子卡开始讲错对象。
+			# 这里改为按计划首任务的 knowledgePointId 显式回查。
+			lead_point = plan["tasks"][0].get("knowledgePointId", "")
+			lead = next(
+				(row for row in top_priority if row.get("knowledgePointId") == lead_point),
+				top_priority[0],
+			)
+			plan["factors"] = _factor_rows(lead.get("factors", {}))
+			plan["reason"] = lead.get("reason", plan.get("reason", ""))
 	return jsonify(plan)
 
 

@@ -102,6 +102,28 @@ export class DateHelper {
   }
 
   /**
+   * 把一个时间戳/日期串规整成**本地时区**的 `YYYY-MM-DD` 键。
+   *
+   * ⚠️ 为什么不用 `toISOString().slice(0,10)`：那会先转成 UTC。
+   * 东八区的凌晨 0–8 点会被算到前一天，于是"今日专注时长"在早上永远偏少、
+   * "连续学习天数"也会断。必须按本地时区取年月日。
+   *
+   * 解析失败返回空串（调用方据此跳过该条记录，而不是当成今天）。
+   */
+  static localDateKey(isoLike: string): string {
+    const date: Date = new Date(isoLike);
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    return `${date.getFullYear()}-${DateHelper.pad(date.getMonth() + 1)}-${DateHelper.pad(date.getDate())}`;
+  }
+
+  /** 今天的本地日期键。 */
+  static todayKey(): string {
+    return DateHelper.localDateKey(new Date().toISOString());
+  }
+
+  /**
    * 获取当前是周几的中文名称
    */
   static getTodayDayOfWeek(): string {

@@ -488,20 +488,76 @@ export class AppState {
     const courseMinutes: Map<string, number> = new Map();
     let todayMinutes: number = 0;
     let totalCompletion: number = 0;
+    const todayKey: string = DateHelper.todayKey();
+    // 收集"有专注记录"的日期键，用于计算连续天数。
+    const studyDays: Set<string> = new Set<string>();
     for (let index: number = 0; index < this.focusSessions.length; index++) {
       const session: FocusSession = this.focusSessions[index];
-      todayMinutes += session.actualMinutes;
       totalCompletion += session.completionRate;
       const accumulated: number = courseMinutes.get(session.course) ?? 0;
       courseMinutes.set(session.course, accumulated + session.actualMinutes);
+      // ⚠️ `todayMinutes` 必须**按本地日期过滤**。
+      // 原实现对所有历史会话无条件 `+=`，于是"今日专注 X 分钟"实际是"累计专注"，
+      // 跨天常驻进程下会把昨天的分钟算进今天，
+      // 而它还是 ProactiveSurfaceService / Index.loadProactiveDecision 的输入 —— 错误会扩散。
+      const dayKey: string = DateHelper.localDateKey(session.endedAt);
+      if (dayKey.length === 0) {
+        continue;   // 时间戳无法解析：跳过，不猜成今天
+      }
+      studyDays.add(dayKey);
+      if (dayKey === todayKey) {
+        todayMinutes += session.actualMinutes;
+      }
     }
     return {
       todayMinutes: todayMinutes,
       completionRate: this.focusSessions.length === 0 ? 0 : Math.round(totalCompletion / this.focusSessions.length),
-      streakDays: this.focusSessions.length === 0 ? 0 : 3,
+      streakDays: AppState.countStreakDays(studyDays, todayKey),
       courseMinutes: courseMinutes,
       recentSessions: this.focusSessions.slice(-7).reverse()
     };
+  }
+
+  /**
+   * 连续学习天数：从今天（或昨天）往回数，遇到第一个断档就停。
+   *
+   * ⚠️ 原实现是 `streakDays: this.focusSessions.length === 0 ? 0 : 3`
+   * —— **一个写死的字面量 3**。只要做过一次专注，首页/我的/学习记录
+   * 三处都会显示"连续学习 3 天"，且与真实记录无关。评委追问"这个 3 怎么算的"
+   * 无法回答，属于**展示伪造指标**。
+   *
+   * 口径说明（刻意允许"昨天"作为起点）：今天还没学习不该立刻把连续天数清零，
+   * 否则用户每天早上打开 App 都会看到 0，激励效果反而变差。
+   */
+  private static countStreakDays(studyDays: Set<string>, todayKey: string): number {
+    if (studyDays.size === 0) {
+      return 0;
+    }
+    let cursor: string = todayKey;
+    if (!studyDays.has(cursor)) {
+      // 今天还没学：允许从昨天起算
+      const yesterdayKey: string = AppState.shiftDayKey(cursor, -1);
+      if (!studyDays.has(yesterdayKey)) {
+        return 0;
+      }
+      cursor = yesterdayKey;
+    }
+    let streak: number = 0;
+    while (studyDays.has(cursor)) {
+      streak++;
+      cursor = AppState.shiftDayKey(cursor, -1);
+    }
+    return streak;
+  }
+
+  /** 把 `YYYY-MM-DD` 键平移若干天，返回新的键。 */
+  private static shiftDayKey(key: string, deltaDays: number): string {
+    const base: Date = new Date(`${key}T00:00:00`);
+    if (isNaN(base.getTime())) {
+      return '';
+    }
+    base.setDate(base.getDate() + deltaDays);
+    return `${base.getFullYear()}-${DateHelper.pad(base.getMonth() + 1)}-${DateHelper.pad(base.getDate())}`;
   }
 
   /* ========== 图片管理 ========== */
