@@ -612,22 +612,40 @@ struct ChatMain {
       }
 
       Row({ space: 8 }) {
-        Button(this.isListening ? '■' : '🎤')
-          .fontSize(16)
-          .fontColor(this.isListening ? '#FFFFFF' : '#2563EB')
-          .backgroundColor(this.isListening ? '#DC2626' : '#EAF2FF')
-          .width(40)
-          .height(40)
-          .borderRadius(8)
-          .enabled(!this.isSending)
-          .onClick(() => { void this.toggleVoiceInput(); })
-        Button('📷')
-          .fontSize(16)
-          .backgroundColor('#EAF2FF')
-          .width(40)
-          .height(40)
-          .borderRadius(8)
-          .onClick(() => this.pickImage())
+        // 语音输入按钮。
+        // ⚠️ 图标必须用系统 Symbol 字体（`sys.symbol.*`），不要用 emoji：
+        //   原先写的是 `Button(this.isListening ? '■' : '🎤')`，
+        //   emoji 字形取决于系统 emoji 字体，在不同设备/版本上大小、基线、
+        //   配色都不一致，且在部分精简镜像里根本不渲染。
+        //   Symbol 由 HM Symbol 字体提供，可随 fontSize / fontColor 精确控制。
+        //   符号名取自本机 SDK 资源表
+        //   `sdk/default/openharmony/toolchains/id_defined.json`（type == "symbol"），
+        //   已核实 `mic` / `stop_circle_fill` / `camera` 均存在。
+        Button({ type: ButtonType.Normal, stateEffect: true }) {
+          SymbolGlyph(this.isListening
+            ? $r('sys.symbol.stop_circle_fill')
+            : $r('sys.symbol.mic'))
+            .fontSize(20)
+            .fontColor([this.isListening ? '#FFFFFF' : '#2563EB'])
+        }
+        .backgroundColor(this.isListening ? '#DC2626' : '#EAF2FF')
+        .width(40)
+        .height(40)
+        .borderRadius(8)
+        .enabled(!this.isSending)
+        .onClick(() => { void this.toggleVoiceInput(); })
+        // 拍照上传按钮。语义是"拍照识别错题"，因此用相机图标而非相册/图片图标。
+        Button({ type: ButtonType.Normal, stateEffect: true }) {
+          SymbolGlyph($r('sys.symbol.camera'))
+            .fontSize(20)
+            .fontColor(['#2563EB'])
+        }
+        .backgroundColor('#EAF2FF')
+        .width(40)
+        .height(40)
+        .borderRadius(8)
+        .enabled(!this.isSending)
+        .onClick(() => this.pickImage())
         TextInput({ placeholder: '问学习建议、错题、计划或搭子', text: this.inputText })
           .height(40)
           .layoutWeight(1)

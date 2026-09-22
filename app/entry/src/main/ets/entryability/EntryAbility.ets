@@ -1,4 +1,4 @@
-import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, UIAbility, Want, abilityAccessCtrl, Permissions } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { AgentApiClient } from '../api/AgentApiClient';
@@ -9,6 +9,7 @@ import { AuthStore } from '../api/AuthStore';
 import { FixtureDemoStateStore } from '../api/FixtureDemoStateStore';
 import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
 import { appState } from '../data/AppState';
+import { DistributedStateService } from '../services/DistributedStateService';
 import { ProactiveSurfaceService } from '../services/ProactiveSurfaceService';
 import { ProactiveSettingsStore } from '../services/ProactiveSettingsStore';
 import { DeviceLayout } from '../utils/DeviceLayout';
@@ -78,6 +79,50 @@ export default class EntryAbility extends UIAbility {
     });
 
     void this.restoreIdentity(windowStage, fromLearningCard);
+
+    // ★ 全场景分布式：先申请「多设备协同」权限，再初始化分布式会话。
+    //   失败不阻断任何主流程 —— 单设备功能完全不受影响（见 DistributedStateService 文档）。
+    void this.setupDistributedState();
+  }
+
+  /**
+   * 申请分布式数据同步权限并初始化跨设备会话。
+   *
+   * 权限依据（本机 SDK `toolchains/lib/PermissionDefinitions.json`）：
+   *   `ohos.permission.DISTRIBUTED_DATASYNC`
+   *     grantMode = user_grant → 必须运行时申请，系统会弹授权框
+   *     availableLevel = normal → 普通应用可申请
+   *
+   * ⚠️ 为什么不在 `onCreate` 里做：`requestPermissionsFromUser` 需要 UI 上下文，
+   * 在 `onWindowStageCreate` 之后调用才能正常弹出授权框。
+   */
+  private async setupDistributedState(): Promise<void> {
+    const permission: Permissions = 'ohos.permission.DISTRIBUTED_DATASYNC';
+    const service: DistributedStateService = DistributedStateService.getInstance();
+    try {
+      const manager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager();
+      // `Context.applicationInfo` 是**同步只读属性**（见 @ohos.app.ability.Context.d.ts），
+      // 不是方法，不要写成 getApplicationInfo()。
+      const accessTokenId: number = this.context.applicationInfo.accessTokenId;
+      let granted: boolean = false;
+      const status: abilityAccessCtrl.GrantStatus =
+        manager.checkAccessTokenSync(accessTokenId, permission);
+      granted = status === abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED;
+
+      if (!granted) {
+        const result = await manager.requestPermissionsFromUser(this.context, [permission]);
+        const codes: Array<number> = result.authResults;
+        granted = codes.length > 0 && codes[0] === 0;   // 0 = PERMISSION_GRANTED
+        hilog.info(DOMAIN, 'testTag',
+          'DISTRIBUTED_DATASYNC requested, granted=%{public}s', `${granted}`);
+      }
+      await service.init(this.context, granted);
+    } catch (error) {
+      // 权限申请本身失败也要让服务拿到"未授权"状态，UI 才能如实提示，
+      // 而不是停在一个既不报错也不工作的中间态。
+      hilog.error(DOMAIN, 'testTag', 'setupDistributedState failed: %{public}s', JSON.stringify(error));
+      await service.init(this.context, false);
+    }
   }
 
   onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {

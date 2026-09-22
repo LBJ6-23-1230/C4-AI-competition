@@ -2,6 +2,7 @@ import router from '@ohos.router';
 import { appState } from '../data/AppState';
 import { FocusMode, FocusSource, FocusTask, FocusTimerType } from '../models/AgentModels';
 import { AIFloatButton } from '../components/AIFloatButton';
+import { DistributedSnapshot, DistributedStateService } from '../services/DistributedStateService';
 
 @Entry
 @Component
@@ -14,6 +15,25 @@ struct FocusSetup {
   @State mode: FocusMode = 'normal';
   @State source: FocusSource = 'manual';
   @State timerType: FocusTimerType = 'countdown';
+
+  /* ---- 全场景分布式同步状态 ----
+   *
+   * ⚠️ 拆成多个**顶层 @State 基本类型**，而不是存一个 `DistributedSnapshot` 对象：
+   * ArkUI 只对 @State 变量本身做变更观测，对对象内部字段的赋值不触发重渲染。
+   * 存整个对象会出现"数据更新了但界面不动"的假象。
+   */
+  @State private syncReady: boolean = false;
+  @State private syncPermissionGranted: boolean = false;
+  @State private syncPeerCount: number = 0;
+  @State private syncLocalDevice: string = '';
+  @State private syncError: string = '';
+  /** 对端同步过来的任务描述；空串表示当前没有对端任务。 */
+  @State private syncRemoteTask: string = '';
+  @State private syncRemoteDevice: string = '';
+  /** 对端任务是否为"正在专注中"（用于文案区分"正在专注"与"刚结束"）。 */
+  @State private syncRemoteActive: boolean = false;
+
+  private distributed: DistributedStateService = DistributedStateService.getInstance();
 
   aboutToAppear(): void {
     const imported: FocusTask | null = appState.activeFocusTask;
@@ -29,6 +49,59 @@ struct FocusSetup {
     } else if (appState.courses.length > 0) {
       this.course = appState.getHighPriorityCourse().courseName;
     }
+
+    // 订阅跨设备同步状态，并立刻拉一次当前快照（服务可能在进入本页之前就已就绪）。
+    this.distributed.setListener((snapshot: DistributedSnapshot) => this.applySnapshot(snapshot));
+    this.applySnapshot(this.distributed.getSnapshot());
+  }
+
+  aboutToDisappear(): void {
+    // 只解除 UI 订阅，**不退出分布式会话** —— 会话要在整个应用生命周期内保持，
+    // 否则切换页面就会掉线，另一台设备看到的状态会闪断。
+    this.distributed.setListener(null);
+  }
+
+  /** 把服务快照摊平成 @State 变量（见上文关于"不存对象"的说明）。 */
+  private applySnapshot(snapshot: DistributedSnapshot): void {
+    this.syncReady = snapshot.sessionReady && snapshot.localJoined;
+    this.syncPermissionGranted = snapshot.permissionGranted;
+    this.syncPeerCount = snapshot.onlinePeerCount;
+    this.syncLocalDevice = snapshot.localDeviceLabel;
+    this.syncError = snapshot.lastError;
+    this.syncRemoteDevice = snapshot.remoteDeviceLabel;
+    if (snapshot.remoteTask !== null) {
+      const remote: FocusTask = snapshot.remoteTask;
+      this.syncRemoteTask = remote.task.length > 0 ? remote.task : remote.course;
+      this.syncRemoteActive = true;
+    } else {
+      this.syncRemoteTask = '';
+      this.syncRemoteActive = false;
+    }
+  }
+
+  /**
+   * 采用对端设备上正在进行的任务。
+   *
+   * 这是"全场景接续"的核心动作：手机上选的任务，平板上一点就能接着做，
+   * 不需要用户在第二台设备上重新挑课程、重新输任务名。
+   */
+  private adoptRemoteTask(): void {
+    const remote: FocusTask | null = this.distributed.getSnapshot().remoteTask;
+    if (remote === null) {
+      return;
+    }
+    this.course = remote.course;
+    this.task = remote.task;
+    if (remote.plannedMinutes > 0) {
+      this.minutes = remote.plannedMinutes;
+      this.selectedDuration = this.durationKey(remote.plannedMinutes);
+      if (this.selectedDuration === 'custom') {
+        this.customMinutesText = remote.plannedMinutes.toString();
+      }
+    }
+    this.mode = remote.mode;
+    this.timerType = remote.timerType ?? 'countdown';
+    this.source = remote.source;
   }
 
   private durationKey(value: number): string {
@@ -88,7 +161,7 @@ struct FocusSetup {
 
   private startFocus(): void {
     const planTaskId: string | undefined = appState.activeFocusTask?.planTaskId;
-    appState.setFocusTask({
+    const focusTask: FocusTask = {
       course: this.course,
       task: this.task.trim(),
       plannedMinutes: this.plannedMinutesForStart(),
@@ -96,11 +169,15 @@ struct FocusSetup {
       mode: this.mode,
       timerType: this.timerType,
       planTaskId: planTaskId
-    });
+    };
+    appState.setFocusTask(focusTask);
     if (planTaskId !== undefined) {
       appState.updatePlanTaskStatus(planTaskId, 'in_progress');
     }
     appState.clearFocusResultDraft();
+    // ★ 全场景：把本次专注任务广播到同一分布式会话的其他设备。
+    //   手机开始专注 → 平板上的「专注设置」页会实时出现"来自手机的专注任务"。
+    this.distributed.publishFocusTask(focusTask);
     router.pushUrl({ url: 'pages/FocusTimer' });
   }
 
@@ -127,6 +204,57 @@ struct FocusSetup {
     return `本次目标 ${this.plannedMinutesForStart()} 分钟。`;
   }
 
+  /**
+   * 跨设备接续卡片。
+   *
+   * 四种状态如实呈现，**不假装已连接**（与本项目"诚实降级"纪律一致）：
+   *   1. 未授权      → 说明如何开启
+   *   2. 初始化失败  → 原样展示错误码，不吞掉
+   *   3. 已连接无对端 → 显示会话已就绪、等待其他设备
+   *   4. 有对端任务  → 显示任务并提供"在这台设备上接着做"
+   */
+  @Builder
+  DistributedCard() {
+    Column({ space: 8 }) {
+      Row({ space: 8 }) {
+        SymbolGlyph($r('sys.symbol.dot_radiowaves_left_and_right'))
+          .fontSize(16)
+          .fontColor([this.syncReady ? '#0F766E' : '#B45309'])
+        Text('全场景接续')
+          .fontSize(15).fontWeight(FontWeight.Medium).fontColor('#202522')
+        Blank()
+        Text(this.syncReady
+          ? (this.syncPeerCount > 0 ? `已连接 ${this.syncPeerCount} 台设备` : '等待其他设备')
+          : (this.syncPermissionGranted ? '未连接' : '未开启'))
+          .fontSize(12)
+          .fontColor(this.syncReady ? '#0F766E' : '#B45309')
+          .backgroundColor(this.syncReady ? '#ECFDF5' : '#FFFBEB')
+          .borderRadius(8).padding({ left: 8, right: 8, top: 3, bottom: 3 })
+      }.width('100%')
+
+      if (!this.syncPermissionGranted) {
+        Text('开启「多设备协同」权限后，在手机开始专注，平板会自动看到同一任务。')
+          .fontSize(12).fontColor('#92400E').width('100%')
+      } else if (this.syncError.length > 0) {
+        Text(this.syncError).fontSize(12).fontColor('#B91C1C').width('100%')
+      } else if (this.syncRemoteTask.length > 0) {
+        Text(`${this.syncRemoteDevice}正在专注：${this.syncRemoteTask}`)
+          .fontSize(13).fontColor('#202522').width('100%')
+        Button('在这台设备上接着做')
+          .width('100%').height(38).fontSize(13).fontColor('#FFFFFF')
+          .backgroundColor('#0F766E').borderRadius(8)
+          .onClick(() => this.adoptRemoteTask())
+      } else {
+        Text(`本机以「${this.syncLocalDevice}」身份加入协同会话；在同一 WiFi 下再打开一台设备即可自动发现。`)
+          .fontSize(12).fontColor('#475569').width('100%')
+      }
+    }
+    .width('100%').padding(16)
+    .backgroundColor(this.syncReady ? '#F0FDFA' : '#FFFBEB')
+    .borderRadius(8)
+    .border({ width: 1, color: this.syncReady ? '#99F6E4' : '#FDE68A' })
+  }
+
   build() {
     Stack() {
     Column() {
@@ -147,6 +275,11 @@ struct FocusSetup {
 
           Text(this.getSourceLabel()).fontSize(12).fontColor('#2563EB')
             .backgroundColor('#EFF6FF').borderRadius(8).padding({ left: 10, right: 10, top: 3, bottom: 3 })
+
+          // ★ 全场景分布式：跨设备接续卡片。
+          //   这是作品标题里"全场景"三个字在界面上的落点 —— 不再是文档里的
+          //   "架构已预留"，而是用户能看见、能操作的实时状态。
+          this.DistributedCard()
 
           Column({ space: 10 }) {
             Text('课程').fontSize(13).fontColor('#64748B').width('100%')

@@ -23,6 +23,25 @@
       {
         "name": "ohos.permission.INTERNET",
         "reason": "$string:internet_permission_reason"
+      },
+      {
+        // 分布式数据对象（distributedDataObject）跨设备同步必需。
+        // 依据本机 SDK 权限表 `toolchains/lib/PermissionDefinitions.json`：
+        //   ohos.permission.DISTRIBUTED_DATASYNC
+        //     grantMode              = user_grant   ← 需运行时向用户申请
+        //     availableLevel         = normal       ← 普通应用可申请
+        //     distributedSceneEnable = True         ← 专为分布式场景
+        "name": "ohos.permission.DISTRIBUTED_DATASYNC",
+        "reason": "$string:distributed_datasync_permission_reason",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "inuse"
+        }
+      },
+      {
+        // 读取网络/设备状态，供分布式同步状态提示使用。
+        // grantMode = system_grant（安装即授予，无需运行时申请）。
+        "name": "ohos.permission.GET_NETWORK_INFO"
       }
     ],
     "pages": "$profile:main_pages",

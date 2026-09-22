@@ -25,6 +25,10 @@
       "value": "用于连接AI学习助手"
     },
     {
+      "name": "distributed_datasync_permission_reason",
+      "value": "用于在手机、平板等设备间同步当前学习任务与专注进度"
+    },
+    {
       "name": "learning_card_display_name",
       "value": "今日学习建议"
     },
