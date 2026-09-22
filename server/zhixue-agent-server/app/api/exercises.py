@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import json
+import threading
 from pathlib import Path
 
 from flask import Blueprint, jsonify, request
@@ -20,6 +21,19 @@ exercises_api = Blueprint("exercises", __name__)
 DEMO_EXERCISE_SET_ID = "set-demo-binary-tree-001"
 EXERCISE_SET_IDS = {DEMO_EXERCISE_SET_ID, "set-demo-data-structures-001"}
 _repository: JsonRepository | None = None
+
+# 提交接口的"幂等检查 → 判分 → 掌握度回写 → 落盘"必须**整体原子**。
+#
+# 原实现是典型的 check-then-act：先读 `submissions` 判断幂等键是否已存在，
+# 中间隔着判分与 `persist_mastery`（两者都在改画像），最后才写 `submissions`。
+# 并发下多个请求会同时通过幂等检查，于是掌握度增量被叠加多次并**永久写错**。
+# 实测：6 个并发同 idempotencyKey 提交同一份全对答案 →
+#   响应体出现 2 种、mastery 被加到 100（正确值 71）、
+#   profileVersion=3、history 2 条。
+#
+# 这里用一把进程内锁把整段串行化。同一进程内的提交本来就不需要并行
+# （判分是纯计算，微秒级），串行化的吞吐代价可忽略，换来的是幂等语义真正成立。
+_SUBMIT_LOCK = threading.RLock()
 
 _EXERCISE_BANK = [
 	{"exerciseId": "exercise-preorder-001", "knowledgePointId": "binary-tree-postorder",
@@ -123,69 +137,77 @@ def submit_exercises(set_id: str):
 		return guard
 
 	result_id = f"{user_id}:{set_id}:{idempotency_key}"
-	if _repository:
-		previous = _repository.get("submissions", result_id)
-		if previous is not None:
-			return jsonify(previous["response"])
+	# ⚠️ 整段"幂等检查 → 判分 → 掌握度回写 → 落盘"必须持锁串行执行。
+	# 详见 `_SUBMIT_LOCK` 的注释：不加锁时并发重复提交会让掌握度增量叠加多次。
+	# 把原逻辑收进内部函数再持锁调用（而不是整段缩进一层），
+	# 是为了让这次改动的 diff 只落在两行上，便于复核。
+	def _do_submit():
+		if _repository:
+			previous = _repository.get("submissions", result_id)
+			if previous is not None:
+				return jsonify(previous["response"])
 
-	profile = _repository.get("profiles", user_id) if _repository else None
-	if profile is None:
-		return jsonify({"errorCode": "NOT_FOUND", "message": "profile not found", "details": {"userId": user_id}}), 404
-	old_mastery = 42
-	profile_model = LearnerProfile.from_dict(profile)
-	for mastery in profile_model.mastery:
-		if mastery.knowledge_point_id == "binary-tree-postorder":
-			old_mastery = mastery.mastery_score
-	knowledge_points = {item["exerciseId"]: item["knowledgePointId"] for item in _EXERCISE_BANK}
-	assessment = grade_exercise(answers, _ANSWER_KEYS, knowledge_points, old_mastery, result_id)
-	score = assessment.score
-	new_mastery = assessment.suggested_new_mastery
-	response = {
-		"userId": user_id,
-		"submissionId": result_id,
-		"assessment": assessment.to_dict(),
-		"masteryUpdate": {"knowledgePointId": "binary-tree-postorder", "oldScore": old_mastery,
-			"newScore": new_mastery},
-		"needReplan": False,
-	}
-	response["replanDecision"] = should_replan({"masteryScore": new_mastery,
-		"knowledgePointId": "binary-tree-postorder", "repeatedError": score < 80})
-	response["needReplan"] = response["replanDecision"]["needReplan"]
-	if _repository:
-		trace_id = f"trace-submit-{idempotency_key}"
-		evidence_id = f"evidence-submit-{idempotency_key}"
-		response["traceId"] = trace_id
-		response["evidenceIds"] = [evidence_id]
-		timestamp = datetime.now(timezone.utc)
-		profile_model_dict = persist_mastery(_repository, user_id, assessment,
-				evidence_id, result_id, timestamp)
-		if profile_model_dict:
-			if response["needReplan"]:
-				plans = [item for item in _repository.list("plans")
-					if item.get("userId", "demo-user") == user_id]
-				plan = next((item for item in plans if item.get("planId") == "plan-demo-001"), None)
-				plan = plan or (plans[0] if plans else None)
-				if plan is not None:
-					replan_result = replan_learning_path(plan, {"masteryScore": new_mastery,
-						"knowledgePointId": "binary-tree-postorder", "repeatedError": score < 80})
-					updated_plan = replan_result["plan"]
-					updated_tasks = updated_plan["tasks"]
-					new_plan = LearningPlan(plan["planId"], updated_plan["version"], updated_tasks,
-						profile_model_dict["profileVersion"], "根据练习结果重规划")
-					_repository.save("plans", new_plan.plan_id, new_plan.to_dict())
-					history = create_plan_history(plan, new_plan.to_dict(), "掌握度低于阈值", [evidence_id])
-					history.update({"planId": new_plan.plan_id,
-						"adjustmentReason": history["reason"],
-						"triggerEvidence": history["evidenceIds"]})
-					_repository.save("plan_histories",
-						f"{new_plan.plan_id}:v{history['newVersion']}", history)
-					response["plan"] = new_plan.to_dict()
-					response["planDiff"] = {"planId": new_plan.plan_id, **history}
-		trace = {"traceId": trace_id, "events": [{"agent": "assessment", "toolCalls": ["grade_exercise"],
-			"inputSummary": f"提交题集 {set_id}", "outputSummary": f"得分 {score}",
-			"evidenceIds": [evidence_id], "stateVersion": 1, "timestamp": timestamp.isoformat(),
-			"status": "completed", "sessionId": data.get("sessionId"), "stepId": "step-1",
-			"inputStateVersion": 1, "outputStateVersion": 1}]}
-		_repository.save("traces", trace_id, trace)
-		_repository.save("submissions", result_id, {"response": response})
-	return jsonify(response)
+		profile = _repository.get("profiles", user_id) if _repository else None
+		if profile is None:
+			return jsonify({"errorCode": "NOT_FOUND", "message": "profile not found", "details": {"userId": user_id}}), 404
+		old_mastery = 42
+		profile_model = LearnerProfile.from_dict(profile)
+		for mastery in profile_model.mastery:
+			if mastery.knowledge_point_id == "binary-tree-postorder":
+				old_mastery = mastery.mastery_score
+		knowledge_points = {item["exerciseId"]: item["knowledgePointId"] for item in _EXERCISE_BANK}
+		assessment = grade_exercise(answers, _ANSWER_KEYS, knowledge_points, old_mastery, result_id)
+		score = assessment.score
+		new_mastery = assessment.suggested_new_mastery
+		response = {
+			"userId": user_id,
+			"submissionId": result_id,
+			"assessment": assessment.to_dict(),
+			"masteryUpdate": {"knowledgePointId": "binary-tree-postorder", "oldScore": old_mastery,
+				"newScore": new_mastery},
+			"needReplan": False,
+		}
+		response["replanDecision"] = should_replan({"masteryScore": new_mastery,
+			"knowledgePointId": "binary-tree-postorder", "repeatedError": score < 80})
+		response["needReplan"] = response["replanDecision"]["needReplan"]
+		if _repository:
+			trace_id = f"trace-submit-{idempotency_key}"
+			evidence_id = f"evidence-submit-{idempotency_key}"
+			response["traceId"] = trace_id
+			response["evidenceIds"] = [evidence_id]
+			timestamp = datetime.now(timezone.utc)
+			profile_model_dict = persist_mastery(_repository, user_id, assessment,
+					evidence_id, result_id, timestamp)
+			if profile_model_dict:
+				if response["needReplan"]:
+					plans = [item for item in _repository.list("plans")
+						if item.get("userId", "demo-user") == user_id]
+					plan = next((item for item in plans if item.get("planId") == "plan-demo-001"), None)
+					plan = plan or (plans[0] if plans else None)
+					if plan is not None:
+						replan_result = replan_learning_path(plan, {"masteryScore": new_mastery,
+							"knowledgePointId": "binary-tree-postorder", "repeatedError": score < 80})
+						updated_plan = replan_result["plan"]
+						updated_tasks = updated_plan["tasks"]
+						new_plan = LearningPlan(plan["planId"], updated_plan["version"], updated_tasks,
+							profile_model_dict["profileVersion"], "根据练习结果重规划")
+						_repository.save("plans", new_plan.plan_id, new_plan.to_dict())
+						history = create_plan_history(plan, new_plan.to_dict(), "掌握度低于阈值", [evidence_id])
+						history.update({"planId": new_plan.plan_id,
+							"adjustmentReason": history["reason"],
+							"triggerEvidence": history["evidenceIds"]})
+						_repository.save("plan_histories",
+							f"{new_plan.plan_id}:v{history['newVersion']}", history)
+						response["plan"] = new_plan.to_dict()
+						response["planDiff"] = {"planId": new_plan.plan_id, **history}
+			trace = {"traceId": trace_id, "events": [{"agent": "assessment", "toolCalls": ["grade_exercise"],
+				"inputSummary": f"提交题集 {set_id}", "outputSummary": f"得分 {score}",
+				"evidenceIds": [evidence_id], "stateVersion": 1, "timestamp": timestamp.isoformat(),
+				"status": "completed", "sessionId": data.get("sessionId"), "stepId": "step-1",
+				"inputStateVersion": 1, "outputStateVersion": 1}]}
+			_repository.save("traces", trace_id, trace)
+			_repository.save("submissions", result_id, {"response": response})
+		return jsonify(response)
+
+	with _SUBMIT_LOCK:
+		return _do_submit()

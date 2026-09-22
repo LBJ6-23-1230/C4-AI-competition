@@ -228,9 +228,40 @@ struct Index {
     }
   }
 
+  /**
+   * 取当前周计划，**保证非空**。
+   *
+   * ⚠️ 原实现是 `ensurePlan(); return appState.weeklyPlan!;` —— 这是运行时炸弹：
+   * `ensurePlan()` 在**联机模式直接 return**（`weeklyPlan` 只由本地生成路径写入，
+   * 服务端从不写它），所以联机模式下 `weeklyPlan` 一直是 `null`，
+   * `!` 只是让类型检查闭嘴，运行时照样抛 `Cannot read property 'tasks' of null`。
+   *
+   * 触发路径：联机模式 + 后端不可达 → 首页主行动卡走「先做一组快速诊断」兜底
+   * → `onPrimaryAction()` 求值 `primaryTask()` → 本方法 → 崩溃，
+   * 用户点首页主按钮直接闪退（`openExercisePractice()` 永远执行不到）。
+   *
+   * 现在返回一份**结构合法的空计划**（tasks 为空数组、decisionTrace 字段齐全），
+   * 让上层按"今天没有排定任务"走正常兜底，而不是崩溃。
+   */
   private plan(): WeeklyLearningPlan {
     this.ensurePlan();
-    return appState.weeklyPlan!;
+    const current: WeeklyLearningPlan | null = appState.weeklyPlan;
+    if (current !== null) {
+      return current;
+    }
+    return {
+      weekLabel: '本周',
+      tasks: [],
+      decisionTrace: {
+        inputSummary: '',
+        urgencyReason: '',
+        weaknessReason: '',
+        timeReason: '',
+        recommendation: '',
+        updatedAt: ''
+      },
+      adjustmentMessage: ''
+    } as WeeklyLearningPlan;
   }
 
   private todayTasks(): LearningPlanTask[] {
@@ -592,8 +623,12 @@ struct Index {
       this.startAgentTask(agentTask);
       return;
     }
-    const fixtureTask: LearningPlanTask | null = this.primaryTask();
-    if (this.isFixture() && fixtureTask !== null) {
+    // ⚠️ 必须先判 `isFixture()` 再求值 `primaryTask()`。
+    // 原写法是 `const fixtureTask = this.primaryTask(); if (this.isFixture() && ...)` ——
+    // 参数在 `&&` 之前就已求值，联机模式下 `primaryTask()` 照样被调用，
+    // 于是那条"先做一组快速诊断"的兜底路径一点就崩（见 plan() 的注释）。
+    const fixtureTask: LearningPlanTask | null = this.isFixture() ? this.primaryTask() : null;
+    if (fixtureTask !== null) {
       this.startTask(fixtureTask);
       return;
     }

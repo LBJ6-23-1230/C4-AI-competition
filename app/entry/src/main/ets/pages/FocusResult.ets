@@ -5,6 +5,7 @@ import { LocalAgentService } from '../services/LocalAgentService';
 import { AIFloatButton } from '../components/AIFloatButton';
 import { ChatNavigation } from '../services/ChatNavigation';
 import { AgentApiClient } from '../api/AgentApiClient';
+import { DistributedStateService } from '../services/DistributedStateService';
 
 @Entry
 @Component
@@ -96,6 +97,11 @@ struct FocusResult {
     this.resultSession = session;
     appState.clearFocusResultDraft();
     appState.clearFocusTask();
+    // ★ 同步清除分布式共享状态。
+    //   漏掉这一步会造成跨设备"僵尸任务"：本机已经结算完，另一台设备上
+    //   却一直显示「手机正在专注：xxx」并提供"接着做"按钮，点了会进入一个
+    //   早已结束的任务。必须与本地状态一起清理。
+    DistributedStateService.getInstance().clearFocusTask();
     this.saved = true;
   }
 

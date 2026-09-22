@@ -266,13 +266,21 @@ def _run_saved_workflow(session_id: str, answers: list[dict] | None = None,
 	#   profile / exercises —— 大块只读缓存，下一轮由 _workflow_state 重新注入
 	#   answers             —— 已消费的请求输入；客户端本来就知道自己提交了什么，
 	#                          不需要服务端回显（回显还会把响应体撑到 MB 级）
+	#   answerKeys          —— ⚠️ **标准答案，绝不能回传或落盘**。
+	#     原实现只 pop 了前三个，`state.answerKeys` 一直留在响应里
+	#     （实测 30 条 `{"exercise-bst-001": "A", …}`），并且随 save 写进
+	#     repository.json。后果：客户端发一次 `POST /workflows/<id>/run`（不传答案）
+	#     就能拿到全部正确选项，**确定性判分层被完全绕过**。
+	#     而 `GET /api/v1/exercises/<set>` 特意用 `_CLIENT_FIELDS` 剥掉答案
+	#     （见 app/tools/exercise_tools.py），说明隐藏答案本就是设计意图。
 	# 注意：`awaitingAnswers` 是流程标志，**必须保留**（见 orchestrator._is_actionable）。
-	for transient in ("profile", "exercises", "answers"):
+	for transient in ("profile", "exercises", "answers", "answerKeys"):
 		updated["state"].pop(transient, None)
 	if _repository:
 		_repository.save("workflows", session_id, updated)
 	return {key: updated.get(key) for key in
-		("sessionId", "traceId", "status", "currentStep", "currentAgent", "stateVersion", "finalAction", "state")}
+		("sessionId", "traceId", "status", "currentStep", "currentAgent", "stateVersion",
+		 "finalAction", "nextAction", "state")}
 
 
 @workflows_api.post("/api/v1/workflows/<session_id>/run")

@@ -156,6 +156,10 @@ export class AppState {
    * 退出登录 → 回到演示身份。
    *
    * 必须**回到 demo-user**而不是清空：否则退出登录后首页会去查一个不存在的画像而报 404。
+   *
+   * ⚠️ 同时必须清掉**账号绑定的会话态**（对话记录、专注记录、分析结果）。
+   * 只重置身份会让下一个登录的人看到上一个人的数据 —— 见
+   * `resetAccountScopedState()` 的注释。
    */
   public applyLogout(): void {
     this.currentUser = {
@@ -172,6 +176,7 @@ export class AppState {
     this.authSource = 'guest';
     this.authNickname = ApiDefaults.DEMO_USER_NAME;
     this.isSignedIn = false;
+    this.resetAccountScopedState();
   }
 
   public startChatTask(taskName: string): void {
@@ -580,6 +585,32 @@ export class AppState {
       completedStages: [],
       pendingActions: []
     };
+  }
+
+  /**
+   * 清空**与具体账号绑定**的会话态。
+   *
+   * 与 `resetSession()` 的分工：
+   *   `resetSession()` 清的是"本次分析结果"（画像/建议/搭子/周计划等），
+   *   在页面内换任务时也可能调用；
+   *   本方法清的是**对话记录与专注记录**这类"属于某个人"的数据，
+   *   只在**身份变更**（登出 / 切换账号）时调用。
+   *
+   * ⚠️ 为什么必须有这个方法：原实现里登出只重置身份四件套，
+   * `chatMessages` / `hasActiveChat` / `focusSessions` / `pendingChatPrompt`
+   * 全部原样保留，而 `ChatMain.aboutToAppear` 会用
+   * `appState.hasActiveChat && appState.chatMessages.length > 0` 恢复对话历史 ——
+   * 于是 **A 账号退出、B 账号登录后，B 会看到 A 的聊天记录与专注时长**。
+   * 这是可复现的跨账号数据泄露。
+   */
+  public resetAccountScopedState(): void {
+    this.chatMessages = '';
+    this.hasActiveChat = false;
+    this.pendingChatPrompt = '';
+    this.focusSessions = [];
+    this.activeFocusTask = null;
+    this.clearFocusResultDraft();
+    this.resetSession();
   }
 }
 

@@ -1,5 +1,11 @@
 """Small durable JSON repository for the first local implementation."""
 
+# 注解延迟求值（PEP 563）。
+# ⚠️ 必须有：本类定义了名为 `list` 的方法，而 `ids()` 的返回注解写作 `list[str]`。
+# 注解在类体内**立即求值**时，`list` 解析到的是同名方法对象，
+# 于是报 `TypeError: 'function' object is not subscriptable`（导入期就炸，全测试收集失败）。
+from __future__ import annotations
+
 import json
 import os
 import threading
@@ -81,12 +87,27 @@ class JsonRepository(Repository):
 	def list(self, collection: str) -> list[dict[str, Any]]:
 		return [dict(value) for value in self._data.get(collection, {}).values()]
 
+	def ids(self, collection: str) -> list[str]:
+		"""列出集合内的 item_id。
+
+		为什么需要它：`list()` 只回 value 不含 key，调用方想"按归属删除"时
+		拿不到主键（`demo/reset` 就卡在这里）。各集合的主键名不统一
+		（traceId / submissionId / evidenceId / sessionId …），由调用方按需从
+		value 里取，本方法只负责给出**权威的键集合**。
+		"""
+		return list(self._data.get(collection, {}).keys())
+
 	def delete(self, collection: str, item_id: str) -> None:
-		if item_id in self._data.get(collection, {}):
-			del self._data[collection][item_id]
-			self._flush()
+		# 内存改动与落盘必须在同一临界区（与 save 同理）。
+		# 原实现先判存在再 del，两步都在锁外：同键并发删除时，
+		# 第二个线程会因键已被删而抛 KeyError → 冒泡成 500。
+		with self._write_lock:
+			if item_id in self._data.get(collection, {}):
+				del self._data[collection][item_id]
+				self._flush()
 
 	def clear(self, collection: str) -> None:
-		if collection in self._data:
-			del self._data[collection]
-			self._flush()
+		with self._write_lock:
+			if collection in self._data:
+				del self._data[collection]
+				self._flush()

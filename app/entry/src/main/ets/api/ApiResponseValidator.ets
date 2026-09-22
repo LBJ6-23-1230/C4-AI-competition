@@ -130,6 +130,18 @@ export class ApiResponseValidator {
     if (method === 'POST' && path === '/api/v1/auth/login-with-huawei') {
       return ApiResponseValidator.isAuthSession(data);
     }
+    // ⚠️ 手机号验证码登录的两个接口（契约 api-contract-v0.3）：
+    //   /api/v1/auth/send-code   -> PhoneCodeSendResponse
+    //   /api/v1/auth/verify-code -> AuthLoginOrRegisterResponse（200 已有账号 / 201 新建账号）
+    // 这两条原先漏在下面，导致**正确的响应**也落到末尾 `return false`，
+    // 被 AgentApiClient 判为 INVALID_RESPONSE —— 验证码登录在联机与 Fixture
+    // 两种数据源下都不可用（登录页为此写的分段控件/开发回显/重发倒计时全部作废）。
+    if (method === 'POST' && path === '/api/v1/auth/send-code') {
+      return ApiResponseValidator.isPhoneCodeSendResponse(data);
+    }
+    if (method === 'POST' && path === '/api/v1/auth/verify-code') {
+      return ApiResponseValidator.isAuthSession(data);
+    }
     if (method === 'POST' && path === '/api/v1/auth/logout') {
       return ApiResponseValidator.hasString(data, 'status');
     }
@@ -147,6 +159,19 @@ export class ApiResponseValidator {
     return ApiResponseValidator.isAuthUserField(data, 'user') &&
       ApiResponseValidator.hasString(data, 'token') &&
       ApiResponseValidator.hasString(data, 'expiresAt');
+  }
+
+  /**
+   * 验证码签发响应（契约 `PhoneCodeSendResponse`）。
+   *
+   * required: phoneMasked / expiresInSeconds / resendAfterSeconds / smsDelivered
+   * optional: devCode（未配短信服务商时的开发回显码，故意不设为 required）
+   */
+  private static isPhoneCodeSendResponse(data: Record<string, Object>): boolean {
+    return ApiResponseValidator.hasString(data, 'phoneMasked') &&
+      ApiResponseValidator.hasNumber(data, 'expiresInSeconds') &&
+      ApiResponseValidator.hasNumber(data, 'resendAfterSeconds') &&
+      ApiResponseValidator.hasBoolean(data, 'smsDelivered');
   }
 
   /** 用户视图：userId 与 nickname 必须是非空字符串。 */

@@ -46,18 +46,6 @@ export default class EntryAbility extends UIAbility {
     if (!WorkflowSessionStore.restore(this.context)) {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore workflow session.');
     }
-    // AuthStore 的初始化是**异步**的：要先从系统资产库取数据密钥、把 token 解密。
-    // 不 await 也能工作（先按内存态跑，加密就绪后下一次 save() 自动改用密文），
-    // 但 await 之后首屏拿到的是**已解密**的登录态，避免短暂显示成未登录。
-    AuthStore.initialize(this.context).then((ready: boolean) => {
-      if (!ready) {
-        hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore auth session.');
-      }
-      if (AuthStore.encryptionDegraded()) {
-        hilog.warn(DOMAIN, 'testTag', '%{public}s',
-          'Token encryption unavailable; credentials fall back to plaintext storage.');
-      }
-    });
     if (!ProactiveSettingsStore.restore(this.context)) {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore proactive notification settings.');
     }
@@ -78,11 +66,43 @@ export default class EntryAbility extends UIAbility {
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
     });
 
-    void this.restoreIdentity(windowStage, fromLearningCard);
+    // ⚠️ **必须先 await AuthStore.initialize() 再判登录态**（下方 bootstrapAuth 内串行执行）。
+    //
+    // 原实现是把 `initialize().then(...)` 与 `void this.restoreIdentity(...)` **并行**发起，
+    // 而 `restoreIdentity()` 的第一个动作就是同步调用 `AuthStore.isSignedIn()`。
+    // `AuthStore.session` 要等 `initialize()` 内部的 `await TokenCipher.initialize()`
+    // 完成、走到 `loadFromPreferences()` 才被赋值 —— 并行发起时那一刻必然是 `null`，
+    // 于是**每次冷启动都命中"没有登录态"分支**，被强制拉到登录页；
+    // `restoreIdentity()` 里"离线 Fixture 免打扰"与"静默校验"两条规则成为不可达代码。
+    //
+    // 这不是"短暂显示未登录"，而是**登录态恢复永久失效**（token 存了也用不上）。
+    void this.bootstrapAuth(windowStage, fromLearningCard);
 
     // ★ 全场景分布式：先申请「多设备协同」权限，再初始化分布式会话。
     //   失败不阻断任何主流程 —— 单设备功能完全不受影响（见 DistributedStateService 文档）。
     void this.setupDistributedState();
+  }
+
+  /**
+   * 串行完成"恢复加密凭据 → 恢复登录态"。
+   *
+   * 顺序不可颠倒：`restoreIdentity()` 依赖 `AuthStore` 里已解密好的 session。
+   */
+  private async bootstrapAuth(windowStage: window.WindowStage, fromLearningCard: boolean): Promise<void> {
+    try {
+      const ready: boolean = await AuthStore.initialize(this.context);
+      if (!ready) {
+        hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore auth session.');
+      }
+      if (AuthStore.encryptionDegraded()) {
+        hilog.warn(DOMAIN, 'testTag', '%{public}s',
+          'Token encryption unavailable; credentials fall back to plaintext storage.');
+      }
+    } catch (error) {
+      // 凭据恢复失败不应阻断启动：按未登录继续，由 restoreIdentity 决定去登录页
+      hilog.error(DOMAIN, 'testTag', 'AuthStore init failed: %{public}s', JSON.stringify(error));
+    }
+    await this.restoreIdentity(windowStage, fromLearningCard);
   }
 
   /**

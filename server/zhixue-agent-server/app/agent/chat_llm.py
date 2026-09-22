@@ -19,6 +19,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import threading
 import time
 import uuid
 from datetime import datetime
@@ -28,6 +29,16 @@ from typing import Any
 _BASE_DIR = Path(__file__).resolve().parent
 _CHAT_DIR = _BASE_DIR.parent.parent / "chat"
 _PROMPT_DIR = _CHAT_DIR / "prompts"
+
+# 对话历史是"读—改—写"整文件操作，而 Flask 默认多线程处理请求。
+# 不加锁时两个并发 append 会各读一份旧内容、再各写一份，
+# 后写的把先写的整段覆盖掉（丢历史）；更糟的是 `write_text` 不是原子操作，
+# 并发写会写出**半截 JSON**，于是 `_load_json` 抛 JSONDecodeError 被吞成 `{}`，
+# 该用户的历史**静默全部消失**。
+# 实测：12 线程 × 4 次 append_history → 文件损坏、get_history 返回 0 条。
+# 这里用模块级锁 + `os.replace` 原子落盘双管齐下：
+#   锁 解决同一进程内的丢更新，`os.replace` 解决"写到一半被读到"。
+_HISTORY_LOCK = threading.RLock()
 
 
 def _var_dir() -> Path:
@@ -273,37 +284,51 @@ def _load_history_store() -> dict[str, list[dict[str, Any]]]:
 
 
 def _write_history_store(store: dict[str, list[dict[str, Any]]]) -> None:
-    _history_path().write_text(
-        json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+    """原子写盘：先写同目录临时文件，再 `os.replace` 覆盖目标。
+
+    为什么不能直接 `write_text`：Flask 多线程下并发写同一个文件时，
+    另一个线程可能读到"写了一半"的内容，`json.loads` 抛错后被降级成 `{}`，
+    表现为**对话历史静默清空**（且没有任何日志线索）。
+    `os.replace` 在同一文件系统内是原子的，读方要么看到旧内容、要么看到新内容。
+    """
+    path = _history_path()
+    tmp = path.with_name(path.name + f".tmp.{os.getpid()}.{threading.get_ident()}")
+    with _HISTORY_LOCK:
+        tmp.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+        os.replace(tmp, path)
 
 
 def get_history(user_id: str | None = None) -> list[dict[str, Any]]:
     """读取**指定用户**的对话历史；`user_id` 缺省取演示身份。"""
     key = (user_id or DEFAULT_HISTORY_USER).strip() or DEFAULT_HISTORY_USER
-    return _load_history_store().get(key, [])
+    with _HISTORY_LOCK:
+        return _load_history_store().get(key, [])
 
 
 def clear_history(user_id: str | None = None) -> None:
     """清空**指定用户**的历史，不动其他用户。"""
     key = (user_id or DEFAULT_HISTORY_USER).strip() or DEFAULT_HISTORY_USER
-    store = _load_history_store()
-    if key in store:
-        store[key] = []
-        _write_history_store(store)
+    with _HISTORY_LOCK:
+        store = _load_history_store()
+        if key in store:
+            store[key] = []
+            _write_history_store(store)
 
 
 def append_history(user_input: str, bot_response: str,
                    user_id: str | None = None) -> None:
     key = (user_id or DEFAULT_HISTORY_USER).strip() or DEFAULT_HISTORY_USER
-    store = _load_history_store()
-    bucket = store.get(key, [])
-    bucket.append({
-        "user_input": user_input,
-        "bot_response": bot_response,
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-    })
-    store[key] = bucket[-HISTORY_MAX_ENTRIES:]
-    _write_history_store(store)
+    # 读—改—写必须在**同一把锁**内完成，否则并发 append 会互相覆盖（丢历史）。
+    with _HISTORY_LOCK:
+        store = _load_history_store()
+        bucket = store.get(key, [])
+        bucket.append({
+            "user_input": user_input,
+            "bot_response": bot_response,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+        })
+        store[key] = bucket[-HISTORY_MAX_ENTRIES:]
+        _write_history_store(store)
 
 
 def _format_history(num_entries: int = 10, user_id: str | None = None) -> str:

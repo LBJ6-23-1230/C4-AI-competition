@@ -18,6 +18,12 @@ SQLite 版每次只写一行，且并发由数据库自身保证。它是**可�
     $env:ZHIXUE_DB="sqlite"; python run.py        # 用 SQLite 启动
 """
 
+# 注解延迟求值（PEP 563）。
+# ⚠️ 必须有：本类定义了名为 `list` 的方法，而 `ids()` 的返回注解写作 `list[str]`。
+# 类体内立即求值时 `list` 解析到同名方法对象，导入期即报
+# `TypeError: 'function' object is not subscriptable`（全测试收集失败）。
+from __future__ import annotations
+
 import json
 import sqlite3
 import threading
@@ -99,6 +105,18 @@ class SQLiteRepository(Repository):
 				"SELECT value FROM records WHERE collection = ? ORDER BY item_id",
 				(collection,)).fetchall()
 		return [json.loads(row[0]) for row in rows]
+
+	def ids(self, collection: str) -> list[str]:
+		"""列出集合内的 item_id（与 `JsonRepository.ids()` 同名同义）。
+
+		`demo/reset` 做"按归属删除"时需要主键；缺了它切到 SQLite 后端会
+		AttributeError → 500（实测双后端基线测试就是在这里挂的）。
+		"""
+		with self._lock:
+			rows = self._connection.execute(
+				"SELECT item_id FROM records WHERE collection = ? ORDER BY item_id",
+				(collection,)).fetchall()
+		return [row[0] for row in rows]
 
 	def delete(self, collection: str, item_id: str) -> None:
 		with self._lock:
