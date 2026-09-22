@@ -1,4 +1,4 @@
-# 命令行签名 HAP —— 绕开 DevEco GUI
+﻿# 命令行签名 HAP —— 绕开 DevEco GUI
 #
 # 为什么用这个：DevEco 的「签名配置」界面在自动签名勾选状态下，
 # 会尝试去 AGC 新建 Profile，而新建 Profile 必须绑定设备 -> 报"缺少设备"。
