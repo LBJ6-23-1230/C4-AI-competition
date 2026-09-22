@@ -17,9 +17,13 @@
 > 契约 P0-1 与前端 P0-1 是**同一缺陷被两个独立方向分别发现**（都附实跑证据），
 > 这本身说明该缺陷的确定性很高。
 
+**当前修复进度：已修 17 项**（5×P0 + 12×P1），剩 17 项（多为 P2）。
+另新增 **19 项回归测试**固化（`tests/test_audit_regressions.py`），
+测试总数 295 → **314**。
+
 ---
 
-## 一、本轮已修复（9 条，全部经 295 单测 + 95 项 live 联调验证）
+## 一、已修复（17 项，全部经 314 单测 + 95 项 live 联调 + 基线零漂移验证）
 
 ### 🔴 P0 · 验证码登录整条链路不可用（前端）
 
@@ -124,6 +128,75 @@ initialize 内部 `await` 之后才赋值 → 那一刻必为 `null` →
 
 **修复**：`FocusResult.save()` 与本地状态一起清理分布式状态。
 
+### 🟠 P1 · `streakDays` 硬编码为 3、`todayMinutes` 不按日期过滤（前端）
+
+`AppState.getFocusSummary()` 原为
+`streakDays: this.focusSessions.length === 0 ? 0 : 3` ——
+**一个写死的字面量**。只要做过一次专注，首页 / 我的 / 学习记录**三处**
+都显示"连续学习 3 天"，与真实记录无关。同时 `todayMinutes` 对所有历史会话
+无条件累加，未按日期过滤 → "今日专注"实际是"累计专注"，
+而它还是 `ProactiveSurfaceService` / `Index.loadProactiveDecision` 的输入。
+
+**修复**：新增 `DateHelper.localDateKey()/todayKey()`（**本地时区**，
+不用 `toISOString` 以免东八区凌晨被算到前一天）；`todayMinutes` 按本地日期键过滤；
+`streakDays` 改为真实连续天数（从今天或昨天往回数，遇断档即停）。
+
+### 🟠 P1 · 「为什么是它」五因子用硬编码常量（后端）
+
+`app/api/plans.py` 直接给确定性优先级引擎喂常量
+（`masteryScore: 58`、`errorIntensity: 67`、`importance: 90`、`urgency: 53` …），
+于是因子卡的数字**与调用者是谁完全无关** —— 新账号 mastery 为 0 也看到同一套值。
+
+**修复**：掌握度取画像真实值、错误强度由错题证据条数推导；
+**故意不传 `urgency` 键**（引擎是 `item.get("urgency", urgency)`，
+传 0 会被当成真值，导致紧迫度项恒为 0、因子卡永远少一行）；
+`factors` 改为按**计划首任务**的 `knowledgePointId` 回查
+（原先取"重新排名后的第一名"，而画像里无记录的知识点回退 0 → mastery 因子恒 1.0
+→ 必然排第一，于是因子卡讲的是另一个知识点）。
+实测：mastery=42 → value 0.58；改成 90 → value 0.10（此前两者完全相同）。
+
+### 🟠 P1 · 知识库切片跨用户互相覆盖（后端）
+
+`chunkId` 只由 `(fileName, 序号, text[:64])` 决定，而它同时是 `chunks`
+集合的**主键** → 两个用户上传**同名同内容**文件时，后者直接覆盖前者的切片记录
+（连 `userId`/`kbId` 都被改写），前者检索命中 1→0 而 KB 仍报 `chunkCount=2`。
+
+**修复**：`process_document()` 新增 `scope` 参数并参与 chunkId 摘要
+（调用方传 `userId:kbId:documentId`）。
+实测：A/B 各上传同名 `notes.md` → 切片总数 2（各 1 条），A 检索仍命中。
+
+### 🟠 P1 · `/agent/proactive` 两类畸形输入触发 500（后端）
+
+* `(context.get("location") or "unknown").strip()` —— 空值被 `or` 兜住，
+  但**非空非字符串**穿透：`{"location": 5}` → AttributeError → 500
+* `_parse_iso8601` 只捕 `ValueError`，`{"now": 1758530000}`（epoch 秒）→ 500
+
+**修复**：location 显式判类型；`_parse_iso8601` 增加类型检查并兼捕 `TypeError`。
+实测：9 种畸形载荷全部 200、零 500，正常载荷行为不变。
+
+### 🟠 P1 · 掌握度记错知识点、响应与落盘互相矛盾（后端）
+
+`exercises.py` 的 `old_mastery` 固定取 `binary-tree-postorder` 那条，
+`masteryUpdate.knowledgePointId` 也被硬编码；`persist_mastery` 把**同一个**
+建议值写给所有被判分知识点，且只遍历已存在条目（不新建）。
+实测：提交 graph-algorithm 题集 → 响应称 binary-tree-postorder 42→46，
+而画像里该知识点仍是 42。
+
+**修复**：`AssessmentResult` 新增 `per_knowledge_mastery` 与
+`dominant_knowledge_point()`；`persist_mastery` 逐知识点写各自的值并补建缺失条目；
+`exercises.py` 全部改用本次作答覆盖的知识点。
+**标量 `suggested_new_mastery` 刻意保持按整卷计算** —— 它是演示基线的对外数值
+（√√× → 58），不动它才能保证 `42→58` 不漂移。
+
+### 🟠 P1 · 空答案被当成"全错"扣分并触发假重规划（后端）
+
+`validate_answers` 放行 `answers: []`，判分侧 `max(1, len(valid_ids))` 掩盖除零
+→ `score=0.0` → 掌握度 -4、`needReplan=true`、计划改 [45,15]、`profileVersion` +1、
+history 记一条 —— 但 `perKnowledgeAccuracy` 为空、`persist_mastery` 什么都没改，
+画像仍 42。即历史/响应与真实数据矛盾，且**用户被无理由罚分**。
+
+**修复**：护栏层拒绝空数组，并要求每项带非空 `exerciseId`。
+
 ---
 
 ## 二、已评估但**判定不成立**的发现（避免后续重复排查）
@@ -146,23 +219,22 @@ initialize 内部 `await` 之后才赋值 → 那一刻必为 `null` →
 
 ## 三、未修复清单（按领域，供后续排期）
 
-### 后端 P1（9 条）——影响特定路径的正确性
+> **进度：17 项已修 / 17 项未修。** 下表已移除已修项
+> （B1 掌握度归属、B2 空答案、B3 切片覆盖、B4/B5 proactive 500、B6 五因子常量
+> 均已修复，详见 §一）。
+
+### 后端 P1（还剩 4 条）——影响特定路径的正确性
 
 | # | 位置 | 问题 | 后果 |
 |---|---|---|---|
-| B1 | `exercises.py:134-148` + `assessment_tools.py:73-76` | 掌握度用错知识点：`old_mastery` 固定取 `binary-tree-postorder`，`masteryUpdate.knowledgePointId` 也硬编码；`persist_mastery` 把同一个新值写给所有被判分知识点、且不新建缺失知识点 | 提交其它知识点题集时，**若按修复改会改动演示基线（42→58）**，需谨慎处理；当前表现为非二叉树题集的掌握度提升落不到画像上 |
-| B2 | `exercises.py:121-123,140-153` + `assessment_tools.py:28-30,59-61` | `validate_answers` 放行 `answers: []` 与无效题号，`max(1,len)` 掩盖除零 → `score=0.0` | 掌握度 -4、假重规划、假 history；**若收紧校验需确认不影响既有用例** |
-| B3 | `knowledge.py:379-380` + `api/knowledge.py:229,246-247` | `chunkId` 只由 `(fileName,序号,text[:64])` 决定，不含 userId/kbId/documentId | 两个用户上传同名同内容文件时，**后者的切片覆盖前者**，前者检索命中 1→0 而 KB 仍报 `chunkCount=2` |
-| B4 | `proactive.py:83` | `(context.get("location") or "unknown").strip()`，location 非字符串绕过 `or` | `{"location":5}` → AttributeError → **500** |
-| B5 | `proactive.py:34-40` | `_parse_iso8601` 只捕 `ValueError`，非字符串直接 `.replace()` | `{"now":123}` / `lastStudyAt` 传 epoch → **500** |
-| B6 | `api/plans.py:33-37` | 五因子用硬编码 `masteryScore=58 / errorIntensity=67` 计算 | "为什么是它"整卡数字与用户数据无关、**所有人一样**（答辩主叙事被污染） |
 | B7 | `chat_llm.py:511-515` | `_handle_update_profile` 只取 `reply`，丢弃模型返回的 `updates`；chat 全链路无 repository | 回"已帮你更新信息"但**画像一字未改**（静默 no-op + 假成功） |
 | B8 | `chat/prompts/MatchPartnerPrompt.txt:10-38` | 搭子 100 分打分规则写进 prompt 让 LLM 算，与 `partner_match.py` 确定性实现重复 | 同一问题在 `/chat` 与 `/v1/agent/partner-match` **给出不同分数**，违反确定性纪律 |
 | B9 | `trace_tools.py:16-23`（+`workflows.py:166-182`） | trace append 读-改-写无事务 | 实测 48 次并发只留 **5 条**事件；审计轨迹失真，`experiments/snapshot` 统计随之错误 |
+| B10 | `workflows.py` `/run` 无幂等键 | 并发推进同一会话会重复记账（实测 6 次并发 → `profileVersion` 1→7、history 6 条共用同一 `evidenceId`） | 与 B9 同源，建议一并加锁 |
 
-> **B1 与 B2 需要特别小心**：它们位于演示基线的核心链路上
-> （`score 66.67 / mastery 42→58 / plan [30,30]→[45,15]`）。
-> 修改后**必须复跑 live 联调确认基线未漂移**，不能只看单测。
+> **B9 与 B10 是同一类问题**：`repository.json` 的 `save/delete/clear` 有锁，
+> 但"读—改—写"序列本身没有事务，并发下会丢更新。建议给 trace append 与
+> 工作流推进各加一把模块级锁（可参照已修的历史文件与提交接口做法）。
 
 ### 后端 P2（2 条，B-P2-15 / B-P2-16）
 
