@@ -393,6 +393,21 @@ struct Login {
   build() {
     Column() {
       Scroll() {
+        // ⚠️ 限宽加在**内容列**上，不能加在外面的 `Scroll` 上。
+        //
+        // 原实现把 `constraintSize({ maxWidth: contentMaxWidth() })` 挂在 `Scroll` 上，
+        // 在平板（2880×1920，实测）上引发了一类很难看出来的渲染错误：
+        // Scroll 自身被压到 720vp（实测 x=[720,2160]），但它内部滚动内容的**测量**没有
+        // 同步收缩，于是每个横向弹性布局都算错：
+        //   · 分隔行 `Row { Divider.layoutWeight(1); Text('或'); Divider.layoutWeight(1) }`
+        //     里第一个 Divider 吃掉整整 1356px（应约一半），把「或」挤到 x=2148 贴住右缘；
+        //   · `Button('登录  →')` 的文字不居中，落到 x≈2145–2157；
+        //   · 「华为账号一键登录」「跳过登录…」的文字同样被推到右缘并截断。
+        // 节点树与像素扫描都证实了这三点（按钮中部的文字笔画**完全为空**）。
+        //
+        // 现在 Scroll 自己占满父宽（不再被压缩），限宽交给内部内容列，
+        // 由外层 Column 的水平居中把它摆到中间。这样横向弹性布局拿到的可用宽度
+        // 与最终渲染宽度一致，上面三处都能恢复正常。
         Column({ space: 0 }) {
           // ---------- 标题区 ----------
           Column({ space: 6 }) {
@@ -649,13 +664,12 @@ struct Login {
           Blank().height(24)
         }
         .width('100%')
+        .constraintSize({ maxWidth: DeviceLayout.contentMaxWidth() })
         .padding({ left: 24, right: 24 })
       }
       .layoutWeight(1)
+      .width('100%')
       .scrollBar(BarState.Off)
-      // 大屏上给正文限宽并居中，避免一行文本被拉得过长。
-      // 手机返回一个足够大的值，等价于"不约束"（`Infinity` 不是合法的 Length，不能用）。
-      .constraintSize({ maxWidth: DeviceLayout.contentMaxWidth() })
       .align(Alignment.Top)
     }
     .width('100%').height('100%').backgroundColor('#FFFFFF')
