@@ -1,7 +1,7 @@
 export type ChatRole = 'user' | 'agent';
 export type ChatStatus = 'sending' | 'done' | 'error';
 export type ChatIntent = 'query_tasks' | 'analyze_weakness' | 'get_suggestion'
-  | 'match_partner' | 'analyze_wrong' | 'update_profile' | 'free_chat';
+  | 'match_partner' | 'analyze_wrong' | 'update_profile' | 'free_chat' | 'unknown';
 export type ChatCardType = 'suggestion' | 'weakness' | 'partner' | 'tasks' | 'wrong';
 
 export interface ChatCard {

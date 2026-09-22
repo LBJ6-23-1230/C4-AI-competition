@@ -126,7 +126,8 @@ export class AgentBridge {
 
   static parseResponse(data: Record<string, Object>): AgentResponse {
     const reply: string = AgentBridge.requiredString(data, 'reply');
-    const intent: string = AgentBridge.requiredString(data, 'intent');
+    const intent: string = AgentBridge.normalizeIntent(
+      AgentBridge.requiredString(data, 'intent'));
     const cardObj: Object | undefined = data['card'] as Object | undefined;
     const rawLlmUsed: Object | undefined = data['llmUsed'] as Object | undefined;
 
@@ -184,6 +185,27 @@ export class AgentBridge {
       throw new Error(`${key} must be a string.`);
     }
     return value as string;
+  }
+
+  /**
+   * 把服务端返回的 intent 收敛到 `ChatIntent` 白名单内。
+   *
+   * 为什么需要：`AgentResponse.intent` 是 `string`（后端可能返回契约之外的值），
+   * 而下游 `replyMap` / `createLocalCardForIntent` 全部按枚举做映射。
+   * 不做收敛时，任何未列举的取值都会**静默 miss** ——
+   * 表现为"回复有了但没有「接下来」卡"，且不报错、难定位。
+   * 兜底为 `unknown`（而非 `get_suggestion`）是刻意的：
+   * `unknown` 会被渲染成中性的"继续提问"卡，
+   * 而误判成 `get_suggestion` 会给出**错误指向具体学习建议页**的卡。
+   */
+  private static normalizeIntent(intent: string): ChatIntent {
+    if (intent === 'query_tasks' || intent === 'analyze_weakness' ||
+      intent === 'get_suggestion' || intent === 'match_partner' ||
+      intent === 'analyze_wrong' || intent === 'update_profile' ||
+      intent === 'free_chat' || intent === 'unknown') {
+      return intent as ChatIntent;
+    }
+    return 'unknown';
   }
 
   private static normalizeCardType(cardType: string): ChatCardType {
@@ -244,6 +266,10 @@ export class AgentBridge {
     replyMap.set('analyze_wrong', '请上传或选择一道错题，我会展示知识点、错误原因和补强建议。');
     replyMap.set('update_profile', '离线演示下画像由诊断练习自动更新：去「练习智能体」做一组专项题，掌握度会随之变化。');
     replyMap.set('free_chat', '你可以问我今日学习建议、学情画像、今日任务或学习搭子，也可以上传错题。');
+    // ⚠️ `unknown` 是后端 `MainAgentPrompt.txt` 规定的**合法兜底意图**
+    //（不属于 6 类具体意图时返回 {"intent":"unknown"}）。
+    // 前端原先没有这个取值，导致真实模型返回 unknown 时 replyMap 全部 miss。
+    replyMap.set('unknown', '你可以问我今日学习建议、学情画像、今日任务或学习搭子，也可以上传错题。');
 
     const defaultReply: string = '你可以问我今日学习建议、学情画像、今日任务或学习搭子。';
     const foundReply: string | undefined = replyMap.get(intent);
@@ -303,6 +329,13 @@ export class AgentBridge {
     if (intent === 'update_profile') {
       return AgentBridge.createLocalCard('weakness', '学习画像',
         '更新掌握情况后，画像与后续推荐会同步重算。', 'pages/StudyTags');
+    }
+    if (intent === 'free_chat' || intent === 'unknown') {
+      // 兜底意图也必须有"接下来"，否则用户说完一句无法归类的话后**无路可走**。
+      // 这与本工程"每个终点页都有「接下来」卡"的原则一致。
+      // 指向对话页自身即可（留在原地继续问），不引入新的落地页。
+      return AgentBridge.createLocalCard('suggestion', '继续提问',
+        '可以问我今日学习建议、学情画像、今日任务或学习搭子，也可以上传错题。', 'pages/ChatMain');
     }
     return undefined;
   }
