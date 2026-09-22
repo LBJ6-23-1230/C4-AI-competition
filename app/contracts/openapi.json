@@ -3,7 +3,7 @@
   "info": {
     "title": "Zhixue Mate Agent API",
     "version": "api-contract-v0.3",
-    "description": "知学 Mate 前后端唯一接口契约。字段变更必须先升契约版本并通知前端。"
+    "description": "知学 Mate 前后端唯一接口契约。字段变更必须先升契约版本并通知前端。 声明层已于 2026-09-22 按实跑结果补全：补齐 5 个已实现端点、所有 operation 的 405、register 的 409、exercises 的 4 个查询参数与 400、knowledge-bases 的 400、可空字段的 nullable、版本头参数，并移除死枚举值 LLM_FALLBACK。实现未改动。"
   },
   "servers": [
     {
@@ -49,6 +49,16 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -67,8 +77,23 @@
                 }
               }
             }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/agent/proactive": {
@@ -98,8 +123,23 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/agent/partner-match": {
@@ -175,8 +215,23 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/workflows": {
@@ -209,8 +264,23 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/workflows/{id}": {
@@ -220,6 +290,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkflowId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "responses": {
@@ -235,6 +308,16 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -246,6 +329,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkflowId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "requestBody": {
@@ -274,6 +360,16 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -285,6 +381,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/UserId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "responses": {
@@ -300,6 +399,16 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -311,6 +420,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/UserIdQuery"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "responses": {
@@ -326,6 +438,16 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -337,6 +459,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/ExerciseSetId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "requestBody": {
@@ -368,6 +493,16 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -379,6 +514,50 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/ExerciseSetId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          },
+          {
+            "name": "knowledgePointId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "按知识点过滤。与 difficulty/excludeExerciseId 任一存在时走筛选路径。"
+          },
+          {
+            "name": "difficulty",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "按难度过滤（如 easy / medium / hard）。"
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "返回题目数量上限，必须为正整数；非整数返回 400。缺省取 3。"
+          },
+          {
+            "name": "excludeExerciseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "要排除的题目 ID。可重复传递以排除多题。",
+            "style": "form",
+            "explode": true
           }
         ],
         "responses": {
@@ -394,6 +573,26 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "count 非正整数等参数错误（errorCode=BAD_REQUEST）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -405,6 +604,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/PlanId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "responses": {
@@ -420,6 +622,16 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -431,6 +643,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/TraceId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "responses": {
@@ -446,6 +661,16 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -467,8 +692,23 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/auth/register": {
@@ -499,8 +739,33 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "该手机号已注册（errorCode=CONFLICT）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/auth/login": {
@@ -533,8 +798,23 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/auth/logout": {
@@ -559,8 +839,23 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/auth/me": {
@@ -585,8 +880,23 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/auth/account": {
@@ -614,8 +924,23 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/auth/login-or-register": {
@@ -666,8 +991,23 @@
                 }
               }
             }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/knowledge-bases": {
@@ -685,6 +1025,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "responses": {
@@ -694,6 +1037,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/KnowledgeBaseListResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "userId 等查询参数超出长度上限（errorCode=BAD_REQUEST）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -746,8 +1109,23 @@
                 }
               }
             }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/knowledge-bases/{kbId}": {
@@ -765,6 +1143,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "responses": {
@@ -780,6 +1161,16 @@
           },
           "404": {
             "description": "知识库不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
             "content": {
               "application/json": {
                 "schema": {
@@ -804,6 +1195,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "responses": {
@@ -819,6 +1213,16 @@
           },
           "404": {
             "description": "知识库不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
             "content": {
               "application/json": {
                 "schema": {
@@ -845,6 +1249,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "responses": {
@@ -860,6 +1267,16 @@
           },
           "404": {
             "description": "知识库不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
             "content": {
               "application/json": {
                 "schema": {
@@ -884,6 +1301,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "requestBody": {
@@ -926,6 +1346,16 @@
                 }
               }
             }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -945,6 +1375,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "responses": {
@@ -960,6 +1393,16 @@
           },
           "404": {
             "description": "文档不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
             "content": {
               "application/json": {
                 "schema": {
@@ -984,6 +1427,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "responses": {
@@ -999,6 +1445,16 @@
           },
           "404": {
             "description": "文档不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1025,6 +1481,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
           }
         ],
         "requestBody": {
@@ -1060,6 +1519,16 @@
           },
           "404": {
             "description": "知识库不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1119,8 +1588,23 @@
                 }
               }
             }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/auth/send-code": {
@@ -1181,8 +1665,23 @@
                 }
               }
             }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
       }
     },
     "/api/v1/auth/verify-code": {
@@ -1240,6 +1739,226 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "存活探针",
+        "description": "最轻量的存活检查，仅返回 status。供负载均衡/脚本轮询使用。",
+        "responses": {
+          "200": {
+            "description": "服务存活",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "服务自述",
+        "description": "返回服务名、契约版本、分层说明与 LLM 配置概览。供人工核对部署是否正确。",
+        "responses": {
+          "200": {
+            "description": "服务自述",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "type": "string"
+                    },
+                    "contractVersion": {
+                      "type": "string"
+                    },
+                    "layers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "llm": {
+                      "type": "object"
+                    },
+                    "auth": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/health": {
+      "get": {
+        "summary": "对话层健康检查",
+        "description": "前端「接口环境」页的连通性探针。**刻意不做契约版本校验** —— 否则前端在版本不匹配时会把 409 误判成「后端不可用」。",
+        "responses": {
+          "200": {
+            "description": "对话层状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "llm_ready"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "llm_ready": {
+                      "type": "boolean"
+                    },
+                    "provider": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": "string"
+                    },
+                    "baseUrl": {
+                      "type": "string"
+                    },
+                    "contractVersion": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/history": {
+      "get": {
+        "summary": "读取当前身份的对话历史",
+        "description": "按身份隔离（已登录用登录身份）。联调脚本用它验证跨用户隔离。",
+        "responses": {
+          "200": {
+            "description": "对话历史",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "userId",
+                    "history"
+                  ],
+                  "properties": {
+                    "userId": {
+                      "type": "string"
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "清空当前身份的对话历史",
+        "responses": {
+          "200": {
+            "description": "已清空",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "userId",
+                    "status"
+                  ],
+                  "properties": {
+                    "userId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/user-data": {
+      "get": {
+        "summary": "读取当前身份的全部业务数据",
+        "description": "供前端启动时一次性拉取用户/课程/候选人/错题。",
+        "responses": {
+          "200": {
+            "description": "业务数据",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "object"
+                    },
+                    "courses": {
+                      "type": "object"
+                    },
+                    "candidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "wrong_questions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -1305,6 +2024,15 @@
         "schema": {
           "type": "string"
         }
+      },
+      "ContractVersionHeader": {
+        "name": "X-API-Contract-Version",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "接口契约版本闸门。**可选**：不带头时后端放行；带上但值不等于当前版本时返回 409 CONTRACT_VERSION_MISMATCH。当前版本见 info.version。"
       }
     },
     "schemas": {
@@ -2521,7 +3249,6 @@
               "UNAUTHORIZED",
               "CONTRACT_VERSION_MISMATCH",
               "INTERNAL_ERROR",
-              "LLM_FALLBACK",
               "RATE_LIMITED",
               "DAILY_LIMIT_REACHED",
               "PHONE_LOCKED",

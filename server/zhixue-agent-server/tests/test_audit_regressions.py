@@ -336,3 +336,122 @@ def test_empty_answers_do_not_penalize_mastery(tmp_path):
     after_mastery = {m["knowledgePointId"]: m["masteryScore"] for m in after["mastery"]}
     assert before_mastery == after_mastery, "空答案改变了掌握度（无理由罚分）"
 
+
+# --------------------------------------------------------------------------- 并发
+def test_concurrent_trace_append_does_not_lose_events(tmp_path):
+    """并发追加 trace 事件不得丢事件。
+
+    原缺陷（后端审计 P1-13）：`EventStore.append` 是"读整个 trace → 追加一条
+    → 写回"，`JsonRepository.save()` 虽有自己的写锁，但**锁不住这段序列**。
+    实测 48 次并发 append 只留下 5 条事件 —— 而 trace 是答辩里
+    "Agent 决策可追溯"的核心证据，`/api/v1/experiments/snapshot` 的统计也基于它。
+
+    断言：N 线程各追加 1 条后，事件数正好是 N。
+    """
+    import threading
+
+    from app.domain.trace import TraceEvent
+    from app.tools.trace_tools import EventStore
+
+    app = create_app(tmp_path / "trace-concurrency.json")
+    import app.api.traces as traces_module
+
+    repository = traces_module._repository
+    store = EventStore(repository)
+    trace_id = "trace-concurrency-probe"
+    repository.save("traces", trace_id, {"traceId": trace_id, "events": []})
+
+    workers = 24
+    barrier = threading.Barrier(workers)
+
+    def worker(index: int) -> None:
+        barrier.wait()  # 尽量让所有线程同时进入 append
+        store.append(trace_id, TraceEvent(
+            agent="assessment", tool_calls=["grade_exercise"],
+            input_summary=f"并发 {index}", output_summary="ok", evidence_ids=[],
+            state_version=1, timestamp=__import__("datetime").datetime.now(
+                __import__("datetime").timezone.utc),
+            status="completed"))
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(workers)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    events = store.list(trace_id)
+    assert len(events) == workers, \
+        f"并发追加丢了事件：期望 {workers} 条，实际 {len(events)} 条"
+
+
+def test_wrong_submission_id_reports_submission_error_not_workflow_error(tmp_path):
+    """对**存在的**会话传错 submissionId，报错必须指向 submissionId。
+
+    原缺陷（后端审计 P2-16）：`raise KeyError(submission_id)` 与"会话不存在"
+    共用同一个 `except KeyError` 分支，于是返回
+    `404 {"message": "workflow not found"}` —— 而 workflow 其实存在。
+    客户端会误判为会话失效并重建会话，掩盖真实错误。
+    """
+    client = create_app(tmp_path / "wrong-submission.json").test_client()
+    created = client.post("/api/v1/workflows", json={"goal": "验证报错语义"})
+    session_id = created.get_json()["sessionId"]
+
+    resp = client.post(f"/api/v1/workflows/{session_id}/run",
+                       json={"submissionId": "submission-does-not-exist"})
+    assert resp.status_code == 404
+    body = resp.get_json()
+    assert body["errorCode"] == "NOT_FOUND"
+    assert "submission" in body["message"], \
+        f"报错指向了 workflow 而不是 submission：{body['message']!r}"
+
+
+# --------------------------------------------------------------------------- 画像更新落盘
+def test_update_profile_intent_actually_persists_goal(tmp_path):
+    """「更新档案」意图必须真的写进 profiles，而不是只回一句"已更新"。
+
+    原缺陷（后端审计 P1-11）：`_handle_update_profile` 只取模型返回的 `reply`，
+    把整个 `updates` 对象丢弃，且 chat 全链路没有 repository 写入口 ——
+    用户说"把目标改成 XX"会得到"已帮你更新信息。"，但 profiles 一字未改。
+    这是**静默 no-op + 假成功**。
+
+    断言：直接调用落盘钩子后，profiles 里的 goal 真的变了、profileVersion 递增。
+    """
+    app = create_app(tmp_path / "profile-persist.json")
+    import app.api.chat as chat_module
+
+    before = chat_module._repository.get("profiles", "demo-user")
+    changed = chat_module._apply_profile_updates("demo-user", {
+        "user": {"learningGoal": {"goal": "数据结构期末 90+"}}
+    })
+    after = chat_module._repository.get("profiles", "demo-user")
+
+    assert changed, "钩子没有报告任何改动"
+    assert after["goal"] == "数据结构期末 90+"
+    assert after["profileVersion"] == before["profileVersion"] + 1, \
+        "画像版本号没有递增（下游无法感知变更）"
+
+
+def test_update_profile_hook_ignores_fields_backend_does_not_own(tmp_path):
+    """后端不持有的字段（姓名/年级/薄弱点）不得被写进 profiles。
+
+    为什么这条重要：`profiles` 的 schema 只有
+    `{userId, goal, examDate, freeTimeSlots, profileVersion, mastery}`。
+    把 `basicInfo` / `knowledge` 硬塞进来只会写到一个没人读的地方 ——
+    那正是本次要消灭的"假成功"。这些字段属于前端本地 AppState，由前端应用。
+    """
+    create_app(tmp_path / "profile-scope.json")
+    import app.api.chat as chat_module
+
+    changed = chat_module._apply_profile_updates("demo-user", {
+        "user": {
+            "basicInfo": {"name": "张三", "grade": "大三"},
+            "knowledge": {"weakness": ["图算法"]},
+        }
+    })
+    profile = chat_module._repository.get("profiles", "demo-user")
+
+    assert changed == [], f"不该报告改动了后端不持有的字段：{changed}"
+    assert "name" not in profile and "basicInfo" not in profile
+    assert "weakness" not in profile and "knowledge" not in profile
+
+

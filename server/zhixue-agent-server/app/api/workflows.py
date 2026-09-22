@@ -1,3 +1,4 @@
+import threading
 import uuid
 from datetime import datetime, timezone
 
@@ -25,6 +26,26 @@ from app.tools.trace_tools import append_trace_event
 
 workflows_api = Blueprint("workflows", __name__)
 _repository: JsonRepository | None = None
+
+# 工作流推进必须**串行**：`_run_saved_workflow` 是"读会话 → 跑 Agent 循环
+# → 按 `state.assessmentPersisted` 判断是否已记账 → 写 profile/history/plan
+# → 写回会话"的一长串读—改—写，中间没有任何临界区。
+# 并发推进同一会话时，多个请求会同时通过 `assessmentPersisted` 检查，
+# 于是评估被重复记账。实测：6 次并发 run 同一 session →
+# `profileVersion` 从 1 跳到 7、history 6 条且共用同一个 `evidence-<sessionId>`。
+#
+# 用可重入锁：`_run_saved_workflow` 也可能被其它已持锁的路径调用。
+_WORKFLOW_RUN_LOCK = threading.RLock()
+
+
+class SubmissionNotFound(KeyError):
+	"""`submissionId` 不存在或不属于该工作流。
+
+	单独定义类型的原因：原实现把它与"会话不存在"共用 `except KeyError` 分支，
+	于是对**存在的** session 传错/过期 submissionId 时会返回
+	404 `{"message": "workflow not found"}` —— 语义与事实不符（workflow 确实存在），
+	客户端会误判为会话失效并重建会话，掩盖真实错误。
+	"""
 
 
 def configure_workflows_repository(repository: JsonRepository) -> None:
@@ -85,12 +106,17 @@ def create_workflow():
 		# 注意：这条分支会**直接**把 answers 交给 `_run_saved_workflow`，
 		# 绕过 `/run` 端点上的那套护栏。已修的教训：护栏只加在一处时会漏掉旁路。
 		# 所以这里必须做同样的校验。
-		if data.get("answers") is not None:
-			checked, guard = validate_answers(data.get("answers"))
-			if guard is not None:
-				return guard
-			return jsonify(_run_saved_workflow(session_id, checked))
-		return run_workflow_api(session_id)
+		#
+		# 同样要**持锁**：这条分支同样会推进工作流并写 profile/history，
+		# 不加锁就绕过了 `/run` 端点上的串行化保护（同一个旁路陷阱）。
+		# `_WORKFLOW_RUN_LOCK` 是可重入的，所以下面再调 `run_workflow_api` 不会自锁。
+		with _WORKFLOW_RUN_LOCK:
+			if data.get("answers") is not None:
+				checked, guard = validate_answers(data.get("answers"))
+				if guard is not None:
+					return guard
+				return jsonify(_run_saved_workflow(session_id, checked))
+			return run_workflow_api(session_id)
 	return jsonify({key: workflow[key] for key in
 		("sessionId", "traceId", "status", "currentStep", "nextAction")})
 
@@ -241,7 +267,9 @@ def _run_saved_workflow(session_id: str, answers: list[dict] | None = None,
 	if submission_id:
 		submission = _repository.get("submissions", submission_id) if _repository else None
 		if submission is None or submission.get("response", {}).get("userId") != workflow.get("userId"):
-			raise KeyError(submission_id)
+			# 用专门的异常类型，让路由层能给出**与事实相符**的报错
+			# （会话是存在的，错的是 submissionId）。
+			raise SubmissionNotFound(submission_id)
 		result = submission["response"]
 		state.update({"assessment": result["assessment"], "needReplan": False,
 			"pendingSubmission": False, "assessmentPersisted": True,
@@ -306,6 +334,12 @@ def run_workflow_api(session_id: str):
 			return guard
 
 	try:
-		return jsonify(_run_saved_workflow(session_id, answers, data.get("submissionId")))
+		# 持锁跑完整段推进：见 `_WORKFLOW_RUN_LOCK` 的注释
+		# （不加锁时并发 run 会让评估被重复记账）。
+		with _WORKFLOW_RUN_LOCK:
+			return jsonify(_run_saved_workflow(session_id, answers, data.get("submissionId")))
+	except SubmissionNotFound:
+		return _error("NOT_FOUND", "submission not found",
+					  {"sessionId": session_id, "submissionId": data.get("submissionId")}, 404)
 	except KeyError:
 		return _error("NOT_FOUND", "workflow not found", {"sessionId": session_id}, 404)

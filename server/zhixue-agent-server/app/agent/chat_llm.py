@@ -40,6 +40,20 @@ _PROMPT_DIR = _CHAT_DIR / "prompts"
 #   锁 解决同一进程内的丢更新，`os.replace` 解决"写到一半被读到"。
 _HISTORY_LOCK = threading.RLock()
 
+#: 画像落盘钩子：由 `app/api/chat.py` 注册（那里才持有 repository）。
+#:
+#: 为什么用钩子而不是直接 import repository：本模块是**纯对话层**，
+#: 不应依赖持久化边界（否则单元测试不得不构造仓库）。
+#: 签名 `(user_id, updates) -> list[str]`，返回**实际写入成功的字段名列表**，
+#: 供回复文案如实说明"改了什么"。未注册时按"无法落盘"处理（不再谎称成功）。
+_PROFILE_UPDATE_HOOK: Any = None
+
+
+def set_profile_update_hook(hook: Any) -> None:
+    """注册画像落盘钩子（由 api 层在 create_app 时调用）。"""
+    global _PROFILE_UPDATE_HOOK
+    _PROFILE_UPDATE_HOOK = hook
+
 
 def _var_dir() -> Path:
     """**可写**数据的目录，支持 `ZHIXUE_CHAT_DIR` 重定向。
@@ -530,14 +544,128 @@ def _handle_get_suggestion(message: str, data: dict[str, Any],
 
 def _handle_match_partner(message: str, data: dict[str, Any],
              user_id: str | None = None) -> str:
-    return _call_llm(_load_prompt("MatchPartnerPrompt.txt"), _partner_prompt(message, data, user_id))
+    """搭子匹配：**分数一律由确定性代码算**，大模型只负责解释。
+
+    ## 原缺陷
+
+    `MatchPartnerPrompt.txt` 把整套打分规则（总分 100：目标 30 / 时间重叠 30 /
+    知识互补 20 / 基础 10 / 稳定性 10）写进 prompt 让模型算分，而同一套规则在
+    `app/agent/partner_match.py:62-81` 已有确定性实现。于是同一个问题在
+    `/api/agent/chat`（模型给分，每次可能不同、可能算错时间重叠）与
+    `/api/v1/agent/partner-match`（确定性给分）**会返回互相矛盾的分数**，
+    直接违反项目纪律第 1 条："业务计算必须留在确定性代码里，不进入 prompt"。
+
+    ## 修复
+
+    先用 `score_partner` / `match_partners` 算出权威排名与分项得分，
+    再把**结果**注入 prompt，让模型只做"用自然语言解释为什么是这个人"
+    这件事。prompt 里的打分规则已删除（见 MatchPartnerPrompt.txt）。
+    """
+    authoritative = _authoritative_partner_scores(data)
+    prompt = _partner_prompt(message, data, user_id)
+    if authoritative:
+        prompt = (
+            f"{prompt}\n\n"
+            f"【已由确定性引擎算好的匹配结果（**直接引用，不要自己重新算分**）】\n"
+            f"{json.dumps(authoritative, ensure_ascii=False)}\n"
+            f"请基于这份结果说明：为什么是这个人、哪几项匹配得好、建议怎么一起学。"
+            f"若用户问分数，必须原样引用上面的总分与分项分，不得改动。"
+        )
+    return _call_llm(_load_prompt("MatchPartnerPrompt.txt"), prompt)
+
+
+def _authoritative_partner_scores(data: dict[str, Any]) -> dict[str, Any]:
+    """用确定性引擎算出搭子排名；数据不足时返回空 dict（不猜）。"""
+    from app.agent.partner_match import match_partners  # 局部导入，避免循环依赖
+
+    user = data.get("users")
+    if not isinstance(user, dict) or not user:
+        return {}
+    candidates = _load_json("mock_candidates.json", [])
+    if not isinstance(candidates, list) or not candidates:
+        return {}
+    valid = [item for item in candidates if isinstance(item, dict)]
+    if not valid:
+        return {}
+    try:
+        result = match_partners(user, valid)
+    except Exception as error:  # noqa: BLE001 - 算分失败就退回纯自然语言解释
+        print(f"[chat] 搭子确定性匹配失败: {error}")
+        return {}
+    best = result.get("matchedCandidate")
+    if not isinstance(best, dict):
+        return {}
+    factors = best.get("factors") if isinstance(best.get("factors"), dict) else {}
+    return {
+        "总分": best.get("score"),
+        "分项得分": factors,
+        "被选中同学": (best.get("candidate") or {}).get("basicInfo")
+            if isinstance(best.get("candidate"), dict) else None,
+        "全部候选人排名": [
+            {"score": item.get("score"),
+             "name": ((item.get("candidate") or {}).get("basicInfo") or {}).get("name")
+                if isinstance(item.get("candidate"), dict) else None}
+            for item in (result.get("candidates") or [])
+            if isinstance(item, dict)
+        ],
+    }
 
 
 def _handle_update_profile(message: str, data: dict[str, Any],
-             user_id: str | None = None) -> str:
+             user_id: str | None = None) -> tuple[str, dict[str, Any]]:
+    """解析画像更新意图，**真正落盘**后端拥有的字段，并如实区分"已改/未改"。
+
+    ## 原缺陷
+
+    实现只取 `reply`，把模型按 `UpdateProfilePrompt.txt` 返回的整个 `updates`
+    对象**整份丢弃**，且 `chat()` 全链路没有任何 repository 写入口。
+    于是用户说"把考试改到 28 号"会得到回复"已帮你更新信息。"——
+    但 `profiles` / 课程数据一字未改。这是**静默 no-op + 假成功**：
+    用户与评审都以为生效了。
+
+    ## 修复思路（为什么不是"把 updates 全写进去"）
+
+    数据结构上，后端 `profiles` 集合只拥有 `goal` / `examDate` /
+    `freeTimeSlots` / `mastery` 四个字段；**课程与任务列表是前端本地数据**
+    （`repository.json` 里根本没有 `courses` 集合，前端通过 `user_data` 传进来）。
+    所以"课程/任务类更新"后端接不住，硬写只会写到一个没人读的地方。
+
+    因此这里分两步：
+      1. 用 `_apply_profile_updates()` 把**后端确实拥有**的字段落盘
+      2. 其余（课程/任务）通过返回值交给**前端**去应用 —— 这也正是
+         prompt 设计"返回 updates 而不是最终文案"的本意
+    并把"实际改了什么"回传，让回复文案有据可依，而不是无条件宣称成功。
+    """
     raw = _call_llm(_load_prompt("UpdateProfilePrompt.txt"), _context_prompt(message, data, user_id),
                     response_json=True)
-    return str((extract_json(raw) or {}).get("reply") or "已帮你更新信息。")
+    parsed = extract_json(raw) or {}
+    reply = str(parsed.get("reply") or "").strip()
+    updates = parsed.get("updates")
+    if not isinstance(updates, dict):
+        updates = {}
+
+    applied: list[str] = []
+    if updates and _PROFILE_UPDATE_HOOK is not None:
+        try:
+            applied = _PROFILE_UPDATE_HOOK(user_id, updates) or []
+        except Exception as error:  # noqa: BLE001 - 落盘失败不能打断对话
+            print(f"[chat] 画像更新落盘失败: {error}")
+
+    # 课程/任务类更新后端接不住 —— 必须如实说明，不能默认"都改好了"
+    course_updates = updates.get("course")
+    has_course_updates = isinstance(course_updates, list) and len(course_updates) > 0
+    user_updates = updates.get("user")
+    has_user_updates = isinstance(user_updates, dict) and len(user_updates) > 0
+
+    if applied:
+        reply = (reply or "已更新。") + f"\n\n（已写入学习档案：{'、'.join(applied)}。）"
+    elif has_user_updates and not has_course_updates:
+        # 模型给了用户档案更新，但没有一个字段是后端拥有的（例如只改了姓名/专业）
+        reply = (reply or "已更新。") + "\n\n（这部分档案字段由 App 本地保存，服务端不持有。）"
+    if has_course_updates:
+        reply += "\n\n（课程与任务由 App 本地维护，已随本次结果一并下发，请以 App 内显示为准。）"
+
+    return reply or "我理解你想更新档案，但没解析出可写入的字段，能再说具体一点吗？", updates
 
 
 def _handle_analyze_wrong(message: str, data: dict[str, Any], image_base64: str | None,
@@ -612,11 +740,16 @@ def chat(message: str, image_base64: str | None = None,
     intent, llm_used = detect_intent(message, has_image=bool(image_base64))
 
     reply = ""
+    profile_updates: dict[str, Any] = {}
     llm_attempted = llm_used  # 模型的意图判定是否真的成功（后续据此决定能否说"调用失败"）
     if llm_used:
         try:
             if intent == "analyze_wrong":
                 reply = _handle_analyze_wrong(message, data, image_base64, user_id)
+            elif intent == "update_profile":
+                # 该 handler 额外返回解析出的 updates（供前端应用课程/任务类改动），
+                # 所以单独处理，不走 `_HANDLERS` 的"返回字符串"约定。
+                reply, profile_updates = _handle_update_profile(message, data, user_id)
             else:
                 handler = _HANDLERS.get(intent)
                 if handler is not None:
@@ -626,6 +759,7 @@ def chat(message: str, image_base64: str | None = None,
             llm_used = False
             llm_attempted = False
             reply = ""
+            profile_updates = {}
 
     if not reply.strip():
         reply = _LOCAL_REPLY.get(intent, _LOCAL_REPLY["unknown"])
@@ -657,4 +791,7 @@ def chat(message: str, image_base64: str | None = None,
         "intent": intent,
         "card": build_card(intent),
         "llmUsed": llm_used,
+        # 仅 `update_profile` 意图下非空。前端据此把**课程/任务**类改动应用到
+        # 本地 AppState（后端不持有 courses 集合），使画像更新真正闭环。
+        "profileUpdates": profile_updates,
     }

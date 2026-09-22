@@ -18,6 +18,7 @@ from flask import Blueprint, jsonify, request
 
 from app.agent import chat_llm
 from app.api.identity import resolve_user_id
+from app.repositories.json_repository import JsonRepository
 
 chat_api = Blueprint("chat", __name__)
 
@@ -25,6 +26,89 @@ chat_api = Blueprint("chat", __name__)
 CONTRACT_VERSION = "api-contract-v0.3"
 
 _MAX_IMAGE_CHARS = 5_000_000
+
+_repository: JsonRepository | None = None
+
+
+def _apply_profile_updates(user_id: str | None, updates: dict) -> list[str]:
+    """把"更新档案"意图解析出的 `updates.user` 落到 `profiles` 集合。
+
+    返回**实际写入成功的字段名**（中文名，直接用于回复文案），
+    这样"已更新"就有据可依 —— 见 `chat_llm._handle_update_profile` 的说明。
+
+    ## 为什么只处理这几个字段
+
+    后端 `profiles` 的 schema 是 `{userId, goal, examDate, freeTimeSlots,
+    profileVersion, mastery}`。prompt 里的 `updates.user.basicInfo`
+    （姓名/年级/专业）与 `updates.user.knowledge`（薄弱点/强项）
+    **在后端没有对应存储**，属于前端本地 AppState 的字段 —— 硬写进来
+    只会写到一个没人读的地方，那正是本次要消灭的"假成功"。
+    所以这里只写 `goal` / `examDate` / `freeTimeSlots`，其余交给前端。
+    """
+    if _repository is None:
+        return []
+    owner = (user_id or "").strip() or "demo-user"
+    profile = _repository.get("profiles", owner)
+    if profile is None:
+        return []
+    user_block = updates.get("user")
+    if not isinstance(user_block, dict):
+        return []
+
+    changed: list[str] = []
+
+    # 学习目标：prompt 的 learningGoal.goal（也容忍直接给字符串）
+    learning_goal = user_block.get("learningGoal")
+    if isinstance(learning_goal, dict):
+        goal = learning_goal.get("goal")
+        if isinstance(goal, str) and goal.strip() and goal.strip() != profile.get("goal"):
+            profile["goal"] = goal.strip()[:200]
+            changed.append("学习目标")
+    elif isinstance(learning_goal, str) and learning_goal.strip():
+        if learning_goal.strip() != profile.get("goal"):
+            profile["goal"] = learning_goal.strip()[:200]
+            changed.append("学习目标")
+
+    # 空闲时间：prompt 的 time.freeTime，元素形如 "20:00-22:00"
+    time_block = user_block.get("time")
+    if isinstance(time_block, dict):
+        free_time = time_block.get("freeTime")
+        if isinstance(free_time, list):
+            slots = [s.strip() for s in free_time
+                     if isinstance(s, str) and s.strip()]
+            if slots and slots != profile.get("freeTimeSlots"):
+                profile["freeTimeSlots"] = slots[:20]
+                changed.append("空闲时间")
+
+    # 考试日期：prompt 把它放在 updates.course[].exam.date，
+    # 但用户也可能只在 user 块里说"考试改到 X 号"，两个位置都认。
+    exam_date = user_block.get("examDate")
+    if isinstance(exam_date, str) and exam_date.strip():
+        if exam_date.strip() != profile.get("examDate"):
+            profile["examDate"] = exam_date.strip()[:40]
+            changed.append("考试日期")
+
+    if not changed:
+        return []
+
+    # 版本号递增：画像变了，下游（计划/优先级）据此判断是否需要重算
+    try:
+        profile["profileVersion"] = int(profile.get("profileVersion", 1)) + 1
+    except (TypeError, ValueError):
+        profile["profileVersion"] = 2
+    _repository.save("profiles", owner, profile)
+    return changed
+
+
+def configure_chat_repository(repository: JsonRepository) -> None:
+    """注入仓储，并把画像落盘钩子注册给对话层。
+
+    钩子的存在意义：`app/agent/chat_llm.py` 是**纯对话层**，不应依赖持久化边界；
+    而"更新档案"要真的落盘又必须有仓储。用钩子把两者解耦。
+    """
+    global _repository
+    _repository = repository
+    chat_llm.set_profile_update_hook(_apply_profile_updates)
 
 
 def _chat_identity() -> str:
@@ -160,6 +244,15 @@ def agent_chat():
         "card": result["card"],
         "llmUsed": bool(result.get("llmUsed", False)),
     }
+    # `profileUpdates`：仅"更新档案"意图下非空。
+    # 为什么必须下发：后端 `profiles` 集合只持有 goal/examDate/freeTimeSlots/mastery，
+    # **课程与任务是前端本地数据**。prompt 让模型返回 updates 而不是最终文案，
+    # 本意就是要调用方去应用；此前这整份 updates 在 chat_llm 里被丢弃，
+    # 于是"已帮你更新信息"是一句无据可依的假成功。现在前后端各应用自己那部分。
+    # 与 llmUsed 同理：缺失该字段时老前端不受影响（`AgentBridge` 容错读取）。
+    profile_updates = result.get("profileUpdates")
+    if isinstance(profile_updates, dict) and profile_updates:
+        payload["profileUpdates"] = profile_updates
     if data.get("sessionId"):
         payload["sessionId"] = str(data["sessionId"])
     return jsonify(payload)

@@ -105,14 +105,23 @@ def get_exercise_set(set_id: str):
 	knowledge_point_id = request.args.get("knowledgePointId")
 	difficulty = request.args.get("difficulty")
 	excluded_ids = request.args.getlist("excludeExerciseId")
+	# 记录调用方**是否显式传了 count**。
+	# 原缺陷：`count` 只被"解析并校验"，但无过滤条件时直接返回整份 `_DEMO_EXERCISES`，
+	# count 被**静默忽略** —— `?count=1` 照样返回 3 道题（实测）。
+	# 这是"参数接受了但不生效"，比不声明该参数更糟：调用方以为筛选生效了。
+	# 只有显式传入时才截断，默认行为（演示基线 3 题）保持不变。
+	count_explicit = request.args.get("count") is not None
 	try:
 		count = int(request.args.get("count", 3))
 		if count < 1:
 			raise ValueError
 	except ValueError:
 		return jsonify({"errorCode": "BAD_REQUEST", "message": "count must be an integer", "details": None}), 400
-	exercises = _DEMO_EXERCISES if set_id == DEMO_EXERCISE_SET_ID and not knowledge_point_id and not difficulty and not excluded_ids else select_exercises(
-		_EXERCISE_BANK, knowledge_point_id, difficulty, count, excluded_ids)
+	has_filter = bool(knowledge_point_id or difficulty or excluded_ids)
+	if set_id == DEMO_EXERCISE_SET_ID and not has_filter:
+		exercises = _DEMO_EXERCISES[:count] if count_explicit else _DEMO_EXERCISES
+	else:
+		exercises = select_exercises(_EXERCISE_BANK, knowledge_point_id, difficulty, count, excluded_ids)
 	return jsonify({"setId": set_id, "exercises": exercises})
 
 

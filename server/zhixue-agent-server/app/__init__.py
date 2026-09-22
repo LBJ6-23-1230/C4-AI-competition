@@ -6,7 +6,7 @@ from flask_cors import CORS
 
 from app.api.auth import auth_api, configure_auth_repository
 from app.api.demo import configure_demo_repository, demo_api, ensure_demo_data
-from app.api.chat import chat_api
+from app.api.chat import chat_api, configure_chat_repository
 from app.api.exercises import exercises_api
 from app.api.experiments import experiments_api
 from app.api.knowledge import configure_knowledge_repository, knowledge_api
@@ -106,6 +106,9 @@ def create_app(repository_path: str | Path | None = None) -> Flask:
     configure_workflows_repository(repository)
     configure_auth_repository(repository)
     configure_knowledge_repository(repository)
+    # 对话层的画像落盘钩子：让"更新档案"意图真的写进 profiles
+    # （此前 chat 层没有仓储，导致"已帮你更新信息"是无据可依的假成功）。
+    configure_chat_repository(repository)
     app.register_blueprint(demo_api)
     app.register_blueprint(auth_api)
     app.register_blueprint(chat_api)
