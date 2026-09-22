@@ -11,7 +11,7 @@ HarmonyOS 原生应用 · ArkTS 前端 + Python Agent 后端
 [![Frontend](https://img.shields.io/badge/Frontend-ArkTS-10B981?style=flat-square)]()
 [![Backend](https://img.shields.io/badge/Backend-Python%203.12%20%2B%20Flask-B45309?style=flat-square)]()
 [![Contract](https://img.shields.io/badge/Contract-api--contract--v0.3-0F766E?style=flat-square)]()
-[![Tests](https://img.shields.io/badge/Tests-295%20passed-16A34A?style=flat-square)]()
+[![Tests](https://img.shields.io/badge/Tests-314%20passed-16A34A?style=flat-square)]()
 [![Integration](https://img.shields.io/badge/Integration-95%2F95-16A34A?style=flat-square)]()
 
 **2026 中国高校计算机大赛 · 人工智能创意赛 · 鸿蒙赛道 · Agent 创新方向**
@@ -22,29 +22,32 @@ HarmonyOS 原生应用 · ArkTS 前端 + Python Agent 后端
 
 ---
 
-## 📦 交付版本 V1
+## 📦 这就是交付版本 V1
 
-> **`E:\C4-liantiao\V1`** 是本项目的**冻结交付版本**，在 liantiao5 基础上完成：
-> 全场景分布式实现、对话页图标修复、全项目 Bug 审计与修复。
+> 本目录 `V1/` 是本项目的**冻结交付版本**：在 `liantiao5` 基础上完成了
+> **全场景分布式实现**、**对话页图标修复**、**全项目 Bug 审计与修复**。
 >
-> 版本说明（含已验/未验/未修的完整清单）：**[`V1/README-V1.md`](../V1/README-V1.md)**
-> Bug 审计报告（三轮独立审计 34 项）：[`docs/28-全项目Bug审计报告.md`](docs/28-全项目Bug审计报告.md)
+> **版本说明（含"已验 / 未验 / 未修"三段完整清单）**：**[`README-V1.md`](README-V1.md)**
 >
-> V1 自身已独立验证：`pytest 295 passed` + `联调 95/95` + 演示基线零漂移。
+> **Bug 审计报告**（三轮独立只读审计共 34 项，已修 17 项）：
+> [`docs/28-全项目Bug审计报告.md`](docs/28-全项目Bug审计报告.md)
+>
+> V1 自身已独立验证：**`pytest 314 passed`** + **联调 95/95** + **演示基线零漂移**
+> （66.67 / 42→58 / [30,30]→[45,15] / [1,2]）。
 
 ---
 
-## ⚠️ 先读这一段：仓库布局
+## ⚠️ 先读这一段：目录布局
 
-本仓库 `main` 分支**根目录就是前后端合并后的完整工程**：
+本目录**根就是前后端合并后的完整工程**：
 
 | 路径 | 内容 |
 |---|---|
-| `app/` | **HarmonyOS ArkTS 前端**（19 页面 / 5 智能体 / 服务卡片 / 意图框架） |
+| `app/` | **HarmonyOS ArkTS 前端**（19 页面 / 5 智能体 / 服务卡片 / 意图框架 / **分布式接续**） |
 | `server/zhixue-agent-server/` | **Python Agent 后端**（单进程同时提供自然语言层与工作流层） |
 | `contracts/openapi.json` | 契约真源（`app/contracts/` 下是逐字节一致的镜像） |
 | `integration/run_liantiao5.py` | 一键联调（契约闸门 + 测试 + 95 项 HTTP + 归档） |
-| `docs/` | 联调分析、任务书、技术报告、签名核验 |
+| `docs/` | 联调分析、任务书、技术报告、**模拟器/分布式/Bug 审计报告** |
 | `deliverables/` | 交付 zip 与签名 HAP 说明 |
 | `evidence/` | 实跑证据（含 11 轮 live 模式汇总与量化快照） |
 
@@ -58,12 +61,12 @@ git clone https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
 > `backend` / `frontend` 是早期前后端分离版本，`frontend` 分支仍带 ArkUI-X 插件
 > （会导致 Sync 失败），且不含登录、验证码、华为账号、服务卡片。
 
-### 📌 当前版本状态（liantiao5）
+### 📌 当前版本状态（V1）
 
 | 项 | 结果 |
 |---|---|
 | 契约一致性闸门 | ✅ **逐字节一致**（`api-contract-v0.3`，**82,149 B** / 28 端点 / 51 schema / 16 错误码） |
-| 后端单元测试 | ✅ **295 项全绿** |
+| 后端单元测试 | ✅ **314 项全绿** |
 | HTTP 实跑联调 | ✅ **95 / 95（100%）**，退出码 **0** |
 | 演示基线 | ✅ 6 项全部命中，**自 liantiao2 起四轮零漂移** |
 | 真模型 live 模式 | ✅ **11 轮 × 95/95**，基线同样零漂移 |
@@ -387,7 +390,7 @@ python integration\run_liantiao5.py --port 5097
 | 环节 | 内容 |
 |---|---|
 | ⓪ 契约闸门 | 真源与镜像逐字节一致（`api-contract-v0.3`，82,149 B） |
-| ① 后端单元测试 | **295 passed / 0 failed** |
+| ① 后端单元测试 | **314 passed / 0 failed** |
 | ② HTTP 实跑联调 | **95 / 95（100%）** |
 | ③ 演示基线 | 6 项数值全部命中，零漂移 |
 | ④ 数据洁净 | 三份数据文件前后**逐字节不变** |
@@ -419,7 +422,7 @@ python integration\run_liantiao5.py --port 5097 --llm-mode live
 | 范围 | 状态 |
 |---|---|
 | 后端逻辑、契约、判分、Agent 循环 | ✅ 真实 HTTP 实跑验证（95/95） |
-| 后端单元测试 | ✅ `295 passed` |
+| 后端单元测试 | ✅ `314 passed` |
 | 契约一致性 | ✅ 逐字节一致（82,149 B） |
 | 真模型 live 模式 | ✅ 11 轮 × 95/95，基线零漂移 |
 | 前端编译 | ✅ `BUILD SUCCESSFUL`，**`[ERROR]` 级 0 条 / ArkTS 编译错误 0 条** |
