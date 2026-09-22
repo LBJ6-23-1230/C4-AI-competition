@@ -410,8 +410,8 @@ python integration\run_liantiao5.py --port 5097 --llm-mode live
 | 后端单元测试 | ✅ `295 passed` |
 | 契约一致性 | ✅ 逐字节一致（82,149 B） |
 | 真模型 live 模式 | ✅ 11 轮 × 95/95，基线零漂移 |
-| 前端编译 | ✅ `BUILD SUCCESSFUL`，0 ERROR |
-| **签名 HAP** | ✅ **已产出并通过独立验签**（发布证书 + 发布 Profile，摘要校验 `true`） |
+| 前端编译 | ✅ `BUILD SUCCESSFUL`，**`[ERROR]` 级 0 条 / ArkTS 编译错误 0 条** |
+| **签名 HAP** | ✅ **已产出并通过独立验签**（发布证书 + 发布 Profile，摘要校验 `true`，`SignHap` 耗时 4.6 s） |
 | **前端交互（设备上点击流程）** | ⚠️ **未完成设备验证** —— 编译通过 ≠ 交互正确 |
 | 小艺口令 / 华为账号登录 / 令牌冷启动 | ⚠️ 需真机实测 |
 | 发布签名 HAP 能否侧载安装 | ⚠️ 待真机实测（网上资料互相矛盾） |
@@ -419,6 +419,7 @@ python integration\run_liantiao5.py --port 5097 --llm-mode live
 | `@ohos.router` → `Navigation` 迁移 | ❌ 未迁移（61 处，API 24 仍可用，仅标记废弃） |
 | 其余 18 个页面的响应式落地 | ⚠️ 仅示范了 `Login`，能力在 `utils/DeviceLayout.ets` |
 | 全场景分布式（`distributedDataObject`） | ⚠️ 架构已预留，**未实现** —— 标题写"全场景"而内容零分布式，是答辩最可能被追问的点 |
+| `414` 统一 JSON | ⚠️ **实测不生效**：超长请求行在 WSGI 解析层即被拒，返回 Werkzeug HTML 而非应用 JSON 处理器（详见 `docs/19` A11） |
 | 上架应用市场 | ❌ 未上架（发布证书与 Profile 已就绪） |
 
 ---
