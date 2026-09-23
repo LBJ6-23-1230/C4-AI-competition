@@ -19,6 +19,12 @@ venv/
 server/zhixue-agent-server/data/repository.json
 server/zhixue-agent-server/data/repository.json.tmp
 server/zhixue-agent-server/chat/history.json
+# SQLite 可选后端（ZHIXUE_DB=sqlite）的库文件同样是运行期状态。
+# ⚠️ `-wal` 尤其注意：实测被撑到 684 KB，且**已经混进过一次交付包**
+# （2026-09-23 抽检 V2 大文件时才发现）。三件套一起排除。
+server/zhixue-agent-server/data/*.sqlite
+server/zhixue-agent-server/data/*.sqlite-wal
+server/zhixue-agent-server/data/*.sqlite-shm
 
 # ---- HarmonyOS / DevEco ----
 oh_modules/
