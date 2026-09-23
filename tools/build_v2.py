@@ -80,15 +80,22 @@ def walk_files(root: Path, exclude_dirs: set[str]):
 
 
 def force_rmtree(path: Path) -> None:
-    """强删目录，能处理只读文件。
+    """强删目录：清只读位 + 重试，能扛住「文件被别的进程短暂占用」。
 
-    为什么需要：V2 会被当成 git 工作区（提交版就是这样），
-    而 git 的对象文件是**只读**的 —— `shutil.rmtree` 遇到会抛
-    `PermissionError: [WinError 5] 拒绝访问`，构建直接中断
-    （2026-09-22 实际踩到）。这里先清只读位再删。
+    为什么需要（两个真实踩到的坑）：
+
+    1. V2 会被当成 git 工作区（提交版就是这样），而 git 的对象文件是**只读**的，
+       `shutil.rmtree` 遇到会抛 `PermissionError: [WinError 5] 拒绝访问`。
+       → 这里先清只读位再删。
+
+    2. 演示数据（如 `02-课程表.csv`）很可能正开在 Excel / 记事本里，
+       文件被占用时删不掉，报 `IOException: being used by another process`。
+       单次删除会直接失败 → 这里**重试若干次**，临时占用（编辑器切换、
+       复制粘贴后自动释放）通常一两秒内就好了。
     """
     import os
     import stat
+    import time
 
     def on_error(func, target, _exc_info):
         try:
@@ -97,7 +104,19 @@ def force_rmtree(path: Path) -> None:
         except OSError:
             pass
 
-    shutil.rmtree(path, onerror=on_error)
+    last: Exception | None = None
+    for attempt in range(5):
+        try:
+            shutil.rmtree(path, onerror=on_error)
+        except OSError as exc:
+            last = exc
+        if not path.exists():
+            return
+        if attempt < 4:
+            print("      … 仍有文件被占用，1 秒后重试（第 %d 次）" % (attempt + 2))
+            time.sleep(1.0)
+    if last is not None:
+        print("      最后一次错误: %s" % last)
 
 
 def copy_tree(src: Path, dst: Path, exclude_dirs: set[str]) -> int:
@@ -130,6 +149,19 @@ def main() -> int:
         else:
             print("  清理已存在的 V2 …（含只读的 .git 对象）")
             force_rmtree(DST)
+            # ⚠️ 必须确认真的删干净了。
+            # 早先这里不检查就继续，若某个文件被占用（编辑器 / 杀毒 / 残留句柄）
+            # 删除会部分失败，而脚本照常往**残留的旧目录**里复制 ——
+            # 结果是"改了源码但 V2 里还是旧内容"，排查时极容易被误导
+            # （2026-09-23 实际踩过一次：改了 .gitignore 却怎么都不生效）。
+            if DST.exists():
+                leftovers = [p.name for p in list(DST.iterdir())[:8]]
+                print()
+                print("  !! 清理失败：%s 仍存在（可能有文件被占用）" % DST)
+                print("     残留示例: %s" % leftovers)
+                print("     请关闭打开了该目录的编辑器 / 资源管理器后重试。")
+                print("     为避免产出**半新半旧**的提交版，本次构建已中止。")
+                return 3
 
     if check_only:
         return 0
@@ -251,6 +283,8 @@ def main() -> int:
              vdir / "README-待录制.md"),
             # 签名材料交接（发给定要用这套签名构建的同学）
             ("签名材料交接说明.md", DST / "签名材料交接说明.md"),
+            # 出题机制答疑（发给问「题目为什么固定 / DDL 有没有影响」的同学）
+            ("出题机制与DDL上传说明.md", DST / "出题机制与DDL上传说明.md"),
             # 制作辅助（Word）：直接发给「录制视频的同学」和「做 PPT 的同学」
             #   视频指导 → 放 02-演示视频/（与视频材料同处）
             #   PPT 参考 → 放 04-制作辅助文档/，并附一份命名为
