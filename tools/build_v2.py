@@ -249,6 +249,16 @@ def main() -> int:
              docdir / "README-改稿须知.md"),
             ("02-演示视频-README-待录制.md",
              vdir / "README-待录制.md"),
+            # 制作辅助（Word）：直接发给「录制视频的同学」和「做 PPT 的同学」
+            #   视频指导 → 放 02-演示视频/（与视频材料同处）
+            #   PPT 参考 → 放 04-制作辅助文档/，并附一份命名为
+            #             「知学Mate-项目参考文本.docx」便于直接转交
+            ("辅助文档/演示视频录制指导（含旁白脚本）.docx",
+             vdir / "演示视频录制指导（含旁白脚本）.docx"),
+            ("辅助文档/PPT制作参考与设计架构.docx",
+             DST / "04-制作辅助文档" / "PPT制作参考与设计架构.docx"),
+            ("辅助文档/PPT制作参考与设计架构.docx",
+             DST / "04-制作辅助文档" / "知学Mate-项目参考文本.docx"),
         ]
         for src_name, dst_path in mapping:
             src_file = sub / src_name
