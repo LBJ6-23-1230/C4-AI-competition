@@ -327,25 +327,61 @@ def main() -> int:
     zip_path = DST / f"{PRODUCT}+{TEAM}.zip"
     entries = 0
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-        # HAP 放包内 hap/ 下 —— 规程要求"演示文件需压缩为包"。
-        # ⚠️ 写完之后遍历源码目录时必须**跳过 hap/**，否则同一路径会被写两次
-        # （zipfile 只给 UserWarning，产物里是重复条目，评审解压行为不确定）。
-        z.write(hap_dst, f"{PRODUCT}/hap/知学Mate-signed.hap")
-        entries += 1
+        # 去重保护。
+        # ⚠️ 为什么必须有：有些文件在 V2 里**故意放两份**（源码区 + 根目录），
+        # 例如「后端启动与部署指南」「演示测试数据」。若两边各写一次，
+        # zip 里就会出现**重复条目** ——`zipfile` 只给 UserWarning，
+        # 产物看起来正常，但评审解压行为不确定（2026-09-23 实际踩到两次：
+        # 先是 hap/，再是根级说明与演示数据）。
+        # 这里统一记录已写入的路径，重复则**直接抛错**，不再静默产出。
+        written: set[str] = set()
+
+        def add(src: Path, arcname: str) -> bool:
+            if arcname in written:
+                return False
+            z.write(src, arcname)
+            written.add(arcname)
+            return True
+
+        # HAP 放包内 hap/ 下 —— 规程要求"演示文件需压缩为包"
+        add(hap_dst, f"{PRODUCT}/hap/知学Mate-signed.hap")
         for path in srcdir.rglob("*"):
             if not path.is_file():
                 continue
             rel = path.relative_to(srcdir)
             if rel.parts and rel.parts[0] == "hap":
-                continue          # 已单独写入，避免重复条目
+                continue          # 已单独写入
             if path.name == zip_path.name:
                 continue
-            z.write(path, f"{PRODUCT}/{rel.as_posix()}")
-            entries += 1
+            add(path, f"{PRODUCT}/{rel.as_posix()}")
         # 作品说明文档也一并入包，避免评审漏拿
         for p in docdir.glob("*.pdf"):
-            z.write(p, f"{PRODUCT}/作品说明文档/{p.name}")
-            entries += 1
+            add(p, f"{PRODUCT}/作品说明文档/{p.name}")
+        # 根级说明文档也入包。
+        # ⚠️ 必须显式列举：这些文件在 V2 **根目录**，而上面的 srcdir 只覆盖
+        # 「03-演示文件与源代码/」下的内容 —— 漏掉这一步就会出现
+        # "V2 里能看到、解压提交包却找不到"的情况（2026-09-23 实际踩到：
+        # 出题机制说明没进包，抽检才发现）。
+        # 与源码区重名的（后端启动与部署指南）由 add() 自动跳过，不产生重复。
+        root_docs = [
+            "README-提交说明.md", "仓库结构说明.md", "提交清单与待办.md",
+            "后端启动与部署指南.md", "签名材料交接说明.md",
+            "出题机制与DDL上传说明.md",
+        ]
+        for name in root_docs:
+            p = DST / name
+            if not p.exists():
+                print("      !! 根级说明缺失，未入包: %s" % name)
+                continue
+            add(p, f"{PRODUCT}/{name}")
+        # 演示测试数据（根目录那份）。源码区已有一份同名文件，
+        # add() 会跳过，因此包内只会出现一份。
+        demo_root = DST / "演示测试数据"
+        if demo_root.exists():
+            for p in sorted(demo_root.iterdir()):
+                if p.is_file():
+                    add(p, f"{PRODUCT}/演示测试数据/{p.name}")
+        entries = len(written)
     print("      %s  （%d 条目 / %.2f MB）"
           % (zip_path.name, entries, zip_path.stat().st_size / 1048576))
 
