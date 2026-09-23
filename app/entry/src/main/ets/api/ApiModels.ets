@@ -381,3 +381,77 @@ export interface DemoResetResponse {
   plan: LearningPlan | null;
   traceId: string;
 }
+
+/* ================================================================
+ * 学习搭子匹配（POST /api/v1/agent/partner-match）
+ *
+ * 五因子确定性算分，满分 100：
+ *   目标一致 goal 30 / 时间重叠 timeOverlap 30 / 知识互补 knowledgeComplement 20
+ *   / 基础匹配 basicMatch 10 / 稳定性 stability 10
+ * 与后端 app/agent/partner_match.py:score_partner 逐项对应。
+ * ================================================================ */
+
+/** 单个候选人的五因子明细。 */
+export interface PartnerMatchFactors {
+  goal: number;
+  timeOverlap: number;
+  knowledgeComplement: number;
+  basicMatch: number;
+  stability: number;
+  /** 两人空闲时间段的实际重叠分钟数（展示"为什么是 20 分"时要用）。 */
+  overlapMinutes: number;
+}
+
+/** 候选人完整资料（结构与 mock_candidates.json 一致）。 */
+export interface PartnerCandidateProfile {
+  userId: string;
+  basicInfo?: PartnerCandidateBasicInfo;
+  learningGoal?: PartnerCandidateGoal;
+  time?: PartnerCandidateTime;
+  knowledge?: PartnerCandidateKnowledge;
+}
+
+export interface PartnerCandidateBasicInfo {
+  name?: string;
+  grade?: string;
+  major?: string;
+}
+
+export interface PartnerCandidateGoal {
+  course?: string;
+  goal?: string;
+}
+
+export interface PartnerCandidateTime {
+  freeTime?: string[];
+}
+
+export interface PartnerCandidateKnowledge {
+  weakness?: string[];
+  strength?: string[];
+}
+
+/** 一个候选人的匹配结果。 */
+export interface PartnerRankedCandidate {
+  candidate: PartnerCandidateProfile;
+  score: number;
+  factors: PartnerMatchFactors;
+}
+
+/** 匹配接口响应。 */
+export interface PartnerMatchResponse {
+  userId: string;
+  /** 最高分候选人；全部为 0 分时为 null。 */
+  matchedCandidate: PartnerRankedCandidate | null;
+  /** 全部候选人按分数降序。 */
+  candidates: PartnerRankedCandidate[];
+  generatedAt: string;
+  realModeUnavailable: boolean;
+}
+
+/** 请求体：可传完整 user 对象，也可只传 userId（后端用 mock_users 兜底）。 */
+export interface PartnerMatchRequest {
+  userId?: string;
+  user?: PartnerCandidateProfile;
+  candidates?: PartnerCandidateProfile[];
+}

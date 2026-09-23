@@ -82,6 +82,13 @@ export class ApiResponseValidator {
         ApiResponseValidator.isNullableRecord(data, 'profile') &&
         ApiResponseValidator.isNullableRecord(data, 'plan');
     }
+    // 学习搭子匹配：五因子确定性算分
+    //   matchedCandidate 可能为 null（全部候选人 0 分时），故只校验 candidates 是数组
+    if (method === 'POST' && route === '/api/v1/agent/partner-match') {
+      return ApiResponseValidator.hasString(data, 'userId') &&
+        ApiResponseValidator.hasArray(data, 'candidates') &&
+        ApiResponseValidator.hasBoolean(data, 'realModeUnavailable');
+    }
     if (method === 'POST' && route === '/api/v1/agent/proactive') {
       return ApiResponseValidator.hasBoolean(data, 'shouldNotify') &&
         ApiResponseValidator.hasString(data, 'channel') &&

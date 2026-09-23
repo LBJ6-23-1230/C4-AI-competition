@@ -59,7 +59,16 @@ EXCLUDE_DIRS = {
 EXCLUDE_NAMES = {".env", "repository.json", "history.json", "local.properties"}
 
 #: 后缀黑名单
-EXCLUDE_SUFFIXES = {".pyc", ".pyo", ".log", ".tmp", ".bak", ".old"}
+#:
+#: ⚠️ 运行期状态文件必须排除，它们在文档里承诺过"绝不进交付包"：
+#:   · `.sqlite` / `-wal` / `-shm` —— SQLite 后端的库文件与 WAL 日志。
+#:     `-wal` 尤其危险：实测它会被撑到 **684 KB**，且内容是**运行期写入**，
+#:     混进交付包会让包体积莫名其妙变大，也会让人误以为里面有真实数据。
+#:     （2026-09-23 验证 SQLite 后端时真的混进过 V2，抽检大文件才发现。）
+EXCLUDE_SUFFIXES = {
+    ".pyc", ".pyo", ".log", ".tmp", ".bak", ".old",
+    ".sqlite", ".sqlite-wal", ".sqlite-shm", ".db", ".db-wal", ".db-shm",
+}
 
 
 def walk_files(root: Path, exclude_dirs: set[str]):
@@ -287,6 +296,10 @@ def main() -> int:
             ("出题机制与DDL上传说明.md", DST / "出题机制与DDL上传说明.md"),
             # 前端实测问题逐条核查（发给报问题的前端/测试同学）
             ("前端测试问题核查.md", DST / "前端测试问题核查.md"),
+            # 数据库与账户体系（含 SQLite 可选后端说明）
+            ("数据库与账户体系说明.md", DST / "数据库与账户体系说明.md"),
+            # 学习搭子匹配（前后端接入说明）
+            ("学习搭子匹配说明.md", DST / "学习搭子匹配说明.md"),
             # 制作辅助（Word）：直接发给「录制视频的同学」和「做 PPT 的同学」
             #   视频指导 → 放 02-演示视频/（与视频材料同处）
             #   PPT 参考 → 放 04-制作辅助文档/，并附一份命名为
@@ -369,6 +382,7 @@ def main() -> int:
             "README-提交说明.md", "仓库结构说明.md", "提交清单与待办.md",
             "后端启动与部署指南.md", "签名材料交接说明.md",
             "出题机制与DDL上传说明.md", "前端测试问题核查.md",
+            "数据库与账户体系说明.md", "学习搭子匹配说明.md",
         ]
         for name in root_docs:
             p = DST / name

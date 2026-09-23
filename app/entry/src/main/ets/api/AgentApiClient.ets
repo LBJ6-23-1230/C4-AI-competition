@@ -1,5 +1,5 @@
 import { http } from '@kit.NetworkKit';
-import { API_CONTRACT_VERSION, DemoResetResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeDocument, KnowledgeDocumentUploadRequest, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
+import { API_CONTRACT_VERSION, DemoResetResponse, PartnerMatchRequest, PartnerMatchResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeDocument, KnowledgeDocumentUploadRequest, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiFailure, ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { ApiDefaults } from './ApiDefaults';
 import { AuthHuaweiLoginRequest, AuthLoginOrRegisterRequest, AuthLoginOrRegisterResponse, AuthLoginRequest, AuthRegisterRequest, AuthSendCodeRequest, AuthSendCodeResponse, AuthSessionResponse, AuthStatusResponse, AuthUserResponse, AuthVerifyCodeRequest } from './AuthModels';
@@ -103,6 +103,18 @@ export class AgentApiClient {
 
   static async getProactiveDecision(request: ProactiveRequest): Promise<ApiResult<ProactiveResponse>> {
     return AgentApiClient.request<ProactiveResponse>(http.RequestMethod.POST, '/api/v1/agent/proactive', request);
+  }
+
+  /**
+   * 学习搭子匹配 —— 后端**确定性**五因子算分（满分 100）。
+   *
+   * 为什么不传 candidates：后端在没有 candidates 时会读 `mock_candidates.json`，
+   * 与演示基线一致（小红 90 分 / 小刚 70 分）。传了反而容易和文档对不上。
+   * 想按真实数据匹配时再传 candidates。
+   */
+  static async matchPartner(request: PartnerMatchRequest): Promise<ApiResult<PartnerMatchResponse>> {
+    return AgentApiClient.request<PartnerMatchResponse>(http.RequestMethod.POST,
+      '/api/v1/agent/partner-match', request);
   }
 
   // ------------------------------------------------------------------ 知识库
