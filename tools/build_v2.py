@@ -269,6 +269,23 @@ def main() -> int:
             shutil.copy2(src_file, dst_path)
             print("      %s" % dst_path.relative_to(DST).as_posix())
 
+    # 演示测试数据：整个目录复制。
+    # 放两处 —— 源码区（录视频时好找）+ 根目录（交材料时一眼看到）。
+    # 内容为课程表/作业 DDL 的 JSON 与 CSV 样例，供「上传文件」与
+    # 「复制粘贴」两种导入演示使用；字段格式按 FileParserService.ets 实测核对。
+    demo_src = sub / "演示测试数据"
+    if demo_src.exists():
+        for dst_dir in (srcdir / "演示测试数据", DST / "演示测试数据"):
+            n = 0
+            for f in sorted(demo_src.iterdir()):
+                if f.is_file():
+                    dst_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(f, dst_dir / f.name)
+                    n += 1
+            print("      %s  (%d 个文件)" % (dst_dir.relative_to(DST).as_posix(), n))
+    else:
+        print("      !! 缺少 submission/演示测试数据/")
+
     # ---------------- 6. 生成提交 zip ----------------
     print("[6/6] 生成提交压缩包")
     zip_path = DST / f"{PRODUCT}+{TEAM}.zip"
