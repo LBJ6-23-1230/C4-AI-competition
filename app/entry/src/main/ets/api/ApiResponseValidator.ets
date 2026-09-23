@@ -1,25 +1,45 @@
 /** Lightweight runtime guards for JSON received from the api-contract-v0.3 endpoints. */
 export class ApiResponseValidator {
+  /**
+   * 去掉 URL 上的查询串，只留路径。
+   *
+   * ⚠️ 这个函数是修一个真实缺陷才加的：
+   * `listKnowledgeBases(userId)` 会拼出 `/api/v1/knowledge-bases?userId=xxx`，
+   * 而本类里对路径用的是**精确比较**（`path === '/api/v1/knowledge-bases'`）——
+   * 带查询串时比较不成立，于是掉进下面的「详情」分支去要 `kbId` / `name`，
+   * 列表响应里没有这两个字段 → 校验失败 →
+   * 页面报「服务返回的数据结构与 api-contract-v0.3 不一致」。
+   *
+   * 实测复现条件：**必须登录真实账号**（游客不传 userId，反而正常）。
+   * 表现为「知识库页进去就报错、没法新建知识库」。
+   */
+  private static basePath(path: string): string {
+    const mark: number = path.indexOf('?');
+    return mark >= 0 ? path.substring(0, mark) : path;
+  }
+
   static isValid(method: string, path: string, payload: Object): boolean {
     if (!ApiResponseValidator.isRecord(payload)) {
       return false;
     }
     const data: Record<string, Object> = payload as Record<string, Object>;
+    // 一律用去查询串的路径做匹配，避免 `?a=b` 让精确比较失效。
+    const route: string = ApiResponseValidator.basePath(path);
 
-    if (method === 'POST' && path === '/api/v1/workflows') {
+    if (method === 'POST' && route === '/api/v1/workflows') {
       return ApiResponseValidator.hasString(data, 'sessionId') &&
         ApiResponseValidator.hasString(data, 'traceId') &&
         ApiResponseValidator.hasString(data, 'status') &&
         ApiResponseValidator.hasString(data, 'currentStep') &&
         ApiResponseValidator.hasString(data, 'nextAction');
     }
-    if (method === 'GET' && path.indexOf('/api/v1/workflows/') === 0) {
+    if (method === 'GET' && route.indexOf('/api/v1/workflows/') === 0) {
       return ApiResponseValidator.hasString(data, 'status') &&
         ApiResponseValidator.hasNumber(data, 'stateVersion') &&
         ApiResponseValidator.isNullableString(data, 'currentAgent') &&
         ApiResponseValidator.isNullableString(data, 'finalAction');
     }
-    if (method === 'POST' && path.indexOf('/api/v1/workflows/') === 0 && path.endsWith('/run')) {
+    if (method === 'POST' && route.indexOf('/api/v1/workflows/') === 0 && route.endsWith('/run')) {
       return ApiResponseValidator.hasString(data, 'sessionId') &&
         ApiResponseValidator.hasString(data, 'traceId') &&
         ApiResponseValidator.hasString(data, 'status') &&
@@ -28,41 +48,41 @@ export class ApiResponseValidator {
         ApiResponseValidator.hasNumber(data, 'stateVersion') &&
         ApiResponseValidator.isNullableString(data, 'finalAction');
     }
-    if (method === 'GET' && path.indexOf('/api/v1/profile/') === 0) {
+    if (method === 'GET' && route.indexOf('/api/v1/profile/') === 0) {
       return ApiResponseValidator.hasNumber(data, 'profileVersion') &&
         ApiResponseValidator.hasArray(data, 'mastery') &&
         ApiResponseValidator.hasArray(data, 'history') &&
         ApiResponseValidator.hasArray(data, 'evidence');
     }
-    if (method === 'GET' && path === '/api/v1/plans/current') {
+    if (method === 'GET' && route === '/api/v1/plans/current') {
       return ApiResponseValidator.isPlan(data);
     }
-    if (method === 'GET' && path.indexOf('/api/v1/exercises/') === 0 && !path.endsWith('/submit')) {
+    if (method === 'GET' && route.indexOf('/api/v1/exercises/') === 0 && !route.endsWith('/submit')) {
       return ApiResponseValidator.hasString(data, 'setId') && ApiResponseValidator.hasArray(data, 'exercises');
     }
-    if (method === 'POST' && path.indexOf('/api/v1/exercises/') === 0 && path.endsWith('/submit')) {
+    if (method === 'POST' && route.indexOf('/api/v1/exercises/') === 0 && route.endsWith('/submit')) {
       return ApiResponseValidator.isRecordField(data, 'assessment') &&
         ApiResponseValidator.hasBoolean(data, 'needReplan') &&
         ApiResponseValidator.isNullableRecord(data, 'masteryUpdate');
     }
-    if (method === 'GET' && path.indexOf('/api/v1/plans/') === 0 && path.endsWith('/diff')) {
+    if (method === 'GET' && route.indexOf('/api/v1/plans/') === 0 && route.endsWith('/diff')) {
       return ApiResponseValidator.hasNumber(data, 'oldVersion') &&
         ApiResponseValidator.hasNumber(data, 'newVersion') &&
         ApiResponseValidator.hasArray(data, 'changedTasks') &&
         ApiResponseValidator.hasString(data, 'adjustmentReason') &&
         ApiResponseValidator.hasArray(data, 'triggerEvidence');
     }
-    if (method === 'GET' && path.indexOf('/api/v1/traces/') === 0) {
+    if (method === 'GET' && route.indexOf('/api/v1/traces/') === 0) {
       return ApiResponseValidator.hasString(data, 'traceId') && ApiResponseValidator.hasArray(data, 'events');
     }
-    if (method === 'POST' && path === '/api/v1/demo/reset') {
+    if (method === 'POST' && route === '/api/v1/demo/reset') {
       return ApiResponseValidator.hasString(data, 'status') &&
         ApiResponseValidator.hasString(data, 'userId') &&
         ApiResponseValidator.hasString(data, 'traceId') &&
         ApiResponseValidator.isNullableRecord(data, 'profile') &&
         ApiResponseValidator.isNullableRecord(data, 'plan');
     }
-    if (method === 'POST' && path === '/api/v1/agent/proactive') {
+    if (method === 'POST' && route === '/api/v1/agent/proactive') {
       return ApiResponseValidator.hasBoolean(data, 'shouldNotify') &&
         ApiResponseValidator.hasString(data, 'channel') &&
         ApiResponseValidator.isString(data, 'title') &&
@@ -74,12 +94,12 @@ export class ApiResponseValidator {
         ApiResponseValidator.isRecordField(data, 'cardData');
     }
     // ---- 知识库（/api/v1/knowledge-bases/**、/api/v1/documents/**）----
-    if (method === 'GET' && path.indexOf('/api/v1/knowledge-bases') === 0) {
-      if (path.indexOf('/documents') > 0) {
+    if (method === 'GET' && route.indexOf('/api/v1/knowledge-bases') === 0) {
+      if (route.indexOf('/documents') > 0) {
         return ApiResponseValidator.hasString(data, 'kbId') &&
           ApiResponseValidator.hasArray(data, 'documents');
       }
-      if (path === '/api/v1/knowledge-bases') {
+      if (route === '/api/v1/knowledge-bases') {
         return ApiResponseValidator.hasArray(data, 'knowledgeBases') &&
           ApiResponseValidator.hasNumber(data, 'total');
       }
@@ -88,24 +108,24 @@ export class ApiResponseValidator {
         ApiResponseValidator.hasString(data, 'name') &&
         ApiResponseValidator.hasString(data, 'courseName');
     }
-    if (method === 'POST' && path === '/api/v1/knowledge-bases') {
+    if (method === 'POST' && route === '/api/v1/knowledge-bases') {
       return ApiResponseValidator.hasString(data, 'kbId') &&
         ApiResponseValidator.hasString(data, 'name');
     }
-    if (method === 'DELETE' && path.indexOf('/api/v1/knowledge-bases/') === 0) {
+    if (method === 'DELETE' && route.indexOf('/api/v1/knowledge-bases/') === 0) {
       return ApiResponseValidator.hasString(data, 'status');
     }
-    if (method === 'POST' && path.indexOf('/api/v1/knowledge-bases/') === 0
-      && path.endsWith('/documents')) {
+    if (method === 'POST' && route.indexOf('/api/v1/knowledge-bases/') === 0
+      && route.endsWith('/documents')) {
       return ApiResponseValidator.hasString(data, 'documentId') &&
         ApiResponseValidator.hasString(data, 'status') &&
         ApiResponseValidator.hasString(data, 'fileName');
     }
-    if (method === 'DELETE' && path.indexOf('/api/v1/documents/') === 0) {
+    if (method === 'DELETE' && route.indexOf('/api/v1/documents/') === 0) {
       return ApiResponseValidator.hasString(data, 'status');
     }
-    if (method === 'POST' && path.indexOf('/api/v1/knowledge-bases/') === 0
-      && path.endsWith('/search')) {
+    if (method === 'POST' && route.indexOf('/api/v1/knowledge-bases/') === 0
+      && route.endsWith('/search')) {
       return ApiResponseValidator.hasString(data, 'kbId') &&
         ApiResponseValidator.hasString(data, 'query') &&
         ApiResponseValidator.hasArray(data, 'hits') &&
@@ -118,16 +138,16 @@ export class ApiResponseValidator {
         ApiResponseValidator.hasNumber(data, 'semanticWeight');
     }
     // ---- 鉴权（/api/v1/auth/*）----
-    if (method === 'POST' && path === '/api/v1/auth/register') {
+    if (method === 'POST' && route === '/api/v1/auth/register') {
       return ApiResponseValidator.isAuthSession(data);
     }
-    if (method === 'POST' && path === '/api/v1/auth/login') {
+    if (method === 'POST' && route === '/api/v1/auth/login') {
       return ApiResponseValidator.isAuthSession(data);
     }
-    if (method === 'POST' && path === '/api/v1/auth/login-or-register') {
+    if (method === 'POST' && route === '/api/v1/auth/login-or-register') {
       return ApiResponseValidator.isAuthSession(data);
     }
-    if (method === 'POST' && path === '/api/v1/auth/login-with-huawei') {
+    if (method === 'POST' && route === '/api/v1/auth/login-with-huawei') {
       return ApiResponseValidator.isAuthSession(data);
     }
     // ⚠️ 手机号验证码登录的两个接口（契约 api-contract-v0.3）：
@@ -136,19 +156,19 @@ export class ApiResponseValidator {
     // 这两条原先漏在下面，导致**正确的响应**也落到末尾 `return false`，
     // 被 AgentApiClient 判为 INVALID_RESPONSE —— 验证码登录在联机与 Fixture
     // 两种数据源下都不可用（登录页为此写的分段控件/开发回显/重发倒计时全部作废）。
-    if (method === 'POST' && path === '/api/v1/auth/send-code') {
+    if (method === 'POST' && route === '/api/v1/auth/send-code') {
       return ApiResponseValidator.isPhoneCodeSendResponse(data);
     }
-    if (method === 'POST' && path === '/api/v1/auth/verify-code') {
+    if (method === 'POST' && route === '/api/v1/auth/verify-code') {
       return ApiResponseValidator.isAuthSession(data);
     }
-    if (method === 'POST' && path === '/api/v1/auth/logout') {
+    if (method === 'POST' && route === '/api/v1/auth/logout') {
       return ApiResponseValidator.hasString(data, 'status');
     }
-    if (method === 'GET' && path === '/api/v1/auth/me') {
+    if (method === 'GET' && route === '/api/v1/auth/me') {
       return ApiResponseValidator.isAuthUserField(data, 'user');
     }
-    if (method === 'DELETE' && path === '/api/v1/auth/account') {
+    if (method === 'DELETE' && route === '/api/v1/auth/account') {
       return ApiResponseValidator.hasString(data, 'status');
     }
     return false;
