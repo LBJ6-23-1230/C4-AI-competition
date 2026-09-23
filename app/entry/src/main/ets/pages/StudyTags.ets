@@ -132,6 +132,7 @@ struct StudyTags {
   }
 
   private buildChartData(): void {
+    // 最多 6 个维度：雷达图再密就看不清标签了
     const items: KnowledgeMastery[] = this.mastery.slice(0, 6);
     this.chartDims = [];
     this.chartCurrent = [];
@@ -143,6 +144,62 @@ struct StudyTags {
       this.chartDims.push(items[index].knowledgePointName);
       this.chartCurrent.push(items[index].masteryScore);
     }
+
+    // ⚠️ 下面三段是补上的。原先这里只填了 dims/current，
+    // 而 `target` / `weakIndices` / `strengthIndices` 三个数组
+    // **声明了、传给组件了、却从未赋值**，永远是空数组 ——
+    // 于是雷达图里三条与之相关的绘制分支全是死代码：
+    //   · 「目标水平(灰虚线)」：组件判 `target.length === n`，空数组长度为 0 必不成立
+    //   · 最薄弱点标红（半径 7 的红点）
+    //   · 最强点标深蓝
+    // 图还是画得出来（网格/轴线/当前水平/标签都正常），
+    // 所以只看截图看不出问题 —— 属于"画了但少画了三样"。
+
+    // 目标线：从学习目标文案里取"80+"这类分数，取不到就用 80
+    // （示例目标为「数据结构期末80+」）。
+    const targetValue: number = StudyTags.parseTargetScore(this.goal);
+    for (let index: number = 0; index < items.length; index++) {
+      this.chartTarget.push(targetValue);
+    }
+
+    // 最薄弱 / 最强：按本次展示的维度里取极值。
+    // 只在维度数 >= 2 时才标 —— 单点时"最弱"和"最强"是同一个，标红没有信息量。
+    if (items.length >= 2) {
+      let weakest: number = 0;
+      let strongest: number = 0;
+      for (let index: number = 1; index < items.length; index++) {
+        if (items[index].masteryScore < items[weakest].masteryScore) {
+          weakest = index;
+        }
+        if (items[index].masteryScore > items[strongest].masteryScore) {
+          strongest = index;
+        }
+      }
+      // 掌握度全相同（并列）时不标任何点，避免随便挑一个标红造成误导
+      if (items[weakest].masteryScore !== items[strongest].masteryScore) {
+        this.chartWeak = [weakest];
+        this.chartStrong = [strongest];
+      }
+    }
+  }
+
+  /**
+   * 从学习目标文案里取目标分数。
+   *
+   * 支持「数据结构期末80+」「目标 85 分」「冲刺90」这几种写法。
+   * 取不到就返回 80 —— 与后端演示基线（`data/repository.json` 的
+   * 示例目标「数据结构期末80+」）一致，而不是随手写一个值。
+   */
+  private static parseTargetScore(goal: string): number {
+    const matched: RegExpMatchArray | null = goal.match(/(\d{2,3})/);
+    if (matched === null) {
+      return 80;
+    }
+    const value: number = Number(matched[1]);
+    if (!Number.isFinite(value) || value < 1 || value > 100) {
+      return 80;
+    }
+    return value;
   }
 
   private evidenceCount(knowledgePointId: string): number {
