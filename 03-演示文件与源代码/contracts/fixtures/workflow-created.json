@@ -1,0 +1,7 @@
+{
+  "sessionId": "session-demo-001",
+  "traceId": "trace-demo-001",
+  "status": "running",
+  "currentStep": "diagnosis",
+  "nextAction": "diagnose"
+}

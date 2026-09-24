@@ -1,0 +1,42 @@
+{
+  "assessment": {
+    "score": 67,
+    "perKnowledgeAccuracy": { "binary-tree-postorder": 67 },
+    "errorTypes": ["后序遍历顺序混淆"],
+    "oldMastery": 42,
+    "suggestedNewMastery": 58
+  },
+  "masteryUpdate": {
+    "knowledgePointId": "binary-tree-postorder",
+    "oldScore": 42,
+    "newScore": 58
+  },
+  "needReplan": true,
+  "plan": {
+    "planId": "plan-demo-001",
+    "version": 2,
+    "generatedFromProfileVersion": 2,
+    "reason": "掌握度仍低于巩固阈值，已自动重规划。",
+    "tasks": [
+      {
+        "taskId": "task-postorder",
+        "knowledgePointId": "binary-tree-postorder",
+        "knowledgePointName": "二叉树后序遍历",
+        "durationMinutes": 45,
+        "status": "pending",
+        "priority": "high"
+      }
+    ]
+  },
+  "planDiff": {
+    "planId": "plan-demo-001",
+    "oldVersion": 1,
+    "newVersion": 2,
+    "changedTasks": [
+      { "taskId": "task-postorder", "knowledgePointId": "binary-tree-postorder", "durationMinutes": 45, "change": "+15" },
+      { "taskId": "task-graph", "knowledgePointId": "graph-traversal", "durationMinutes": 15, "change": "-15" }
+    ],
+    "adjustmentReason": "二叉树后序遍历 mastery=58，低于巩固阈值60",
+    "triggerEvidence": ["evidence-demo-001"]
+  }
+}

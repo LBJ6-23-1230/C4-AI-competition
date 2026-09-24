@@ -1,0 +1,49 @@
+{
+  "profileVersion": 2,
+  "profile": {
+    "userId": "demo-user",
+    "goal": "数据结构考试80+",
+    "examDate": "2026-09-30",
+    "freeTimeSlots": ["20:00-22:00"],
+    "profileVersion": 2,
+    "mastery": [
+      {
+        "knowledgePointId": "binary-tree-postorder",
+        "knowledgePointName": "二叉树后序遍历",
+        "masteryScore": 58,
+        "confidence": 0.7,
+        "lastUpdated": "2026-09-02T09:00:00Z"
+      }
+    ]
+  },
+  "mastery": [
+    {
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "masteryScore": 58,
+      "confidence": 0.7,
+      "lastUpdated": "2026-09-02T09:00:00Z"
+    }
+  ],
+  "history": [
+    {
+      "oldScore": 42,
+      "newScore": 58,
+      "evidenceIds": ["evidence-demo-001"],
+      "source": "assessment",
+      "timestamp": "2026-09-02T09:30:00Z"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "evidence-demo-001",
+      "sourceType": "exercise",
+      "sourceId": "set-demo-binary-tree-001",
+      "knowledgePointId": "binary-tree-postorder",
+      "metric": "perKnowledgeAccuracy",
+      "value": 67,
+      "timestamp": "2026-09-02T09:30:00Z",
+      "reliability": 1
+    }
+  ]
+}

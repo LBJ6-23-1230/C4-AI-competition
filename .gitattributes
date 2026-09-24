@@ -1,0 +1,87 @@
+# 行尾与编码纪律
+#
+# 为什么必须钉死：
+#   本工程的 .ps1 脚本是「UTF-8 **带 BOM** + 行尾」组合，
+#   Windows PowerShell 5.1 靠 BOM 才能正确解析中文，否则乱码。
+#   而 git 的 core.autocrlf 在不同机器上取值不同，
+#   不加约束时同一份脚本在 A 机器能跑、在 B 机器报错。
+#   显式声明后，克隆到任何机器结果都一致。
+
+# 默认：文本文件一律以 LF 入库
+* text=auto eol=lf
+
+# PowerShell 脚本：入库 LF，检出 CRLF（兼容 Windows PowerShell 5.1）
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+
+# 批处理：必须 CRLF，否则 cmd 解析异常
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# 明确按二进制处理，禁止任何转换
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.hap   binary
+*.so    binary
+*.dll   binary
+*.abc   binary
+*.ttf   binary
+
+# 契约与配置：LF，diff 友好
+*.json   text eol=lf
+*.json5  text eol=lf
+*.py     text eol=lf
+*.ets    text eol=lf
+*.ts     text eol=lf
+*.md     text eol=lf
+*.yaml   text eol=lf
+*.yml    text eol=lf
+
+# ============================================================
+# ⚠️ 字节保真例外 —— 必须放在上面通配规则**之后**（后写的优先）
+#
+# 为什么需要：上面 `*.json text eol=lf` 会把 CRLF 归一成 LF，
+# 每个 CRLF 少 1 字节。契约 `openapi.json` 本地是 82,149 B（3,069 个 CRLF），
+# 入库后变成 79,080 B —— 与 README / 文档 / 联调证据里写的字节数不符。
+#
+# 以下文件按**原样字节**入库与检出，git 不做任何换行/编码转换。
+# 判据来自实测：工作区字节 ≠ git blob 字节的文件清单（共 25 个）。
+# ============================================================
+
+# —— 契约（最关键：真源与镜像必须逐字节一致，且字节数是对外承诺值）——
+/contracts/openapi.json           -text
+/app/contracts/openapi.json       -text
+
+# —— 联调证据（归档数据，字节即证据）——
+/evidence/*.json                  -text
+
+# —— 后端代码（作者以 CRLF 编写，不做转换以免 diff 噪声）——
+/server/zhixue-agent-server/app/agent/chat_llm.py                -text
+/server/zhixue-agent-server/chat/prompts/AnalyzeWrongPrompt.txt  -text
+
+# —— 工具脚本 ——
+/tools/package_handoff.py         -text
+/tools/verify_packages.py         -text
+
+# —— 前端源码 ——
+/app/entry/src/main/ets/data/AppState.ets                   -text
+/app/entry/src/main/ets/models/AgentModels.ets              -text
+/app/entry/src/main/ets/pages/PartnerMatch.ets              -text
+/app/entry/src/main/ets/pages/ReviewSummary.ets             -text
+/app/entry/src/main/ets/pages/StudyTags.ets                 -text
+/app/entry/src/main/ets/services/LearningCardService.ets    -text
+/app/entry/src/main/ets/widget/pages/LearningCard.ets       -text
+
+# —— 前端资源与包配置 ——
+/app/AppScope/resources/base/element/string.json       -text
+/app/entry/src/main/resources/base/element/string.json -text
+/app/entry/oh-package.json5                            -text
+/app/oh-package-lock.json5                             -text
+
+# —— 含中文的 Windows 脚本：UTF-8 带 BOM，禁止任何转换 ——
+# Windows PowerShell 5.1 靠 BOM 才能正确显示中文
+/tools/sign_hap.ps1        -text
+/tools/读取密钥别名.bat     -text

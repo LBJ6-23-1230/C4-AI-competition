@@ -1,0 +1,54 @@
+[
+  {
+    "courseId": "c001",
+    "courseName": "数据结构",
+    "tasks": [
+      {
+        "taskname": "小雅链表作业",
+        "taskType": "作业",
+        "deadline": "2026-07-22",
+        "taskStatus": "未完成"
+      },
+      {
+        "taskname": "小雅实验报告",
+        "taskType": "实验报告",
+        "deadline": "2026-07-23",
+        "taskStatus": "已完成"
+      },
+      {
+        "taskname": "新实验报告任务",
+        "taskType": "实验报告",
+        "deadline": "2026-07-30",
+        "taskStatus": "已完成"
+      }
+    ],
+    "exam": {
+      "date": "2026-07-28"
+    },
+    "priority": "高",
+    "recentStatus": {
+      "studyHours": 2,
+      "status": "近期复习不足"
+    }
+  },
+  {
+    "courseId": "c002",
+    "courseName": "高数",
+    "tasks": [
+      {
+        "taskname": "第1章第1节的习题",
+        "taskType": "作业",
+        "deadline": "2024-06-15",
+        "taskStatus": "未完成"
+      }
+    ],
+    "exam": {
+      "date": "2024-06-30"
+    },
+    "priority": null,
+    "recentStatus": {
+      "studyHours": 0,
+      "status": "暂无近期学习记录"
+    }
+  }
+]

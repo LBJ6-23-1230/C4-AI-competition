@@ -1,0 +1,69 @@
+{
+  "app": {
+    // ✅ 签名配置已就位（2026-09-21 经 DevEco GUI 手动签名生成）。
+    //
+    // 来源：File > Project Structure > 签名配置
+    //   → 取消勾选 "自动生成签名文件"（自动签名会让 appid 随机化，
+    //     与小艺 Agent / 华为账号侧登记的 appid 不一致 → 授权异常）
+    //   → 手动填 .p12 / 密码 / 别名 / .p7b / .cer
+    //
+    // 配套性已离线核验（见 docs/24-签名材料核验报告.md）：
+    //   .p12 私钥、.p12 内嵌证书、.p7b 绑定证书 三者公钥逐字节相同
+    //   （SKI 6F:62:09:DF:2D:14:95:A0:4D:2F:88:CB:E8:98:16:B1:06:14:8C:B9）
+    //
+    // ⚠️ 密码字段是 DevEco 加密后的值，**不要手改**，也不要提交到公开仓库
+    // ⚠️ 配置名 "default" 必须与 products[0].signingConfig 一致
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "E:/zhixue-signing/zhixue-debug.p12",
+          "storePassword": "0000001CEB23EAC53AF7069A68DA8FF90587DCF51E36F76754CC03E5148A4EBAD97B53112F70D7499C137E06",
+          "keyAlias": "zhixue-debug",
+          "keyPassword": "0000001C4AAF379D34E863F6326CAF960F5DD17C7A149C5C92843F71B52878F1B247802FCB52AEDDAE488E71",
+          "signAlg": "SHA256withECDSA",
+          "profile": "E:/zhixue-signing/zhixue-release-profileRelease.p7b",
+          "certpath": "E:/zhixue-signing/zhixue-release.cer"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "6.1.1(24)",
+        "compatibleSdkVersion": "6.1.1(24)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

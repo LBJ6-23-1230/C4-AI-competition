@@ -1,0 +1,25 @@
+{
+  "traceId": "trace-demo-001",
+  "events": [
+    {
+      "agent": "secretary",
+      "toolCalls": ["get_learner_profile"],
+      "inputSummary": "读取 demo-user 学习状态",
+      "outputSummary": "发现 mastery=42，需要进入专项诊断",
+      "evidenceIds": [],
+      "stateVersion": 1,
+      "timestamp": "2026-09-02T09:00:00Z",
+      "status": "success"
+    },
+    {
+      "agent": "diagnosis",
+      "toolCalls": ["select_knowledge_point"],
+      "inputSummary": "结合目标与当前掌握度筛选薄弱点",
+      "outputSummary": "选择二叉树后序遍历作为本轮练习主题",
+      "evidenceIds": [],
+      "stateVersion": 2,
+      "timestamp": "2026-09-02T09:01:00Z",
+      "status": "success"
+    }
+  ]
+}

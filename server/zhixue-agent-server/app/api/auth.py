@@ -1,0 +1,279 @@
+# -*- coding: utf-8 -*-
+"""鉴权接口（/api/v1/auth/*）。
+
+契约（与 `contracts/openapi.json` 的 Auth* 定义一致）
+----------------------------------------------------
+POST   /api/v1/auth/register   {nickname, grade?}      → {user, token, expiresAt}
+POST   /api/v1/auth/login      {userId, token}         → {user, token, expiresAt}
+POST   /api/v1/auth/logout     (Bearer)                → {status: "ok"}
+GET    /api/v1/auth/me         (Bearer)                → {user}
+DELETE /api/v1/auth/account    (Bearer)                → {status: "deactivated"}
+
+**刻意不做密码登录**：本项目没有需要密码保护的数据，自建密码体系只会带来
+合规负担与实现风险。注册即发 token，token 存 preferences，等价于长期会话票据。
+生产化路径是把本文件替换为 AGC 认证服务（见 `docs/02` §4.2 方案②）。
+"""
+
+from __future__ import annotations
+
+from flask import Blueprint, jsonify, request
+
+from app.auth import service
+from app.repositories.json_repository import JsonRepository
+
+auth_api = Blueprint("auth", __name__)
+_repository: JsonRepository | None = None
+
+
+def configure_auth_repository(repository: JsonRepository) -> None:
+    global _repository
+    _repository = repository
+
+
+def _error(error_code: str, message: str, status: int = 400,
+           details: dict | None = None):
+    return jsonify({"errorCode": error_code, "message": message,
+                    "details": details}), status
+
+
+def _auth_error(error: service.AuthError):
+    return _error(error.error_code, error.message, error.status, error.details)
+
+
+def _body() -> dict:
+    """宽松取体：与 chat 层同样处理 `Content-Type: application/json; charset=utf-8`。"""
+    data = request.get_json(silent=True)
+    if isinstance(data, dict):
+        return data
+    raw = request.get_data() or b""
+    if not raw.strip():
+        return {}
+    import json
+    try:
+        parsed = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _current_token() -> str:
+    return service.parse_bearer(request.headers.get("Authorization"))
+
+
+def _require_user():
+    """返回 (user, token) 或 (None, error_response)。"""
+    if _repository is None:
+        return None, _error("INTERNAL_ERROR", "auth repository is not configured", 500)
+    token = _current_token()
+    if not token:
+        return None, _error("UNAUTHORIZED", "缺少 Authorization: Bearer <token> 请求头", 401)
+    user = service.resolve_session(_repository, token)
+    if user is None:
+        return None, _error("UNAUTHORIZED", "登录已失效，请重新登录", 401)
+    return (user, token), None
+
+
+@auth_api.post("/api/v1/auth/register")
+def register():
+    """注册：昵称 + 年级 + **手机号** → userId + token，并预置一份空画像。"""
+    if _repository is None:
+        return _error("INTERNAL_ERROR", "auth repository is not configured", 500)
+    data = _body()
+    try:
+        result = service.register_user(_repository, data.get("nickname"),
+                                       data.get("grade"), data.get("phone"))
+    except service.AuthError as error:
+        return _error(error.error_code, error.message, error.status)
+
+    service.provision_starter_profile(
+        _repository, result["user"]["userId"], result["user"]["nickname"])
+    return jsonify(result), 201
+
+
+@auth_api.post("/api/v1/auth/login")
+def login():
+    """登录。
+
+    支持两种形式：
+
+    * `{userId, token}` —— 恢复登录态（用本地保存的凭据换回用户信息）
+    * `{nickname}`      —— **按昵称免密登录**
+
+    为什么要加第二种：原先前端「登录」标签下唯一能调的是 `register()`，
+    于是用同一个昵称再点一次会**又建一个新账号**（实测两次注册「张三」
+    得到两个不同 userId）。用户以为在登录，实际旧画像永远读不到。
+
+    ⚠️ 昵称不是秘密，`{nickname}` 形式**不是安全的认证方式**，只用于
+    演示 / 单机场景。真实身份校验请见 `docs/11` 的手机号验证码方案。
+    """
+    if _repository is None:
+        return _error("INTERNAL_ERROR", "auth repository is not configured", 500)
+    data = _body()
+
+    # 分派规则：**只要客户端提供了 userId 或 token 这两个键中的任意一个**，
+    # 就走凭据恢复路径，由 `service.login_user` 负责校验（空串/None 会得到 400）。
+    #
+    # ⚠️ 这里必须按"键是否存在"判断，不能按"值是否非空"判断：
+    # 否则 `{"userId":"","token":""}` 会掉到昵称分支，
+    # 报出 404「该昵称还没有账号」而不是 400「userId 不能为空」——语义错位。
+    if "userId" in data or "token" in data:
+        try:
+            result = service.login_user(_repository, data.get("userId"), data.get("token"))
+        except service.AuthError as error:
+            return _error(error.error_code, error.message, error.status)
+        return jsonify(result)
+
+    # 手机号优先于昵称：手机号唯一、可验证，是更强的身份标识
+    if data.get("phone"):
+        try:
+            result = service.login_by_phone(_repository, data.get("phone"))
+        except service.AuthError as error:
+            return _error(error.error_code, error.message, error.status)
+        return jsonify(result)
+
+    try:
+        result = service.login_by_nickname(_repository, data.get("nickname"))
+    except service.AuthError as error:
+        return _error(error.error_code, error.message, error.status)
+    return jsonify(result)
+
+
+@auth_api.post("/api/v1/auth/send-code")
+def send_code():
+    """发送手机号验证码；未接入短信服务时仅返回开发模式验证码。"""
+    if _repository is None:
+        return _error("INTERNAL_ERROR", "auth repository is not configured", 500)
+    data = _body()
+    try:
+        result = service.send_verification_code(_repository, data.get("phone"))
+    except service.AuthError as error:
+        return _auth_error(error)
+    return jsonify(result)
+
+
+@auth_api.post("/api/v1/auth/verify-code")
+def verify_code():
+    """校验验证码并自动登录或注册；成功后验证码立即失效。"""
+    if _repository is None:
+        return _error("INTERNAL_ERROR", "auth repository is not configured", 500)
+    data = _body()
+    try:
+        result = service.verify_verification_code(
+            _repository, data.get("phone"), data.get("code"),
+            data.get("nickname"), data.get("grade"))
+    except service.AuthError as error:
+        return _auth_error(error)
+    return jsonify(result), (201 if result.get("created") else 200)
+
+
+@auth_api.post("/api/v1/auth/login-or-register")
+def login_or_register():
+    """**登录优先，注册兜底** —— 前端主按钮应调这个。
+
+    识别顺序：**手机号 → 昵称**（手机号唯一且可验证，优先级更高）。
+
+    行为：
+    * 命中已有账号 → 登录（不再新建）
+    * 未命中       → 创建账号（若 `_PHONE_REQUIRED` 为真则必须有手机号）
+
+    响应里带 `created` 布尔值，前端可据此提示"欢迎回来 / 已为你建号"。
+    """
+    if _repository is None:
+        return _error("INTERNAL_ERROR", "auth repository is not configured", 500)
+    data = _body()
+
+    # 先做一次格式校验，让"手机号写错"在注册/登录之前就被拦住
+    try:
+        phone = service.normalize_phone(data.get("phone"),
+                                        required=service._PHONE_REQUIRED)
+    except service.AuthError as error:
+        return _error(error.error_code, error.message, error.status)
+
+    existing = None
+    if phone:
+        existing = service.find_user_by_phone(_repository, phone)
+    if existing is None and not phone:
+        try:
+            matches = service.find_users_by_nickname(_repository, data.get("nickname"))
+        except service.AuthError as error:
+            return _error(error.error_code, error.message, error.status)
+        existing = matches[0] if matches else None
+
+    if existing is not None:
+        try:
+            result = (service.login_by_phone(_repository, phone) if phone
+                      else service.login_by_nickname(_repository, data.get("nickname")))
+        except service.AuthError as error:
+            return _error(error.error_code, error.message, error.status)
+        return jsonify({**result, "created": False})
+
+    try:
+        result = service.register_user(_repository, data.get("nickname"),
+                                       data.get("grade"), phone)
+    except service.AuthError as error:
+        return _error(error.error_code, error.message, error.status)
+    service.provision_starter_profile(
+        _repository, result["user"]["userId"], result["user"]["nickname"])
+    return jsonify({**result, "created": True}), 201
+
+
+@auth_api.post("/api/v1/auth/login-with-huawei")
+def login_with_huawei():
+    """华为账号一键登录（登录优先，注册兜底）。
+
+    客户端用 `@kit.AccountKit` 拿到 OpenID 后调本接口。
+    首次登录自动建号 —— 用户不需要填昵称、手机号或验证码。
+
+    ⚠️ **本接口不校验 OpenID 真伪**（那需要服务端调华为接口验签）。
+    当前版本定位"演示可用、生产需补验签"，见 `docs/13`。
+    生产环境必须补上验签，否则伪造 openId 即可登入他人账号。
+    """
+    if _repository is None:
+        return _error("INTERNAL_ERROR", "auth repository is not configured", 500)
+    data = _body()
+    try:
+        result = service.login_with_huawei(
+            _repository, data.get("openId"), data.get("unionId"),
+            data.get("nickname"), data.get("grade"))
+    except service.AuthError as error:
+        return _error(error.error_code, error.message, error.status)
+
+    if result.get("created"):
+        service.provision_starter_profile(
+            _repository, result["user"]["userId"], result["user"]["nickname"])
+        return jsonify(result), 201
+    return jsonify(result)
+
+
+@auth_api.post("/api/v1/auth/logout")
+def logout():
+    """退出登录：只吊销当前 token，不动用户数据。"""
+    if _repository is None:
+        return _error("INTERNAL_ERROR", "auth repository is not configured", 500)
+    token = _current_token()
+    if not token:
+        return _error("UNAUTHORIZED", "缺少 Authorization: Bearer <token> 请求头", 401)
+    service.revoke_session(_repository, token)
+    return jsonify({"status": "ok"})
+
+
+@auth_api.get("/api/v1/auth/me")
+def me():
+    """读取当前登录用户。前端启动时用它校验本地 token 是否仍然有效。"""
+    resolved, failure = _require_user()
+    if failure is not None:
+        return failure
+    user, _token = resolved
+    return jsonify({"user": service.get_user(_repository, user["userId"])})
+
+
+@auth_api.delete("/api/v1/auth/account")
+def delete_account():
+    """注销账号：标记停用 + 清空全部会话（合规要求）。"""
+    resolved, failure = _require_user()
+    if failure is not None:
+        return failure
+    user, _token = resolved
+    if not service.deactivate_user(_repository, user["userId"]):
+        return _error("NOT_FOUND", "账号不存在", 404)
+    return jsonify({"status": "deactivated", "userId": user["userId"]})

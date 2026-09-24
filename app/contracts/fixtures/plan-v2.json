@@ -1,0 +1,16 @@
+{
+  "planId": "plan-demo-001",
+  "version": 2,
+  "generatedFromProfileVersion": 2,
+  "reason": "掌握度仍低于巩固阈值，已自动重规划。",
+  "tasks": [
+    {
+      "taskId": "task-postorder",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "durationMinutes": 45,
+      "status": "pending",
+      "priority": "high"
+    }
+  ]
+}

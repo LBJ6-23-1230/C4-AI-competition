@@ -1,0 +1,55 @@
+# ---- Python 运行时状态（首次启动自动重建，绝不入库）----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest-cache-files-*/
+.venv/
+venv/
+
+# ---- 密钥（绝不入库）----
+.env
+*.env
+!.env.example
+
+# ---- 运行期生成的数据 ----
+data/repository.json
+server/zhixue-agent-server/chat/history.json
+
+# ---- 自检产物 ----
+# ⚠️ 必须用 `.verify-tmp*/` 通配：自检脚本默认写到 `.verify-tmp/`，
+# 但手工跑 pytest 时常用 `--basetemp=.verify-tmp2`，只写 `.verify-tmp/`
+# 会漏掉它，于是 47 个 pytest 临时文件会被误提交（已在入库预演中实测到）。
+.verify-tmp*/
+.pt*/
+.pytest-tmp/
+
+# ---- HarmonyOS / DevEco Studio ----
+/node_modules
+/oh_modules
+**/oh_modules
+/local.properties
+/.arkui-x/android/local.properties
+/.idea
+**/build
+/.hvigor
+.cxx
+/.clangd
+/.clang-format
+/.clang-tidy
+**/.test
+/.appanalyzer
+/.preview
+/.arkui-x
+
+# ---- 文档与 AI 工具本地文件 ----
+*.docx
+/.codex
+/.agents
+/.tmp-ui-ux-power-skill
+/.tmp-ui-ux-pro-max-skill
+/docs/superpowers
+
+# ---- 本地 UI 检查临时产物 ----
+/layout.json
+/zhixue-*.jpeg
+~$*

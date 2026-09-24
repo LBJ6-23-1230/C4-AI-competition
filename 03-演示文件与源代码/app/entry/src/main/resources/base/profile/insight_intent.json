@@ -1,0 +1,10 @@
+{
+  "insightIntentsSrcEntry": [
+    {
+      "srcEntry": "./ets/insightintent/StartFocusIntent.ets"
+    },
+    {
+      "srcEntry": "./ets/insightintent/QueryTodayPlanIntent.ets"
+    }
+  ]
+}

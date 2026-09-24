@@ -1,0 +1,7 @@
+{
+  "courses": [
+    { "courseName": "数据结构",   "examDate": "2026-10-15", "priority": "高", "studyHours": 2, "status": "近期复习不足" },
+    { "courseName": "操作系统",   "examDate": "2026-10-22", "priority": "中", "studyHours": 5, "status": "近期复习正常" },
+    { "courseName": "计算机网络", "examDate": "2026-11-05", "priority": "低", "studyHours": 6, "status": "近期复习良好" }
+  ]
+}
