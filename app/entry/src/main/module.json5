@@ -1,0 +1,104 @@
+{
+  "module": {
+    "name": "entry",
+    "type": "entry",
+    "description": "$string:module_desc",
+    "mainElement": "EntryAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.MICROPHONE",
+        "reason": "$string:microphone_permission_reason",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.INTERNET",
+        "reason": "$string:internet_permission_reason"
+      },
+      {
+        // 分布式数据对象（distributedDataObject）跨设备同步必需。
+        // 依据本机 SDK 权限表 `toolchains/lib/PermissionDefinitions.json`：
+        //   ohos.permission.DISTRIBUTED_DATASYNC
+        //     grantMode              = user_grant   ← 需运行时向用户申请
+        //     availableLevel         = normal       ← 普通应用可申请
+        //     distributedSceneEnable = True         ← 专为分布式场景
+        "name": "ohos.permission.DISTRIBUTED_DATASYNC",
+        "reason": "$string:distributed_datasync_permission_reason",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "inuse"
+        }
+      },
+      {
+        // 读取网络/设备状态，供分布式同步状态提示使用。
+        // grantMode = system_grant（安装即授予，无需运行时申请）。
+        "name": "ohos.permission.GET_NETWORK_INFO"
+      }
+    ],
+    "pages": "$profile:main_pages",
+    // 模块级 metadata：华为账号（Account Kit）一键登录所需的 client_id。
+    //
+    // 值来自 AppGallery Connect：
+    //   项目 → 应用(知学Mate) → 「OAuth 2.0客户端ID（凭据）→ Client ID」
+    //   实测值 = 6917617022690149565（与 APP ID 相同，这是正常现象）
+    //
+    // ⚠️ **光配 client_id 还不够**，华为账号登录要三样齐备：
+    //   1. client_id                     ← 本处
+    //   2. SHA256 证书/公钥指纹           ← AGC「添加公钥指纹」；需先有签名证书(.cer)
+    //   3. 回调地址                       ← AGC OAuth 配置里填
+    //   缺第 2 项会导致 `executeRequest` 阶段签名校验失败
+    //   （`services/HuaweiAccountService.ets` 会把失败原因原样展示，不会静默降级）。
+    "metadata": [
+      {
+        "name": "client_id",
+        "value": "6917617022690149565"
+      }
+    ],
+    "abilities": [
+      {
+        "name": "EntryAbility",
+        "srcEntry": "./ets/entryability/EntryAbility.ets",
+        "description": "$string:EntryAbility_desc",
+        "icon": "$media:layered_image",
+        "label": "$string:EntryAbility_label",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true,
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "ohos.want.action.home"
+            ]
+          }
+        ]
+      }
+    ],
+    "extensionAbilities": [
+      {
+        "name": "LearningCardFormAbility",
+        "srcEntry": "./ets/entryformability/LearningCardFormAbility.ets",
+        "label": "$string:learning_card_display_name",
+        "description": "$string:learning_card_description",
+        "type": "form",
+        "metadata": [
+          {
+            "name": "ohos.extension.form",
+            "resource": "$profile:form_config"
+          }
+        ]
+      }
+    ]
+  }
+}

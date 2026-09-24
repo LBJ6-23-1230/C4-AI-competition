@@ -1,0 +1,3874 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Zhixue Mate Agent API",
+    "version": "api-contract-v0.3",
+    "description": "知学 Mate 前后端唯一接口契约。字段变更必须先升契约版本并通知前端。 声明层已于 2026-09-22 按实跑结果补全：补齐 5 个已实现端点、所有 operation 的 405、register 的 409、exercises 的 4 个查询参数与 400、knowledge-bases 的 400、可空字段的 nullable、版本头参数，并移除死枚举值 LLM_FALLBACK。实现未改动。 KnowledgeBaseDetailResponse.documents 已于 2026-09-22 补声明（后端返回、前端在读，此前契约未声明）。 LegacyChatResponse.card.summary 已于 2026-09-22 补声明（前端在读、后端已补返回，此前两边都缺）。"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "本地开发"
+    },
+    {
+      "url": "http://{host}:5000",
+      "description": "局域网联调",
+      "variables": {
+        "host": {
+          "default": "192.168.1.100"
+        }
+      }
+    }
+  ],
+  "security": [],
+  "paths": {
+    "/api/agent/chat": {
+      "post": {
+        "summary": "Legacy frontend-compatible chat entry",
+        "operationId": "legacyAgentChat",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegacyChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyChatResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/experiments/snapshot": {
+      "get": {
+        "summary": "Export an anonymous experiment snapshot",
+        "operationId": "getExperimentSnapshot",
+        "responses": {
+          "200": {
+            "description": "Versioned anonymous snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExperimentSnapshot"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/agent/proactive": {
+      "post": {
+        "summary": "根据学习上下文生成主动提醒决策",
+        "operationId": "proactiveDecision",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProactiveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "主动决策结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProactiveResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/agent/partner-match": {
+      "post": {
+        "summary": "使用确定性规则匹配学习搭子",
+        "operationId": "partnerMatch",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  },
+                  "user": {
+                    "type": "object"
+                  },
+                  "candidates": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "搭子匹配结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "userId",
+                    "matchedCandidate",
+                    "candidates",
+                    "generatedAt",
+                    "realModeUnavailable"
+                  ],
+                  "properties": {
+                    "userId": {
+                      "type": "string"
+                    },
+                    "matchedCandidate": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "candidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "realModeUnavailable": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/workflows": {
+      "post": {
+        "summary": "创建或继续学习工作流",
+        "operationId": "createWorkflow",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "工作流已创建或继续",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/workflows/{id}": {
+      "get": {
+        "summary": "读取工作流状态",
+        "operationId": "getWorkflow",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkflowId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "工作流状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowStatusResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{id}/run": {
+      "post": {
+        "summary": "推进一个工作流步骤",
+        "operationId": "runWorkflow",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkflowId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "工作流推进结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRunResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/{userId}": {
+      "get": {
+        "summary": "读取学习画像",
+        "operationId": "getProfile",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "学习画像",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/current": {
+      "get": {
+        "summary": "读取当前学习计划",
+        "operationId": "getCurrentPlan",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserIdQuery"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前计划",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exercises/{setId}/submit": {
+      "post": {
+        "summary": "提交练习并完成评估",
+        "operationId": "submitExercises",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ExerciseSetId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExerciseSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "评估结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseSubmitResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exercises/{setId}": {
+      "get": {
+        "summary": "获取练习题集",
+        "operationId": "getExerciseSet",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ExerciseSetId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          },
+          {
+            "name": "knowledgePointId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "按知识点过滤。与 difficulty/excludeExerciseId 任一存在时走筛选路径。"
+          },
+          {
+            "name": "difficulty",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "按难度过滤（如 easy / medium / hard）。"
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "返回题目数量上限，必须为正整数；非整数返回 400。缺省取 3。"
+          },
+          {
+            "name": "excludeExerciseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "要排除的题目 ID。可重复传递以排除多题。",
+            "style": "form",
+            "explode": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "练习题集",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseSetResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "count 非正整数等参数错误（errorCode=BAD_REQUEST）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans/{id}/diff": {
+      "get": {
+        "summary": "读取计划版本变化",
+        "operationId": "getPlanDiff",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PlanId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "计划差异",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDiffResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/traces/{traceId}": {
+      "get": {
+        "summary": "读取工作流轨迹",
+        "operationId": "getTrace",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TraceId"
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "轨迹事件列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/demo/reset": {
+      "post": {
+        "summary": "重置固定演示数据",
+        "operationId": "resetDemo",
+        "responses": {
+          "200": {
+            "description": "演示数据已重置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoResetResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "summary": "注册账号（昵称 + 年级，无需密码）",
+        "description": "注册即下发 userId 与 token，并为新账号预置一份空画像与起始计划。演示身份 demo-user 无需注册。",
+        "operationId": "authRegister",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "该手机号已注册（errorCode=CONFLICT）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "用已保存的 userId + token 恢复登录态",
+        "operationId": "authLogin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthLoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "退出登录（仅吊销当前 token）",
+        "operationId": "authLogout",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已退出",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "summary": "读取当前登录用户（前端启动时校验本地 token 是否仍有效）",
+        "operationId": "authMe",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前用户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/account": {
+      "delete": {
+        "summary": "注销账号（合规要求：标记停用并清空全部会话）",
+        "operationId": "authDeleteAccount",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "账号已注销",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/login-or-register": {
+      "post": {
+        "summary": "登录优先，注册兜底",
+        "description": "昵称已存在则登录该账号（不新建），不存在才建号。登录页主按钮应调此接口，避免同一昵称重复建号。",
+        "operationId": "loginOrRegister",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录了已有账号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthLoginOrRegisterResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "新建了账号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthLoginOrRegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases": {
+      "get": {
+        "summary": "列出当前用户的知识库",
+        "operationId": "listKnowledgeBases",
+        "tags": [
+          "knowledge"
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "知识库列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeBaseListResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "userId 等查询参数超出长度上限（errorCode=BAD_REQUEST）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "创建知识库（按课程）",
+        "operationId": "createKnowledgeBase",
+        "tags": [
+          "knowledge"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeBaseCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已创建",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeBase"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "同名知识库已存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases/{kbId}": {
+      "get": {
+        "summary": "知识库详情（含文档列表）",
+        "operationId": "getKnowledgeBase",
+        "tags": [
+          "knowledge"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeBaseDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "知识库不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除知识库（连同文档与切片）",
+        "operationId": "deleteKnowledgeBase",
+        "tags": [
+          "knowledge"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已删除",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "知识库不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge-bases/{kbId}/documents": {
+      "get": {
+        "summary": "列出知识库下的文档",
+        "operationId": "listKnowledgeDocuments",
+        "tags": [
+          "knowledge"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "文档列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeDocumentListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "知识库不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "上传文档并解析（第一期支持 TXT/MD/CSV/JSON）",
+        "operationId": "uploadKnowledgeDocument",
+        "tags": [
+          "knowledge"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeDocumentUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "已受理；解析结果在 status 字段（ready / failed）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeDocument"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误或超出上限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "知识库不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{documentId}": {
+      "get": {
+        "summary": "文档详情",
+        "operationId": "getKnowledgeDocument",
+        "tags": [
+          "knowledge"
+        ],
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeDocument"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "文档不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除文档（连同其切片）",
+        "operationId": "deleteKnowledgeDocument",
+        "tags": [
+          "knowledge"
+        ],
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "已删除",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "文档不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge-bases/{kbId}/search": {
+      "post": {
+        "summary": "在知识库内检索（第一期：关键词 + 标签）",
+        "operationId": "searchKnowledgeBase",
+        "tags": [
+          "knowledge"
+        ],
+        "parameters": [
+          {
+            "name": "kbId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "命中片段",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeSearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "知识库不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login-with-huawei": {
+      "post": {
+        "summary": "华为账号一键登录（登录优先，注册兜底）",
+        "description": "客户端用 @kit.AccountKit 取得 OpenID 后调用本接口。首次登录自动建号，用户无需填昵称/手机号/验证码。⚠️ 本接口**不校验 OpenID 真伪**（需服务端调华为接口验签），当前定位为演示可用、生产需补验签，见 docs/13。",
+        "operationId": "loginWithHuawei",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthHuaweiLoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录了已有账号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthLoginOrRegisterResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "首次登录，已自动建号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthLoginOrRegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "缺少 openId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/send-code": {
+      "post": {
+        "summary": "发送手机号验证码（开发模式回显）",
+        "description": "同号 60 秒内限发一次，滚动 24 小时最多 10 次。未配置短信服务商时仅在非生产环境回显 devCode，smsDelivered=false，绝不伪装已发送。",
+        "operationId": "authSendCode",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneCodeSendRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "验证码已签发",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhoneCodeSendResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "手机号格式错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "触发重发或每日限流，或手机号处于锁定状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "短信服务未接入或生产环境未配置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/verify-code": {
+      "post": {
+        "summary": "校验验证码并登录或自动注册",
+        "description": "验证码成功后立即失效；手机号已存在则登录，不存在则创建账号并预置起始画像。",
+        "operationId": "authVerifyCode",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneCodeVerifyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录已有账号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthLoginOrRegisterResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "验证码通过并新建账号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthLoginOrRegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "验证码错误、过期、已使用或参数非法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "手机号因连续错误被锁定",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "请求方法不被该路径支持（后端统一返回 JSON 错误体，而非 HTML）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "存活探针",
+        "description": "最轻量的存活检查，仅返回 status。供负载均衡/脚本轮询使用。",
+        "responses": {
+          "200": {
+            "description": "服务存活",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "服务自述",
+        "description": "返回服务名、契约版本、分层说明与 LLM 配置概览。供人工核对部署是否正确。",
+        "responses": {
+          "200": {
+            "description": "服务自述",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "type": "string"
+                    },
+                    "contractVersion": {
+                      "type": "string"
+                    },
+                    "layers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "llm": {
+                      "type": "object"
+                    },
+                    "auth": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/health": {
+      "get": {
+        "summary": "对话层健康检查",
+        "description": "前端「接口环境」页的连通性探针。**刻意不做契约版本校验** —— 否则前端在版本不匹配时会把 409 误判成「后端不可用」。",
+        "responses": {
+          "200": {
+            "description": "对话层状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "llm_ready"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "llm_ready": {
+                      "type": "boolean"
+                    },
+                    "provider": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": "string"
+                    },
+                    "baseUrl": {
+                      "type": "string"
+                    },
+                    "contractVersion": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/history": {
+      "get": {
+        "summary": "读取当前身份的对话历史",
+        "description": "按身份隔离（已登录用登录身份）。联调脚本用它验证跨用户隔离。",
+        "responses": {
+          "200": {
+            "description": "对话历史",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "userId",
+                    "history"
+                  ],
+                  "properties": {
+                    "userId": {
+                      "type": "string"
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "清空当前身份的对话历史",
+        "responses": {
+          "200": {
+            "description": "已清空",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "userId",
+                    "status"
+                  ],
+                  "properties": {
+                    "userId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/user-data": {
+      "get": {
+        "summary": "读取当前身份的全部业务数据",
+        "description": "供前端启动时一次性拉取用户/课程/候选人/错题。",
+        "responses": {
+          "200": {
+            "description": "业务数据",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "object"
+                    },
+                    "courses": {
+                      "type": "object"
+                    },
+                    "candidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "wrong_questions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "可选鉴权。/api/v1/** 不带 token 时按演示/游客身份（demo-user）处理，以保证演示主链不受影响。"
+      }
+    },
+    "parameters": {
+      "WorkflowId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "UserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "UserIdQuery": {
+        "name": "userId",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "default": "demo-user"
+        }
+      },
+      "ExerciseSetId": {
+        "name": "setId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "PlanId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "TraceId": {
+        "name": "traceId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ContractVersionHeader": {
+        "name": "X-API-Contract-Version",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "接口契约版本闸门。**可选**：不带头时后端放行；带上但值不等于当前版本时返回 409 CONTRACT_VERSION_MISMATCH。当前版本见 info.version。"
+      }
+    },
+    "schemas": {
+      "LegacyChatRequest": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "user_message": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          }
+        }
+      },
+      "LegacyChatResponse": {
+        "type": "object",
+        "required": [
+          "reply",
+          "intent",
+          "card"
+        ],
+        "properties": {
+          "reply": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "analyze_wrong",
+              "query_tasks",
+              "analyze_weakness",
+              "match_partner",
+              "update_profile",
+              "get_suggestion"
+            ]
+          },
+          "card": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "actionLabel": {
+                "type": "string"
+              },
+              "targetPage": {
+                "type": "string"
+              },
+              "sessionId": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string",
+                "description": "卡片的一行描述，由前端渲染在卡片标题下方。后端 `build_card()` 按意图给出；缺失会导致描述行空白。"
+              }
+            },
+            "description": "意图对应的结构化卡片；targetPage 必须是 App 已注册路由。"
+          },
+          "llmUsed": {
+            "type": "boolean",
+            "description": "true=大模型生成；false=本地确定性规则兜底（未配置 Key 或调用失败）。前端 ChatMain 据此显示来源标签。"
+          }
+        }
+      },
+      "ExperimentSnapshot": {
+        "type": "object",
+        "required": [
+          "snapshotVersion",
+          "generatedAt",
+          "summary",
+          "traces",
+          "submissions",
+          "evidences",
+          "planDiffs"
+        ],
+        "properties": {
+          "snapshotVersion": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "summary": {
+            "type": "object"
+          },
+          "traces": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "submissions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "evidences": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "planDiffs": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "WorkflowCreateRequest": {
+        "type": "object",
+        "required": [
+          "goal"
+        ],
+        "properties": {
+          "goal": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "default": "demo-user"
+          },
+          "maxSteps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 6
+          },
+          "autoRun": {
+            "type": "boolean",
+            "default": false,
+            "description": "创建后立即推进工作流；可与 /run 两阶段模式并存。"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "exerciseId",
+                "answer"
+              ]
+            }
+          }
+        }
+      },
+      "WorkflowResponse": {
+        "type": "object",
+        "required": [
+          "sessionId",
+          "traceId",
+          "status",
+          "currentStep",
+          "nextAction"
+        ],
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "completed",
+              "error",
+              "failed",
+              "fallback"
+            ]
+          },
+          "currentStep": {
+            "type": "string"
+          },
+          "nextAction": {
+            "type": "string"
+          }
+        }
+      },
+      "WorkflowStatusResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "currentAgent",
+          "stateVersion",
+          "finalAction"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "currentAgent": {
+            "type": "string",
+            "nullable": true
+          },
+          "stateVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "finalAction": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "WorkflowRunRequest": {
+        "type": "object",
+        "properties": {
+          "submissionId": {
+            "type": "string",
+            "description": "复用练习提交接口已生成的评估结果，避免重复写入画像。"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "exerciseId",
+                "answer"
+              ],
+              "properties": {
+                "exerciseId": {
+                  "type": "string"
+                },
+                "answer": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "WorkflowRunResponse": {
+        "type": "object",
+        "required": [
+          "sessionId",
+          "traceId",
+          "status",
+          "currentStep",
+          "currentAgent",
+          "stateVersion"
+        ],
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "currentStep": {
+            "type": "string"
+          },
+          "currentAgent": {
+            "type": "string"
+          },
+          "stateVersion": {
+            "type": "integer"
+          },
+          "finalAction": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "object"
+          }
+        }
+      },
+      "KnowledgeMastery": {
+        "type": "object",
+        "required": [
+          "knowledgePointId",
+          "knowledgePointName",
+          "masteryScore",
+          "confidence",
+          "lastUpdated"
+        ],
+        "properties": {
+          "knowledgePointId": {
+            "type": "string"
+          },
+          "knowledgePointName": {
+            "type": "string"
+          },
+          "masteryScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LearnerProfile": {
+        "type": "object",
+        "required": [
+          "userId",
+          "goal",
+          "examDate",
+          "freeTimeSlots",
+          "profileVersion"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "examDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "freeTimeSlots": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "profileVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "mastery": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeMastery"
+            }
+          }
+        }
+      },
+      "Evidence": {
+        "type": "object",
+        "required": [
+          "id",
+          "sourceType",
+          "sourceId",
+          "knowledgePointId",
+          "metric",
+          "value",
+          "timestamp",
+          "reliability"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sourceType": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "knowledgePointId": {
+            "type": "string"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "value": {},
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reliability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "ProfileResponse": {
+        "type": "object",
+        "required": [
+          "profileVersion",
+          "mastery",
+          "history",
+          "evidence"
+        ],
+        "properties": {
+          "profileVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "profile": {
+            "$ref": "#/components/schemas/LearnerProfile"
+          },
+          "mastery": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeMastery"
+            }
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            }
+          }
+        }
+      },
+      "PlanTask": {
+        "type": "object",
+        "required": [
+          "taskId",
+          "knowledgePointId",
+          "knowledgePointName",
+          "durationMinutes",
+          "status"
+        ],
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "knowledgePointId": {
+            "type": "string"
+          },
+          "knowledgePointName": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed"
+            ]
+          },
+          "priority": {
+            "type": "string"
+          }
+        }
+      },
+      "LearningPlan": {
+        "type": "object",
+        "required": [
+          "planId",
+          "version",
+          "tasks",
+          "generatedFromProfileVersion"
+        ],
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanTask"
+            }
+          },
+          "factors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriorityFactor"
+            }
+          },
+          "reason": {
+            "type": "string"
+          },
+          "generatedFromProfileVersion": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "PlanResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LearningPlan"
+          }
+        ]
+      },
+      "Exercise": {
+        "type": "object",
+        "required": [
+          "exerciseId",
+          "knowledgePointId",
+          "knowledgePointName",
+          "stem",
+          "options"
+        ],
+        "properties": {
+          "exerciseId": {
+            "type": "string"
+          },
+          "knowledgePointId": {
+            "type": "string"
+          },
+          "knowledgePointName": {
+            "type": "string"
+          },
+          "difficulty": {
+            "type": "string"
+          },
+          "stem": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
+      "ExerciseSetResponse": {
+        "type": "object",
+        "required": [
+          "setId",
+          "exercises"
+        ],
+        "properties": {
+          "setId": {
+            "type": "string"
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Exercise"
+            },
+            "description": "固定 Demo 返回 3 道题；无可用题目时允许为空数组。"
+          }
+        }
+      },
+      "ExerciseSubmitRequest": {
+        "type": "object",
+        "required": [
+          "idempotencyKey",
+          "answers"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "default": "demo-user"
+          },
+          "sessionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "description": "客户端为本次提交生成的稳定唯一键；重复使用同一键不会产生重复写入。"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "exerciseId",
+                "answer"
+              ],
+              "properties": {
+                "exerciseId": {
+                  "type": "string"
+                },
+                "answer": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "AssessmentResult": {
+        "type": "object",
+        "required": [
+          "score",
+          "perKnowledgeAccuracy",
+          "errorTypes",
+          "oldMastery",
+          "suggestedNewMastery"
+        ],
+        "properties": {
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "perKnowledgeAccuracy": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "errorTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "oldMastery": {
+            "type": "number"
+          },
+          "suggestedNewMastery": {
+            "type": "number"
+          }
+        }
+      },
+      "ExerciseSubmitResponse": {
+        "type": "object",
+        "required": [
+          "userId",
+          "submissionId",
+          "assessment",
+          "masteryUpdate",
+          "needReplan",
+          "traceId",
+          "evidenceIds",
+          "replanDecision"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "submissionId": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          },
+          "evidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "replanDecision": {
+            "$ref": "#/components/schemas/ReplanDecision"
+          },
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentResult"
+          },
+          "masteryUpdate": {
+            "type": "object",
+            "required": [
+              "knowledgePointId",
+              "oldScore",
+              "newScore"
+            ],
+            "properties": {
+              "knowledgePointId": {
+                "type": "string"
+              },
+              "oldScore": {
+                "type": "number"
+              },
+              "newScore": {
+                "type": "number"
+              }
+            }
+          },
+          "needReplan": {
+            "type": "boolean"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/LearningPlan"
+          },
+          "planDiff": {
+            "$ref": "#/components/schemas/PlanDiffResponse"
+          }
+        }
+      },
+      "ReplanDecision": {
+        "type": "object",
+        "required": [
+          "needReplan",
+          "reasons"
+        ],
+        "properties": {
+          "needReplan": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PriorityFactor": {
+        "type": "object",
+        "required": [
+          "name",
+          "value",
+          "weight",
+          "contribution"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "归一化为 0~1。"
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "contribution": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "ProactiveRequest": {
+        "type": "object",
+        "required": [
+          "userId",
+          "context"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "context": {
+            "type": "object",
+            "properties": {
+              "now": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "location": {
+                "type": "string",
+                "nullable": true
+              },
+              "foreground": {
+                "type": "boolean"
+              },
+              "lastStudyAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "focusSessionActive": {
+                "type": "boolean"
+              },
+              "masteryScore": {
+                "type": "number",
+                "nullable": true,
+                "description": "当前薄弱知识点掌握度；<80 且 daysLeft<=7 时参与考试类提醒判断"
+              },
+              "errorIntensity": {
+                "type": "number",
+                "nullable": true,
+                "description": "错误强度，参与优先级五因子计算"
+              },
+              "daysLeft": {
+                "type": "integer",
+                "nullable": true,
+                "description": "最近考试倒计时天数"
+              },
+              "importance": {
+                "type": "number",
+                "nullable": true,
+                "description": "知识点重要度，参与优先级五因子计算"
+              },
+              "pendingTasks": {
+                "type": "array",
+                "nullable": true,
+                "items": {
+                  "$ref": "#/components/schemas/PendingTaskSignal"
+                },
+                "description": "待办 DDL 列表。缺失时 pending_ddl_within_2d 触发路径不可达。"
+              }
+            }
+          }
+        }
+      },
+      "ProactiveResponse": {
+        "type": "object",
+        "required": [
+          "userId",
+          "shouldNotify",
+          "channel",
+          "title",
+          "body",
+          "action",
+          "contextTags",
+          "reason",
+          "factors",
+          "cardData"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "shouldNotify": {
+            "type": "boolean"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "reminder",
+              "silent"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "action": {
+            "type": "object",
+            "required": [
+              "type",
+              "label",
+              "targetPage",
+              "preset"
+            ],
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "targetPage": {
+                "type": "string"
+              },
+              "preset": {
+                "type": "object"
+              }
+            }
+          },
+          "contextTags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string"
+          },
+          "factors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriorityFactor"
+            }
+          },
+          "cardData": {
+            "type": "object",
+            "required": [
+              "taskName",
+              "knowledgePointId",
+              "durationMinutes",
+              "examCountdownDays",
+              "hint"
+            ],
+            "properties": {
+              "taskName": {
+                "type": "string"
+              },
+              "knowledgePointId": {
+                "type": "string"
+              },
+              "durationMinutes": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "examCountdownDays": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "hint": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "PlanDiffResponse": {
+        "type": "object",
+        "required": [
+          "oldVersion",
+          "newVersion",
+          "changedTasks",
+          "adjustmentReason",
+          "triggerEvidence"
+        ],
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "oldVersion": {
+            "type": "integer"
+          },
+          "newVersion": {
+            "type": "integer"
+          },
+          "changedTasks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "adjustmentReason": {
+            "type": "string"
+          },
+          "triggerEvidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TraceEvent": {
+        "type": "object",
+        "required": [
+          "agent",
+          "toolCalls",
+          "inputSummary",
+          "outputSummary",
+          "evidenceIds",
+          "stateVersion",
+          "timestamp",
+          "status"
+        ],
+        "properties": {
+          "agent": {
+            "type": "string"
+          },
+          "toolCalls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "inputSummary": {
+            "type": "string"
+          },
+          "outputSummary": {
+            "type": "string"
+          },
+          "evidenceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "stateVersion": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "TraceResponse": {
+        "type": "object",
+        "required": [
+          "traceId",
+          "events"
+        ],
+        "properties": {
+          "traceId": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceEvent"
+            }
+          }
+        }
+      },
+      "DemoResetResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "userId",
+          "profile",
+          "plan",
+          "traceId"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "reset"
+            ]
+          },
+          "userId": {
+            "type": "string",
+            "example": "demo-user"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/LearnerProfile"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/LearningPlan"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthRegisterRequest": {
+        "type": "object",
+        "required": [
+          "nickname",
+          "phone"
+        ],
+        "properties": {
+          "nickname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16,
+            "description": "昵称，去除首尾空白后不能为空"
+          },
+          "grade": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "大一",
+              "大二",
+              "大三",
+              "大四",
+              "大五",
+              "研一",
+              "研二",
+              "研三",
+              "博士"
+            ],
+            "description": "年级，可选"
+          },
+          "phone": {
+            "type": "string",
+            "description": "手机号。注册必填；生产登录应先调用 send-code + verify-code。当前 /auth/login 的免验证码手机号登录保留给演示与单机环境。"
+          }
+        }
+      },
+      "AuthLoginRequest": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string",
+            "nullable": true,
+            "description": "按昵称免密登录。与 userId/token 二选一；两者都提供时优先按凭据恢复。昵称不是秘密，此形式仅适用于演示/单机场景。"
+          },
+          "phone": {
+            "type": "string",
+            "description": "按手机号登录。与 userId/token、nickname 三选一；分派优先级：凭据 > 手机号 > 昵称。"
+          }
+        }
+      },
+      "AuthUser": {
+        "type": "object",
+        "required": [
+          "userId",
+          "nickname"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "grade": {
+            "type": "string"
+          },
+          "authProvider": {
+            "type": "string",
+            "enum": [
+              "local",
+              "guest",
+              "agc_phone",
+              "agc_anonymous"
+            ],
+            "description": "认证来源。local = 本服务免密注册；guest = 演示/游客身份（demo-user）"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "lastLoginAt": {
+            "type": "string"
+          },
+          "phoneMasked": {
+            "type": "string",
+            "description": "脱敏手机号（138****0000）。服务端**不回传完整号码**。"
+          },
+          "hasPhone": {
+            "type": "boolean",
+            "description": "是否已绑定手机号"
+          }
+        },
+        "description": "对外用户视图。绝不包含 token 或第三方 authSubject——手机号等敏感信息不落明文。"
+      },
+      "AuthSessionResponse": {
+        "type": "object",
+        "required": [
+          "user",
+          "token",
+          "expiresAt"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          },
+          "token": {
+            "type": "string",
+            "description": "长期会话票据（默认 30 天）。存设备 preferences，请求时放入 Authorization: Bearer"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AuthUserResponse": {
+        "type": "object",
+        "required": [
+          "user"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          }
+        }
+      },
+      "AuthStatusResponse": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "deactivated"
+            ]
+          },
+          "userId": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "errorCode",
+          "message"
+        ],
+        "properties": {
+          "errorCode": {
+            "type": "string",
+            "enum": [
+              "BAD_REQUEST",
+              "NOT_FOUND",
+              "CONFLICT",
+              "VALIDATION_ERROR",
+              "UNAUTHORIZED",
+              "CONTRACT_VERSION_MISMATCH",
+              "INTERNAL_ERROR",
+              "RATE_LIMITED",
+              "DAILY_LIMIT_REACHED",
+              "PHONE_LOCKED",
+              "INVALID_CODE",
+              "CODE_EXPIRED",
+              "CODE_NOT_FOUND",
+              "SMS_NOT_CONFIGURED",
+              "SMS_PROVIDER_UNAVAILABLE"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "PendingTaskSignal": {
+        "type": "object",
+        "description": "待办 DDL 信号。后端据 daysLeft 与 started 判断是否临近截止，并用 title 生成通知正文。",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "description": "in_progress / completed 视为已开始"
+          },
+          "started": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "显式「已开始」标志，与 status 取或"
+          },
+          "daysLeft": {
+            "type": "integer",
+            "nullable": true,
+            "description": "距 DDL 天数；<=2 且未开始时触发 pending_ddl_within_2d"
+          },
+          "knowledgePointId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AuthLoginOrRegisterResponse": {
+        "type": "object",
+        "required": [
+          "user",
+          "token",
+          "expiresAt",
+          "created"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          },
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created": {
+            "type": "boolean",
+            "description": "true=本次新建账号；false=登录了已有账号"
+          }
+        }
+      },
+      "KnowledgeBase": {
+        "type": "object",
+        "required": [
+          "kbId",
+          "userId",
+          "courseName",
+          "name"
+        ],
+        "properties": {
+          "kbId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "courseName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "documentCount": {
+            "type": "integer"
+          },
+          "chunkCount": {
+            "type": "integer"
+          },
+          "knowledgePoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        }
+      },
+      "KnowledgeDocument": {
+        "type": "object",
+        "required": [
+          "documentId",
+          "kbId",
+          "userId",
+          "fileName",
+          "status"
+        ],
+        "properties": {
+          "documentId": {
+            "type": "string"
+          },
+          "kbId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "failed"
+            ]
+          },
+          "statusMessage": {
+            "type": "string",
+            "description": "失败时的可读原因；成功时为空字符串"
+          },
+          "charCount": {
+            "type": "integer"
+          },
+          "chunkCount": {
+            "type": "integer"
+          },
+          "knowledgePoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "errorPointCandidates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "uploadedAt": {
+            "type": "string"
+          },
+          "parsedAt": {
+            "type": "string"
+          }
+        }
+      },
+      "KnowledgeChunkHit": {
+        "type": "object",
+        "required": [
+          "chunkId",
+          "documentId",
+          "text",
+          "score"
+        ],
+        "properties": {
+          "chunkId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "headingPath": {
+            "type": "string",
+            "description": "标题层级路径，如「第3章 > 3.2.3 后序遍历」；引用标注依赖它"
+          },
+          "text": {
+            "type": "string"
+          },
+          "knowledgePoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      },
+      "KnowledgeBaseListResponse": {
+        "type": "object",
+        "required": [
+          "knowledgeBases",
+          "total"
+        ],
+        "properties": {
+          "knowledgeBases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeBase"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "KnowledgeDocumentListResponse": {
+        "type": "object",
+        "required": [
+          "kbId",
+          "documents",
+          "total"
+        ],
+        "properties": {
+          "kbId": {
+            "type": "string"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeDocument"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "KnowledgeBaseDetailResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/KnowledgeBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "documents"
+            ],
+            "properties": {
+              "documents": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "documentId",
+                    "kbId",
+                    "userId",
+                    "fileName",
+                    "status"
+                  ],
+                  "properties": {
+                    "documentId": {
+                      "type": "string"
+                    },
+                    "kbId": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "mimeType": {
+                      "type": "string"
+                    },
+                    "sizeBytes": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusMessage": {
+                      "type": "string"
+                    },
+                    "charCount": {
+                      "type": "integer"
+                    },
+                    "chunkCount": {
+                      "type": "integer"
+                    },
+                    "knowledgePoints": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "errorPointCandidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "uploadedAt": {
+                      "type": "string"
+                    },
+                    "parsedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "description": "该知识库下的文档列表。后端 `get_knowledge_base()` 会一并返回；前端 `KnowledgeBase.ets` 据此渲染文档列表。"
+              }
+            }
+          }
+        ]
+      },
+      "KnowledgeSearchRequest": {
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "topK": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "knowledgePointId": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "KnowledgeSearchResponse": {
+        "type": "object",
+        "required": [
+          "kbId",
+          "query",
+          "hits",
+          "totalScanned",
+          "retrievalMode",
+          "semanticAvailable",
+          "semanticWeight"
+        ],
+        "properties": {
+          "kbId": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeChunkHit"
+            }
+          },
+          "totalScanned": {
+            "type": "integer"
+          },
+          "retrievalMode": {
+            "type": "string",
+            "enum": [
+              "keyword+tag",
+              "vector",
+              "hybrid:semantic+keyword+tag"
+            ],
+            "description": "**实际**使用的检索方式，诚实标注以便答辩解释：\n* `keyword+tag` —— 纯关键词 + 标签 + 标题层级（未配置 DASHSCOPE_API_KEY，或向量调用失败时的降级路径）\n* `hybrid:semantic+keyword+tag` —— embedding 语义相似度与关键词分加权融合\n* `vector` —— 预留：将来若改为纯向量检索"
+          },
+          "semanticAvailable": {
+            "type": "boolean",
+            "description": "是否具备语义检索条件（即是否配置了 DASHSCOPE_API_KEY）。注意它是**能力**标志，不是本次是否真的用上了。"
+          },
+          "semanticWeight": {
+            "type": "number",
+            "description": "本次语义分在融合得分里的权重（0–1）。降级为纯关键词时为 0，可据此判断语义是否真的参与打分。"
+          }
+        }
+      },
+      "KnowledgeDocumentUploadRequest": {
+        "type": "object",
+        "required": [
+          "fileName",
+          "contentBase64"
+        ],
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "只取最后一段，服务端会剥离路径部分"
+          },
+          "contentBase64": {
+            "type": "string",
+            "description": "文件内容 base64，上限 8MB"
+          },
+          "mimeType": {
+            "type": "string",
+            "nullable": true
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "KnowledgeBaseCreateRequest": {
+        "type": "object",
+        "required": [
+          "courseName",
+          "name"
+        ],
+        "properties": {
+          "courseName": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AuthHuaweiLoginRequest": {
+        "type": "object",
+        "required": [
+          "openId"
+        ],
+        "properties": {
+          "openId": {
+            "type": "string",
+            "description": "华为账号 OpenID（应用内唯一）。由客户端 @kit.AccountKit 的 LoginWithHuaweiIDRequest 取得。"
+          },
+          "unionId": {
+            "type": "string",
+            "nullable": true,
+            "description": "华为账号 UnionID（开发者账号内唯一），保留用于多应用打通"
+          },
+          "nickname": {
+            "type": "string",
+            "nullable": true
+          },
+          "grade": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PhoneCodeSendRequest": {
+        "type": "object",
+        "required": [
+          "phone"
+        ],
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "11 位中国大陆手机号，支持 +86 与分隔符写法"
+          }
+        }
+      },
+      "PhoneCodeSendResponse": {
+        "type": "object",
+        "required": [
+          "phoneMasked",
+          "expiresInSeconds",
+          "resendAfterSeconds",
+          "smsDelivered"
+        ],
+        "properties": {
+          "phoneMasked": {
+            "type": "string",
+            "example": "138****0000"
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "example": 300
+          },
+          "resendAfterSeconds": {
+            "type": "integer",
+            "example": 60
+          },
+          "smsDelivered": {
+            "type": "boolean",
+            "description": "true 才表示短信服务商已实际发送"
+          },
+          "devCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "仅开发模式回显；生产模式绝不返回"
+          }
+        }
+      },
+      "PhoneCodeVerifyRequest": {
+        "type": "object",
+        "required": [
+          "phone",
+          "code"
+        ],
+        "properties": {
+          "phone": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "description": "6 位数字验证码，一次性使用"
+          },
+          "nickname": {
+            "type": "string",
+            "nullable": true,
+            "description": "仅首次自动注册时使用；缺省为“用户+手机号后四位”"
+          },
+          "grade": {
+            "type": "string",
+            "nullable": true,
+            "description": "仅首次自动注册时使用"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "请求参数错误",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "资源不存在",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "幂等键冲突或状态冲突",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未登录或登录已失效",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "服务内部错误",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  }
+}

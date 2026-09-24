@@ -1,0 +1,23 @@
+{
+  "src": [
+    "pages/ChatMain",
+    "pages/Login",
+    "pages/Account",
+    "pages/CourseImport",
+    "pages/Index",
+    "pages/StudySuggestion",
+    "pages/WrongQuestion",
+    "pages/StudyTags",
+    "pages/ExercisePractice",
+    "pages/ApiEnvironment",
+    "pages/AgentTrace",
+    "pages/PartnerMatch",
+    "pages/StudyPlan",
+    "pages/ReviewSummary",
+    "pages/FocusSetup",
+    "pages/FocusTimer",
+    "pages/FocusResult",
+    "pages/LearningHistory",
+    "pages/KnowledgeBase"
+  ]
+}
