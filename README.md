@@ -11,7 +11,7 @@ HarmonyOS 原生应用 · ArkTS 前端 + Python Agent 后端
 [![Frontend](https://img.shields.io/badge/Frontend-ArkTS-10B981?style=flat-square)]()
 [![Backend](https://img.shields.io/badge/Backend-Python%203.12%20%2B%20Flask-B45309?style=flat-square)]()
 [![Contract](https://img.shields.io/badge/Contract-api--contract--v0.3-0F766E?style=flat-square)]()
-[![Tests](https://img.shields.io/badge/Tests-320%20passed-16A34A?style=flat-square)]()
+[![Tests](https://img.shields.io/badge/Tests-327%20passed-16A34A?style=flat-square)]()
 [![Integration](https://img.shields.io/badge/Integration-95%2F95-16A34A?style=flat-square)]()
 
 **2026 中国高校计算机大赛 · 人工智能创意赛 · 鸿蒙赛道 · Agent 创新方向**
@@ -39,7 +39,7 @@ HarmonyOS 原生应用 · ArkTS 前端 + Python Agent 后端
 >
 > 三轮独立 Bug 审计报告：[`项目文档/28-全项目Bug审计报告.md`](项目文档/28-全项目Bug审计报告.md)
 >
-> 已验证：**`pytest 320 passed`** + **联调 95/95** + **演示基线零漂移**
+> 已验证：**`pytest 327 passed`** + **联调 95/95** + **演示基线零漂移**
 > （66.67 / 全错 0.0 / 42→58 / [30,30]→[45,15]）
 
 ---
@@ -80,7 +80,7 @@ git clone https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
 | 项 | 结果 |
 |---|---|
 | 契约一致性闸门 | ✅ **逐字节一致**（`api-contract-v0.3`，**109,269 B** / 33 端点 / 51 schema / 15 错误码） |
-| 后端单元测试 | ✅ **320 项全绿** |
+| 后端单元测试 | ✅ **327 项全绿** |
 | HTTP 实跑联调 | ✅ **95 / 95（100%）**，退出码 **0** |
 | 演示基线 | ✅ **零漂移**（66.67 / 全错 0.0 / 42→58 / [30,30]→[45,15] / [1,2]） |
 | ArkTS 编译 | ✅ **全量重编 0 编译错误**，产物 2.25 MB |
@@ -407,7 +407,7 @@ python integration\run_liantiao5.py --port 5097
 | 环节 | 内容 |
 |---|---|
 | ⓪ 契约闸门 | 真源与镜像逐字节一致（`api-contract-v0.3`，82,149 B） |
-| ① 后端单元测试 | **320 passed / 0 failed** |
+| ① 后端单元测试 | **327 passed / 0 failed** |
 | ② HTTP 实跑联调 | **95 / 95（100%）** |
 | ③ 演示基线 | 6 项数值全部命中，零漂移 |
 | ④ 数据洁净 | 三份数据文件前后**逐字节不变** |
@@ -439,7 +439,7 @@ python integration\run_liantiao5.py --port 5097 --llm-mode live
 | 范围 | 状态 |
 |---|---|
 | 后端逻辑、契约、判分、Agent 循环 | ✅ 真实 HTTP 实跑验证（95/95） |
-| 后端单元测试 | ✅ `320 passed` |
+| 后端单元测试 | ✅ `327 passed` |
 | 契约一致性 | ✅ 逐字节一致（82,149 B） |
 | 真模型 live 模式 | ✅ 11 轮 × 95/95，基线零漂移 |
 | 前端编译 | ✅ `BUILD SUCCESSFUL`，**`[ERROR]` 级 0 条 / ArkTS 编译错误 0 条** |

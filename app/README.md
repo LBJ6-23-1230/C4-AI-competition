@@ -18,7 +18,7 @@
 | ArkTS 主 HAP | ✅ 真实 Hvigor 全量构建通过，**0 编译错误** |
 | 注册页面 | **19 个**（见 `entry/src/main/resources/base/profile/main_pages.json`） |
 | 联调验证 | ✅ **95 / 95**（`integration/run_liantiao5.py`） |
-| 后端单元测试 | ✅ **320 passed** |
+| 后端单元测试 | ✅ **327 passed** |
 | 签名 HAP | ✅ `verify-app success`，release Profile 有效至 2029-09-21 |
 | 模拟器安装运行 | ✅ `install bundle successfully` → 正常进入应用 |
 | API 契约 | `contracts/openapi.json`，版本 `api-contract-v0.3`（与 `app/contracts/` 逐字节一致） |

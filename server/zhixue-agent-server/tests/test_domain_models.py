@@ -580,7 +580,13 @@ def test_plan_diff_api_uses_contract_field_names(tmp_path):
 
     diff = client.get("/api/v1/plans/plan-demo-001/diff").get_json()
 
-    assert diff["adjustmentReason"] == "掌握度低于阈值"
+    # 本测试的意图是**校验契约字段名**（见函数名），不是固化文案。
+    # 文案在 2026-09-23 更新过：原先固定写「掌握度低于阈值」，但重规划的时长
+    # 分配其实是**按本次得分分级**的（得分越低，薄弱点任务分到越多）。
+    # 由前端同学实测发现"不管错多少都是 [45,15]"，修好后文案也如实说明依据。
+    # 契约对 adjustmentReason 只要求是 string，故这里放宽为"说明得分依据"。
+    assert diff["adjustmentReason"].startswith("按本次得分")
+    assert "66.67" in diff["adjustmentReason"]
     assert diff["triggerEvidence"]
     assert "reason" not in diff
 

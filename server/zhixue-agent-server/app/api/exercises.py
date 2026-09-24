@@ -220,13 +220,17 @@ def submit_exercises(set_id: str):
 					plan = plan or (plans[0] if plans else None)
 					if plan is not None:
 						replan_result = replan_learning_path(plan, {"masteryScore": report_new,
-							"knowledgePointId": report_point, "repeatedError": score < 80})
+							"knowledgePointId": report_point, "repeatedError": score < 80,
+							# 传得分才能按错误程度分级加时；不传则回退到固定 ±15
+							"assessmentScore": score})
 						updated_plan = replan_result["plan"]
 						updated_tasks = updated_plan["tasks"]
 						new_plan = LearningPlan(plan["planId"], updated_plan["version"], updated_tasks,
 							profile_model_dict["profileVersion"], "根据练习结果重规划")
 						_repository.save("plans", new_plan.plan_id, new_plan.to_dict())
-						history = create_plan_history(plan, new_plan.to_dict(), "掌握度低于阈值", [evidence_id])
+						history = create_plan_history(plan, new_plan.to_dict(),
+                            "按本次得分 %.2f 重分配时间：薄弱点加时、其余任务减时" % score,
+                            [evidence_id])
 						history.update({"planId": new_plan.plan_id,
 							"adjustmentReason": history["reason"],
 							"triggerEvidence": history["evidenceIds"]})

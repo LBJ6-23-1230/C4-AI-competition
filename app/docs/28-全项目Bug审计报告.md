@@ -379,7 +379,7 @@ history 记一条 —— 但 `perKnowledgeAccuracy` 为空、`persist_mastery` �
 | 是否修改了工程 | 全部为只读（read / grep / 只读命令），工作区文件由审计员零改动 |
 | 实跑的数据落哪 | 全部重定向到系统临时目录（`ZHIXUE_REPOSITORY` / `ZHIXUE_CHAT_DIR`），未污染交付包 |
 | 并发复现方式 | `threading.Barrier` 同步 N 线程，各自持有独立 `test_client` |
-| 修复后的验证 | `pytest 320 passed` + ArkTS 全量重编 0 错误 + 模拟器安装启动 + `live 联调 95/95` + 演示基线零漂移 |
+| 修复后的验证 | `pytest` 全绿（审计当时 320 项；后续补回归测试增至 **327 项**）+ ArkTS 全量重编 0 错误 + 模拟器安装启动 + `live 联调 95/95` + 演示基线零漂移 |
 
 ---
 
@@ -420,7 +420,7 @@ history 记一条 —— 但 `perKnowledgeAccuracy` 为空、`persist_mastery` �
 
 | 层面 | 评价 |
 |---|---|
-| 后端单测 / 联调 | ✅ **320 passed** / 95-95 live，基线零漂移 |
+| 后端单测 / 联调 | ✅ **327 passed** / 95-95 live，基线零漂移 |
 | ArkTS 编译 | ✅ 全量重编 0 错误，产物 2.25 MB，模拟器安装启动通过 |
 | 契约骨架（路径·方法·错误码·镜像） | ✅ 健康（33 path / 51 schema / 108,894 B 逐字节一致） |
 | 契约声明层 | ✅ 已补 14 项 + C5；余 2 项为刻意保留（R2/R3） |

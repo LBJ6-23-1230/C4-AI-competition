@@ -236,6 +236,8 @@ def _persist_workflow_assessment(state: dict, assessment_data: dict) -> dict:
 				"masteryScore": assessment.suggested_new_mastery,
 				"knowledgePointId": knowledge_point_id,
 				"repeatedError": assessment.score < 80,
+				# 传得分才能按错误程度分级加时；不传则回退到固定 ±15
+				"assessmentScore": assessment.score,
 			})
 			updated_plan = replan_result["plan"]
 			updated_plan["planId"] = plan["planId"]
