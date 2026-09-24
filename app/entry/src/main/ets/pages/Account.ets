@@ -3,6 +3,7 @@ import { common } from '@kit.AbilityKit';
 import { AgentApiClient } from '../api/AgentApiClient';
 import { ApiDefaults } from '../api/ApiDefaults';
 import { AuthClient } from '../api/AuthClient';
+import { AuthUser } from '../api/AuthModels';
 import { AuthResult } from '../api/AuthResult';
 import { AuthStore } from '../api/AuthStore';
 import { ClientCache } from '../cache/ClientCache';
@@ -32,6 +33,18 @@ struct Account {
   @State userId: string = '';
   @State grade: string = '';
   @State sourceLabel: string = '';
+  /**
+   * 脱敏手机号与注册时间（来自 `/api/v1/auth/me`）。
+   *
+   * 为什么单独拉一次：`appState.currentUser` 是 `UserProfile`（学习画像用的
+   * `basicInfo` 结构），里面**没有** `phoneMasked` / `createdAt`。
+   * 而「我的」页应当显示"这个账号是谁" —— 昵称、手机号、年级、注册时间。
+   *
+   * 失败时**不报错也不清空**：本地已有昵称/年级，先把能显示的显示出来，
+   * 网络恢复后下次进入再补齐。拉不到就少显示两行，不影响页面可用。
+   */
+  @State phoneMasked: string = '';
+  @State createdAt: string = '';
   @State message: string = '';
   @State messageIsError: boolean = false;
   @State busy: boolean = false;
@@ -42,6 +55,7 @@ struct Account {
 
   aboutToAppear(): void {
     this.refresh();
+    this.loadAccountDetail();
   }
 
   private refresh(): void {
@@ -51,6 +65,37 @@ struct Account {
     this.grade = appState.currentUser.basicInfo.grade;
     this.sourceLabel = Account.sourceText(appState.authSource);
     this.proactiveEnabled = ProactiveSettingsStore.isEnabled();
+  }
+
+  /** 拉取账号详情（脱敏手机号、注册时间）。仅登录态有意义。 */
+  private async loadAccountDetail(): Promise<void> {
+    if (!this.signedIn) {
+      this.phoneMasked = '';
+      this.createdAt = '';
+      return;
+    }
+    const result = await AgentApiClient.authMe();
+    if (result.ok) {
+      const user: AuthUser = result.data.user;
+      this.phoneMasked = user.phoneMasked ?? '';
+      this.createdAt = Account.friendlyDate(user.createdAt);
+      // 服务端是权威来源，顺便同步昵称/年级
+      if (user.nickname.length > 0) { this.nickname = user.nickname; }
+      if (user.grade.length > 0) { this.grade = user.grade; }
+    }
+  }
+
+  /** 头像占位字符：取昵称首字符；昵称为空则用「学」。 */
+  private avatarText(): string {
+    return this.nickname.length > 0 ? this.nickname.substring(0, 1) : '学';
+  }
+
+  /** 把 ISO 时间裁成 `YYYY-MM-DD`，解析不了就原样返回。 */
+  private static friendlyDate(iso: string): string {
+    if (iso.length >= 10 && iso.charAt(4) === '-' && iso.charAt(7) === '-') {
+      return iso.substring(0, 10);
+    }
+    return iso;
   }
 
   private context(): common.UIAbilityContext {
@@ -194,24 +239,40 @@ struct Account {
       Scroll() {
         Column({ space: 16 }) {
           // ---------- 身份卡 ----------
-          Column({ space: 8 }) {
-            Text(this.nickname).fontSize(23).fontWeight(FontWeight.Bold).fontColor('#111827')
-              .width('100%')
-            Text(this.userId).fontSize(12).fontColor('#667085').width('100%')
-            if (this.grade.length > 0) {
-              Text(`在读年级：${this.grade}`).fontSize(12).fontColor('#667085').width('100%')
-            }
-            Row({ space: 8 }) {
-              Text(this.sourceLabel)
-                .fontSize(11)
-                .fontColor(this.signedIn ? '#1E6B3A' : '#B45309')
-                .backgroundColor(this.signedIn ? '#ECFDF5' : '#FFFBEB')
-                .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-                .borderRadius(10)
-            }.width('100%').margin({ top: 4 })
+          Row({ space: 14 }) {
+            // 头像：昵称首字符。没有真实头像图，用字母块比放默认灰色人像更清楚。
+            Text(this.avatarText())
+              .fontSize(26).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+              .width(56).height(56).textAlign(TextAlign.Center)
+              .backgroundColor('#2563EB').borderRadius(28)
+
+            Column({ space: 5 }) {
+              Text(this.nickname.length > 0 ? this.nickname : '体验身份')
+                .fontSize(21).fontWeight(FontWeight.Bold).fontColor('#111827')
+                .width('100%')
+              if (this.phoneMasked.length > 0) {
+                Text(this.phoneMasked).fontSize(13).fontColor('#475467').width('100%')
+              }
+              Text(`账号 ${this.userId}`).fontSize(11).fontColor('#94A3B8').width('100%')
+              if (this.grade.length > 0) {
+                Text(`在读年级：${this.grade}`).fontSize(12).fontColor('#667085').width('100%')
+              }
+              if (this.createdAt.length > 0) {
+                Text(`注册于 ${this.createdAt}`).fontSize(12).fontColor('#667085').width('100%')
+              }
+            }.alignItems(HorizontalAlign.Start).layoutWeight(1)
           }
           .width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(14)
           .border({ width: 1, color: '#E2E8F0' })
+
+          Row({ space: 8 }) {
+            Text(this.sourceLabel)
+              .fontSize(11)
+              .fontColor(this.signedIn ? '#1E6B3A' : '#B45309')
+              .backgroundColor(this.signedIn ? '#ECFDF5' : '#FFFBEB')
+              .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+              .borderRadius(10)
+          }.width('100%').padding({ left: 18, right: 18 })
 
           // ---------- 提示 ----------
           if (this.message.length > 0) {
