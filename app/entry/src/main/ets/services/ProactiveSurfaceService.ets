@@ -20,7 +20,7 @@ export class ProactiveSurfaceService {
     const lastStudyAt: string | undefined = recentSessions.length > 0 ? recentSessions[0].endedAt : undefined;
     const request = ProactiveViewModel.buildRequest(
       appState.currentUser.userId,
-      appState.getHighPriorityCourse().exam.daysLeft,
+      appState.getHighPriorityCourse()?.exam.daysLeft ?? 30,
       false,
       appState.activeFocusTask !== null && appState.focusResultDraft === null,
       lastStudyAt

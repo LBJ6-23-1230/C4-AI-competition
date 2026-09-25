@@ -35,6 +35,9 @@ struct CourseImport {
       const result: string[] = await documentPicker.select();
       if (result.length === 0) return;
 
+      this.importStatus = 'processing';
+      this.importMessage = '正在读取并校验文件…';
+
       const uri: string = result[0];
       const file: fileIo.File = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY);
       const stat: fileIo.Stat = fileIo.statSync(uri);
@@ -50,7 +53,7 @@ struct CourseImport {
         this.courseList = appState.courses;
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
-        this.importMessage = `成功导入 ${courses.length} 门课程`;
+        this.importMessage = `上传成功：已导入 ${courses.length} 门课程`;
         this.activeTab = 'courses';
       } else {
         const ddls: HomeworkDDL[] = FileParserService.autoParseDDLs(content);
@@ -58,7 +61,7 @@ struct CourseImport {
         this.ddlList = appState.homeworkDDLs;
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
-        this.importMessage = `成功导入 ${ddls.length} 项作业`;
+        this.importMessage = `上传成功：已导入 ${ddls.length} 项作业`;
         this.activeTab = 'ddls';
       }
     } catch (err) {
@@ -422,13 +425,14 @@ struct CourseImport {
       // 导入状态条
       if (this.importStatus.length > 0) {
         Row() {
-          Text(this.importStatus === 'success' ? '✅' : '❌').fontSize(14)
-          Text(this.importMessage).fontSize(13).fontColor(this.importStatus === 'success' ? '#3B82F6' : '#DC2626')
+          Text(this.importStatus === 'success' ? '✅' : (this.importStatus === 'processing' ? '⏳' : '❌')).fontSize(14)
+          Text(this.importMessage).fontSize(13)
+            .fontColor(this.importStatus === 'error' ? '#DC2626' : '#2563EB')
             .layoutWeight(1)
           Text('✕').fontSize(14).fontColor('#64748B').onClick(() => { this.importStatus = ''; this.importMessage = ''; })
         }
         .width('100%').padding({ left: 20, right: 20, top: 10, bottom: 10 })
-        .backgroundColor(this.importStatus === 'success' ? '#EFF6FF' : '#FEF2F2')
+        .backgroundColor(this.importStatus === 'error' ? '#FEF2F2' : '#EFF6FF')
       }
 
       // Tab 切换

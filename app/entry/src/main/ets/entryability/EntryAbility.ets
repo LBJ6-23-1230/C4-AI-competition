@@ -228,7 +228,7 @@ export default class EntryAbility extends UIAbility {
     const parsedMinutes: number = Number(durationValue ?? 30);
     const durationMinutes: number = parsedMinutes >= 1 && parsedMinutes <= 180 ? parsedMinutes : 30;
     appState.setFocusTask({
-      course: appState.getHighPriorityCourse().courseName,
+      course: appState.getHighPriorityCourse()?.courseName ?? '通用学习',
       task: taskName.length > 0 ? taskName : '完成今日学习建议',
       plannedMinutes: durationMinutes,
       source: 'agent',

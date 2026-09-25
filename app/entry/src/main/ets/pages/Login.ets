@@ -36,21 +36,8 @@ import { DeviceLayout } from '../utils/DeviceLayout';
  *   │  [ 跳过登录，用演示身份进入 → ]           │  ← 评审逃生口，保留
  *   └────────────────────────────────────────┘
  *
- * ⚠️ **关于「密码」字段的重要说明（请勿误读为已实现密码体系）**
- *
- * 本工程的**后端刻意不做密码登录**（见 `docs/02` §4.2）：
- * 产品没有任何需要密码保护的数据（无支付、无隐私资产），
- * 自建密码体系只带来合规负担与实现风险（哈希、找回、撞库、存储合规）。
- *
- * 因此这里的密码输入框是**视觉完整、语义占位**：
- *   · 界面与参考设计逐项对齐，答辩演示不缺元素；
- *   · 但它**不参与任何后端校验**，账号身份仍由「昵称 + 服务端下发 token」确定；
- *   · 输入框下方有明确文案标注这是演示版免密。
- *
- * 生产化路径：接入 **AGC 认证服务**（手机号验证码 / 华为账号），
- * 由华为托管凭据，本页只需把 `AuthClient.loginOrRegister()` 换成 AGC 的登录调用
- * （注意用 `loginOrRegister` 而不是 `register`：后者要求显式传手机号，
- * 且不做"已存在则登录"的兜底）。
+ * 密码登录会请求后端 `/api/v1/auth/login`；注册时后端只保存加盐哈希，
+ * 不保存或回传明文密码。验证码与华为账号登录仍可作为替代入口。
  *
  * 「一键体验 / 跳过登录」必须保留且足够显眼：评审现场任何摩擦都是风险。
  */
@@ -194,7 +181,7 @@ struct Login {
    *   · 登录 → `AuthClient.loginByPhoneOrNickname()`（手机号优先）
    *   · 注册 → `AuthClient.loginOrRegister()`（**手机号必填**，已存在则登录）
    *
-   * 密码字段仍只作视觉占位（后端刻意不做密码体系，见文件头说明）。
+   * 密码字段参与后端注册与登录校验。
    */
   private async onSubmit(): Promise<void> {
     if (this.busy) {
@@ -207,9 +194,19 @@ struct Login {
       return;
     }
 
-    const invalidNickname: string = AuthClient.validateNickname(this.nickname);
-    if (invalidNickname.length > 0) {
-      this.message = invalidNickname;
+    // 手机号登录以手机号作为唯一身份，不应再强迫用户重复填写昵称。
+    // 昵称只在注册、或明确选择“按昵称登录”（手机号留空）时参与校验。
+    const loginByPhone: boolean = this.mode === 'login' && this.normalizedPhone().length > 0;
+    if (!loginByPhone) {
+      const invalidNickname: string = AuthClient.validateNickname(this.nickname);
+      if (invalidNickname.length > 0) {
+        this.message = invalidNickname;
+        this.messageIsError = true;
+        return;
+      }
+    }
+    if (this.password.length < 6) {
+      this.message = '密码至少需要 6 位。';
       this.messageIsError = true;
       return;
     }
@@ -234,12 +231,12 @@ struct Login {
     // 关键分派
     let result: AuthResult;
     if (this.mode === 'register') {
-      result = await AuthClient.loginOrRegister(this.nickname, this.grade, phone);
+      result = await AuthClient.loginOrRegister(this.nickname, this.grade, phone, this.password);
     } else if (phone.length > 0) {
       // 登录且填了手机号 → 按手机号登录（唯一、可验证，比昵称可靠）
-      result = await AuthClient.loginByPhone(phone);
+      result = await AuthClient.loginByPhone(phone, this.password);
     } else {
-      result = await AuthClient.loginByNickname(this.nickname);
+      result = await AuthClient.loginByNickname(this.nickname, this.password);
     }
     if (!this.isActive) {
       return;
@@ -405,7 +402,8 @@ struct Login {
     if (this.busy) {
       return false;
     }
-    if (AuthClient.validateNickname(this.nickname).length > 0) {
+    const loginByPhone: boolean = this.mode === 'login' && this.normalizedPhone().length > 0;
+    if (!loginByPhone && AuthClient.validateNickname(this.nickname).length > 0) {
       return false;
     }
     // 注册必须填合法手机号；登录允许只填昵称
@@ -567,7 +565,7 @@ struct Login {
               }.width('100%')
             }
 
-            // 密码（视觉占位，不参与校验）—— 验证码方式下不显示
+            // 密码登录 / 注册 —— 验证码方式下不显示
             if (!(this.mode === 'login' && this.method === 'code')) {
               Column({ space: 8 }) {
                 Text('密码').fontSize(14).fontWeight(FontWeight.Medium).fontColor('#0F172A').width('100%')
@@ -587,7 +585,9 @@ struct Login {
                 .backgroundColor('#F8FAFC').borderRadius(10)
                 .border({ width: 1, color: '#E2E8F0' })
 
-                Text('演示版为免密登录：密码仅作界面占位，不参与校验。生产接入 AGC 认证服务。')
+                Text(this.mode === 'register'
+                  ? '至少 6 位；服务端仅保存加盐哈希，不保存明文。'
+                  : '密码会提交到后端校验；也可以切换到验证码登录。')
                   .fontSize(11).fontColor('#94A3B8').lineHeight(17).width('100%')
             }.width('100%')
             }

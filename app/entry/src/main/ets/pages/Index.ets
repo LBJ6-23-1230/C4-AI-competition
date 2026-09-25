@@ -109,7 +109,7 @@ struct Index {
     this.isProactiveLoading = true;
     this.proactiveMessage = '';
     const requestVersion: number = ++this.proactiveRequestVersion;
-    const daysLeft: number = appState.getHighPriorityCourse().exam.daysLeft;
+    const daysLeft: number = appState.getHighPriorityCourse()?.exam.daysLeft ?? 30;
     const recentSessions = appState.getFocusSummary().recentSessions;
     const lastStudyAt: string | undefined = recentSessions.length > 0 ? recentSessions[0].endedAt : undefined;
     // `foreground` 传 **false** —— 这一点是修过的缺陷。

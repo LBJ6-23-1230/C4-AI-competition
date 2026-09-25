@@ -362,6 +362,23 @@ def test_exercise_api_rejects_non_positive_count(tmp_path):
     assert response.get_json()["errorCode"] == "BAD_REQUEST"
 
 
+def test_exercise_refresh_excludes_previous_three_questions(tmp_path):
+    client = create_app(tmp_path / "exercise-refresh.json").test_client()
+    first = client.get(
+        "/api/v1/exercises/set-demo-binary-tree-001"
+        "?knowledgePointId=binary-tree-postorder&count=3"
+    ).get_json()["exercises"]
+    query = "&".join(f"excludeExerciseId={item['exerciseId']}" for item in first)
+    refreshed = client.get(
+        "/api/v1/exercises/set-demo-binary-tree-001"
+        f"?knowledgePointId=binary-tree-postorder&count=3&{query}"
+    ).get_json()["exercises"]
+
+    assert len(refreshed) == 3
+    assert {item["exerciseId"] for item in first}.isdisjoint(
+        {item["exerciseId"] for item in refreshed})
+
+
 def test_missing_api_resource_uses_contract_error_shape(tmp_path):
     response = create_app(tmp_path / "api.json").test_client().get("/api/v1/profile/missing")
 

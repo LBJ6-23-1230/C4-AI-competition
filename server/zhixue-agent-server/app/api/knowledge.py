@@ -136,6 +136,10 @@ def create_knowledge_base():
     if len(kbs) >= 20:
         return bad_request("单个用户最多 20 个知识库")
     for existing in kbs:
+        if str(existing.get("courseName", "")).strip().casefold() == course_name.casefold():
+            return jsonify({"errorCode": "CONFLICT",
+                            "message": f"课程「{course_name}」已有资料库，请直接上传文档",
+                            "details": {"kbId": existing.get("kbId")}}), 409
         if existing.get("name") == name:
             return jsonify({"errorCode": "CONFLICT",
                             "message": f"已存在同名知识库「{name}」",

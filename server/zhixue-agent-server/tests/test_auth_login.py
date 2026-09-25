@@ -116,6 +116,40 @@ def test_login_by_unknown_phone_is_404(tmp_path):
     assert response.get_json()["errorCode"] == "NOT_FOUND"
 
 
+def test_password_account_calls_backend_and_rejects_wrong_password(tmp_path):
+    client = create_app(tmp_path / "password-login.json").test_client()
+    phone = _phone()
+    created = client.post("/api/v1/auth/login-or-register", json={
+        "nickname": "密码用户", "phone": phone, "password": "secret88",
+    })
+    assert created.status_code == 201
+
+    wrong = client.post("/api/v1/auth/login", json={
+        "phone": phone, "password": "wrong000",
+    })
+    assert wrong.status_code == 401
+    assert wrong.get_json()["errorCode"] == "UNAUTHORIZED"
+
+    correct = client.post("/api/v1/auth/login", json={
+        "phone": phone, "password": "secret88",
+    })
+    assert correct.status_code == 200
+    assert correct.get_json()["user"]["userId"] == created.get_json()["user"]["userId"]
+
+
+def test_password_hash_is_not_exposed_or_stored_as_plaintext(tmp_path):
+    database = tmp_path / "password-storage.json"
+    client = create_app(database).test_client()
+    response = client.post("/api/v1/auth/register", json={
+        "nickname": "安全用户", "phone": _phone(), "password": "plain-secret",
+    })
+    assert response.status_code == 201
+    assert "password" not in str(response.get_json()).lower()
+    raw = database.read_text(encoding="utf-8")
+    assert "plain-secret" not in raw
+    assert "passwordHash" in raw
+
+
 def test_register_requires_phone(tmp_path):
     """注册必须带手机号 —— 手机号是唯一身份标识，昵称不是。"""
     client = create_app(tmp_path / "need-phone.json").test_client()

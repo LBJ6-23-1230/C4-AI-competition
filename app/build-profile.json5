@@ -18,13 +18,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "storeFile": "E:/zhixue-signing/zhixue-debug.p12",
+          "storeFile": "../zhixue-signing/zhixue-debug.p12",
           "storePassword": "0000001CEB23EAC53AF7069A68DA8FF90587DCF51E36F76754CC03E5148A4EBAD97B53112F70D7499C137E06",
           "keyAlias": "zhixue-debug",
           "keyPassword": "0000001C4AAF379D34E863F6326CAF960F5DD17C7A149C5C92843F71B52878F1B247802FCB52AEDDAE488E71",
           "signAlg": "SHA256withECDSA",
-          "profile": "E:/zhixue-signing/zhixue-release-profileRelease.p7b",
-          "certpath": "E:/zhixue-signing/zhixue-release.cer"
+          "profile": "../zhixue-signing/zhixue-release-profileRelease.p7b",
+          "certpath": "../zhixue-signing/zhixue-release.cer"
         }
       }
     ],

@@ -8,6 +8,7 @@ from app.repositories.json_repository import JsonRepository
 from app.api.exercises import configure_exercises_repository
 from app.api.plans import configure_plans_repository
 from app.api.profile import configure_profile_repository
+from app.api.proactive import configure_proactive_repository
 from app.api.traces import configure_traces_repository
 from app.api.experiments import configure_experiments_repository
 
@@ -22,6 +23,7 @@ def configure_demo_repository(repository: JsonRepository) -> None:
 	configure_exercises_repository(repository)
 	configure_traces_repository(repository)
 	configure_profile_repository(repository)
+	configure_proactive_repository(repository)
 	configure_plans_repository(repository)
 	configure_experiments_repository(repository)
 

@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 .pytest-tmp/
 .pytest_cache/
+# pytest 在 Windows 上遇到临时目录清理失败时会留下这一类目录。
+pytest-cache-files-*/
 *.egg-info/
 .venv/
 venv/
@@ -11,6 +13,8 @@ venv/
 .env
 *.env
 !.env.example
+# 本地签名私钥与证书材料仅留在开发机，交付物使用已签名 HAP。
+zhixue-signing/
 
 # ---- 联调运行态（首启自动重建，绝不入库）----
 # evidence/ 是要归档的证据，不要忽略

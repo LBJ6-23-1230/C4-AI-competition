@@ -1,5 +1,5 @@
 import { util } from '@kit.ArkTS';
-import { DecisionFactor, DemoResetResponse, Evidence, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeChunkHit, KnowledgeDocument, KnowledgeDocumentListResponse, KnowledgeDocumentUploadRequest, KnowledgeMastery, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
+import { DecisionFactor, DemoResetResponse, Evidence, Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeChunkHit, KnowledgeDocument, KnowledgeDocumentListResponse, KnowledgeDocumentUploadRequest, KnowledgeMastery, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { ApiDefaults } from './ApiDefaults';
 import { FixtureDemoStateStore } from './FixtureDemoStateStore';
@@ -56,7 +56,10 @@ export class FixtureApiTransport {
   private static readonly ANSWER_KEYS: Record<string, string> = {
     'exercise-preorder-001': 'A',
     'exercise-inorder-001': 'B',
-    'exercise-postorder-001': 'C'
+    'exercise-postorder-001': 'C',
+    'exercise-postorder-002': 'C',
+    'exercise-postorder-003': 'C',
+    'exercise-postorder-004': 'C'
   };
 
   static async request<T>(method: string, path: string, body?: Object): Promise<ApiResult<T>> {
@@ -67,7 +70,7 @@ export class FixtureApiTransport {
     if (method === 'GET' && route.indexOf('/api/v1/workflows/') === 0) return apiSuccess<WorkflowStatusResponse>(FixtureApiTransport.workflowStatus(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && route.indexOf('/api/v1/profile/') === 0) return apiSuccess<ProfileResponse>(FixtureApiTransport.profile(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && route === '/api/v1/plans/current') return apiSuccess<LearningPlan>(FixtureApiTransport.plan(), 'fixture') as ApiResult<T>;
-    if (method === 'GET' && route.indexOf('/api/v1/exercises/') === 0 && !route.endsWith('/submit')) return apiSuccess<ExerciseSetResponse>(FixtureApiTransport.exerciseSet(), 'fixture') as ApiResult<T>;
+    if (method === 'GET' && route.indexOf('/api/v1/exercises/') === 0 && !route.endsWith('/submit')) return apiSuccess<ExerciseSetResponse>(FixtureApiTransport.exerciseSet(path), 'fixture') as ApiResult<T>;
     if (method === 'POST' && route.indexOf('/api/v1/exercises/') === 0 && route.endsWith('/submit')) {
       FixtureDemoStateStore.markExerciseSubmitted();
       return apiSuccess<ExerciseSubmissionResult>(
@@ -174,11 +177,22 @@ export class FixtureApiTransport {
   }
 
   private static plan(): LearningPlan {
-    const replanned: boolean = FixtureDemoStateStore.isExerciseSubmitted();
+    const replanned: boolean = FixtureDemoStateStore.isExerciseSubmitted()
+      && FixtureDemoStateStore.getAssessmentScore() < 80;
+    const minutes: number[] = FixtureApiTransport.planMinutes();
     return { planId: 'plan-demo-001', version: replanned ? 2 : 1, generatedFromProfileVersion: replanned ? 2 : 1, reason: replanned ? '掌握度仍低于巩固阈值，已自动重规划。' : '巩固二叉树后序遍历', factors: FixtureApiTransport.factors(), tasks: [
-      { taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', durationMinutes: replanned ? 45 : 30, status: 'pending', priority: 'high' },
-      { taskId: 'task-graph', knowledgePointId: 'graph-traversal', knowledgePointName: '图算法遍历', durationMinutes: replanned ? 15 : 30, status: 'pending', priority: 'medium' }
+      { taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', durationMinutes: replanned ? minutes[0] : 30, status: 'pending', priority: 'high' },
+      { taskId: 'task-graph', knowledgePointId: 'graph-traversal', knowledgePointName: '图算法遍历', durationMinutes: replanned ? minutes[1] : 30, status: 'pending', priority: 'medium' }
     ] };
+  }
+
+  /** 与后端 plan_tools 的分档一致：正确率越低，薄弱点获得的时间越多。 */
+  private static planMinutes(): number[] {
+    const score: number = FixtureDemoStateStore.getAssessmentScore();
+    if (score >= 80) return [40, 20];
+    if (score >= 60) return [45, 15];
+    if (score >= 30) return [50, 15];
+    return [55, 15];
   }
 
   private static factors(): DecisionFactor[] {
@@ -232,25 +246,39 @@ export class FixtureApiTransport {
       state: state };
   }
 
-  private static exerciseSet(): ExerciseSetResponse {
-    return { setId: 'set-demo-binary-tree-001', exercises: [
+  private static exerciseSet(path: string): ExerciseSetResponse {
+    const refreshed: boolean = path.indexOf('excludeExerciseId=') >= 0;
+    const excludesSecondGroup: boolean = path.indexOf('exercise-postorder-002') >= 0;
+    const first: Exercise[] = [
       { exerciseId: 'exercise-preorder-001', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', difficulty: 'easy', stem: '以下哪项是给定二叉树的前序遍历结果？', options: ['A. 根-左-右', 'B. 左-右-根', 'C. 左-根-右', 'D. 根-右-左'], source: 'demo' },
       { exerciseId: 'exercise-inorder-001', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', difficulty: 'easy', stem: '二叉树中序遍历访问节点的顺序是什么？', options: ['A. 根-左-右', 'B. 左-根-右', 'C. 左-右-根', 'D. 根-右-左'], source: 'demo' },
       { exerciseId: 'exercise-postorder-001', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', difficulty: 'medium', stem: '二叉树后序遍历访问节点的顺序是什么？', options: ['A. 根-左-右', 'B. 左-根-右', 'C. 左-右-根', 'D. 根-右-左'], source: 'demo' }
-    ] };
+    ];
+    const next: Exercise[] = [
+      { exerciseId: 'exercise-postorder-002', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', difficulty: 'easy', stem: '后序遍历中，根节点通常在什么时候被访问？', options: ['A. 最先', 'B. 左子树之后、右子树之前', 'C. 左右子树都访问后', 'D. 任意时刻'], source: 'demo' },
+      { exerciseId: 'exercise-postorder-003', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', difficulty: 'medium', stem: '表达式树用后序遍历得到的结果最接近哪种表达式？', options: ['A. 前缀表达式', 'B. 中缀表达式', 'C. 后缀表达式', 'D. 自然语言'], source: 'demo' },
+      { exerciseId: 'exercise-postorder-004', knowledgePointId: 'binary-tree-postorder', knowledgePointName: '二叉树后序遍历', difficulty: 'medium', stem: '递归实现后序遍历时，输出当前节点应放在哪一步？', options: ['A. 递归左子树前', 'B. 递归左右子树之间', 'C. 递归左右子树后', 'D. 只在叶节点执行'], source: 'demo' }
+    ];
+    return { setId: 'set-demo-binary-tree-001',
+      exercises: refreshed ? (excludesSecondGroup ? first : next) : first };
   }
 
   private static assessment(answers?: ExerciseAnswer[]): ExerciseSubmissionResult {
     const score: number = FixtureApiTransport.grade(answers);
     const newMastery: number = FixtureApiTransport.nextMastery(42, score);
-    FixtureDemoStateStore.setMasteryScore(newMastery);
+    FixtureDemoStateStore.setAssessmentResult(newMastery, score);
     const perKnowledge: Record<string, number> = {};
     perKnowledge['binary-tree-postorder'] = score;
     return { userId: ApiDefaults.DEMO_USER_ID, submissionId: ApiDefaults.DEMO_USER_ID + ':set-demo-binary-tree-001:fixture-submission', assessment: { score: score, perKnowledgeAccuracy: perKnowledge, errorTypes: score < 100 ? ['后序遍历顺序混淆'] : [], oldMastery: 42, suggestedNewMastery: newMastery }, masteryUpdate: { knowledgePointId: 'binary-tree-postorder', oldScore: 42, newScore: newMastery }, needReplan: score < 80, plan: FixtureApiTransport.plan(), planDiff: FixtureApiTransport.planDiff() };
   }
 
   private static planDiff(): PlanDiff {
-    return { planId: 'plan-demo-001', oldVersion: 1, newVersion: 2, changedTasks: [{ taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', durationMinutes: 45, change: '+15' }, { taskId: 'task-graph', knowledgePointId: 'graph-traversal', durationMinutes: 15, change: '-15' }], adjustmentReason: '二叉树后序遍历 mastery=58，低于巩固阈值60', triggerEvidence: ['evidence-demo-001'] };
+    if (FixtureDemoStateStore.getAssessmentScore() >= 80) {
+      return { planId: 'plan-demo-001', oldVersion: 1, newVersion: 1, changedTasks: [],
+        adjustmentReason: '本次掌握良好，无需调整计划', triggerEvidence: ['evidence-demo-001'] };
+    }
+    const minutes: number[] = FixtureApiTransport.planMinutes();
+    return { planId: 'plan-demo-001', oldVersion: 1, newVersion: 2, changedTasks: [{ taskId: 'task-postorder', knowledgePointId: 'binary-tree-postorder', durationMinutes: minutes[0], change: `+${minutes[0] - 30}` }, { taskId: 'task-graph', knowledgePointId: 'graph-traversal', durationMinutes: minutes[1], change: `${minutes[1] - 30}` }], adjustmentReason: `按本次正确率 ${FixtureDemoStateStore.getAssessmentScore()}% 动态调整`, triggerEvidence: ['evidence-demo-001'] };
   }
 
   private static trace(): TraceResponse {
@@ -322,6 +350,12 @@ export class FixtureApiTransport {
     // 直接写 `... ? request.userId : ...` 会报 string | undefined 不可赋值。
     const ownerId: string = (request?.userId ?? '').length > 0
       ? (request?.userId as string) : ApiDefaults.DEMO_USER_ID;
+    for (let i: number = 0; i < FixtureApiTransport.fixtureKbs.length; i++) {
+      const existing: KnowledgeBase = FixtureApiTransport.fixtureKbs[i];
+      if (existing.userId === ownerId && existing.courseName.trim().toLowerCase() === courseName.toLowerCase()) {
+        return apiFailure('CONFLICT', `课程「${courseName}」已有资料库，请直接上传文档。`, false, 'fixture');
+      }
+    }
     const now: string = new Date().toISOString();
     const kb: KnowledgeBase = {
       kbId: FixtureApiTransport.nextId('kb'),

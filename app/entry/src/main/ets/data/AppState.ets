@@ -44,8 +44,10 @@ export class AppState {
 
   /* ========== 用户 & 课程数据 ========== */
   public currentUser: UserProfile = mockCurrentUser;
-  public courses: CourseInfo[] = [...mockCoursesList];
-  public homeworkDDLs: HomeworkDDL[] = [...mockHomeworkDDLs];
+  // 用户数据默认必须为空。演示课程只能由显式“恢复演示数据”动作加载，
+  // 不能在启动时伪装成已经导入的真实课程。
+  public courses: CourseInfo[] = [];
+  public homeworkDDLs: HomeworkDDL[] = [];
   public candidates: UserProfile[] = mockCandidates;
 
   /* ========== 数据导入状态 ========== */
@@ -315,8 +317,11 @@ export class AppState {
    * 获取数据来源描述
    */
   public getDataSourceDescription(): string {
+    if (!this.isDataImported && this.courses.length === 0 && this.homeworkDDLs.length === 0) {
+      return '尚未导入课程与作业';
+    }
     if (!this.isDataImported) {
-      return '演示模式 · 3门课程 · 5项作业';
+      return `演示数据 · ${this.courses.length}门课程 · ${this.homeworkDDLs.length}项作业`;
     }
     const parts: string[] = [];
     if (this.importedCourseCount > 0) {
@@ -330,9 +335,9 @@ export class AppState {
 
   /* ========== 课程相关查询 ========== */
 
-  public getHighPriorityCourse(): CourseInfo {
+  public getHighPriorityCourse(): CourseInfo | null {
     if (this.courses.length === 0) {
-      return mockCoursesList[0]; // 回退
+      return null;
     }
     let highestCourse: CourseInfo = this.courses[0];
     for (let index: number = 1; index < this.courses.length; index++) {
@@ -682,6 +687,13 @@ export class AppState {
     this.focusSessions = [];
     this.activeFocusTask = null;
     this.clearFocusResultDraft();
+    // 课程和 DDL 目前是本地内存数据，没有服务端账号归属。切换身份时若保留，
+    // 会让账号看到游客导入的内容（反之亦然），形成明显的跨身份串数据。
+    this.courses = [];
+    this.homeworkDDLs = [];
+    this.isDataImported = false;
+    this.importedCourseCount = 0;
+    this.importedDDLCount = 0;
     this.resetSession();
   }
 }

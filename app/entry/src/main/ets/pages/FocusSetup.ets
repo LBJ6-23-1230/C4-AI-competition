@@ -47,7 +47,7 @@ struct FocusSetup {
       this.selectedDuration = imported.timerType === 'stopwatch' ? 'stopwatch' : this.durationKey(this.minutes);
       this.customMinutesText = this.selectedDuration === 'custom' ? this.minutes.toString() : this.customMinutesText;
     } else if (appState.courses.length > 0) {
-      this.course = appState.getHighPriorityCourse().courseName;
+      this.course = appState.getHighPriorityCourse()?.courseName ?? this.course;
     }
 
     // 订阅跨设备同步状态，并立刻拉一次当前快照（服务可能在进入本页之前就已就绪）。

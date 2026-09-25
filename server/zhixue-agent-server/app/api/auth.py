@@ -3,15 +3,14 @@
 
 契约（与 `contracts/openapi.json` 的 Auth* 定义一致）
 ----------------------------------------------------
-POST   /api/v1/auth/register   {nickname, grade?}      → {user, token, expiresAt}
-POST   /api/v1/auth/login      {userId, token}         → {user, token, expiresAt}
+POST   /api/v1/auth/register   {nickname, phone, password?} → {user, token, expiresAt}
+POST   /api/v1/auth/login      {phone|nickname, password}   → {user, token, expiresAt}
 POST   /api/v1/auth/logout     (Bearer)                → {status: "ok"}
 GET    /api/v1/auth/me         (Bearer)                → {user}
 DELETE /api/v1/auth/account    (Bearer)                → {status: "deactivated"}
 
-**刻意不做密码登录**：本项目没有需要密码保护的数据，自建密码体系只会带来
-合规负担与实现风险。注册即发 token，token 存 preferences，等价于长期会话票据。
-生产化路径是把本文件替换为 AGC 认证服务（见 `docs/02` §4.2 方案②）。
+本地账号支持密码登录，服务端只保存 Werkzeug 生成的加盐哈希；验证码与华为
+账号入口继续保留。登录成功后签发会话 token，客户端只持久化 token。
 """
 
 from __future__ import annotations
@@ -81,7 +80,8 @@ def register():
     data = _body()
     try:
         result = service.register_user(_repository, data.get("nickname"),
-                                       data.get("grade"), data.get("phone"))
+                                       data.get("grade"), data.get("phone"),
+                                       data.get("password"))
     except service.AuthError as error:
         return _error(error.error_code, error.message, error.status)
 
@@ -97,7 +97,7 @@ def login():
     支持两种形式：
 
     * `{userId, token}` —— 恢复登录态（用本地保存的凭据换回用户信息）
-    * `{nickname}`      —— **按昵称免密登录**
+    * `{nickname, password}` —— 按昵称与密码登录
 
     为什么要加第二种：原先前端「登录」标签下唯一能调的是 `register()`，
     于是用同一个昵称再点一次会**又建一个新账号**（实测两次注册「张三」
@@ -126,13 +126,15 @@ def login():
     # 手机号优先于昵称：手机号唯一、可验证，是更强的身份标识
     if data.get("phone"):
         try:
-            result = service.login_by_phone(_repository, data.get("phone"))
+            result = service.login_by_phone(_repository, data.get("phone"),
+                                            data.get("password"))
         except service.AuthError as error:
             return _error(error.error_code, error.message, error.status)
         return jsonify(result)
 
     try:
-        result = service.login_by_nickname(_repository, data.get("nickname"))
+        result = service.login_by_nickname(_repository, data.get("nickname"),
+                                           data.get("password"))
     except service.AuthError as error:
         return _error(error.error_code, error.message, error.status)
     return jsonify(result)
@@ -201,15 +203,16 @@ def login_or_register():
 
     if existing is not None:
         try:
-            result = (service.login_by_phone(_repository, phone) if phone
-                      else service.login_by_nickname(_repository, data.get("nickname")))
+            result = (service.login_by_phone(_repository, phone, data.get("password")) if phone
+                      else service.login_by_nickname(_repository, data.get("nickname"),
+                                                     data.get("password")))
         except service.AuthError as error:
             return _error(error.error_code, error.message, error.status)
         return jsonify({**result, "created": False})
 
     try:
         result = service.register_user(_repository, data.get("nickname"),
-                                       data.get("grade"), phone)
+                                       data.get("grade"), phone, data.get("password"))
     except service.AuthError as error:
         return _error(error.error_code, error.message, error.status)
     service.provision_starter_profile(

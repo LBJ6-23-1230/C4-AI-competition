@@ -263,6 +263,30 @@ def test_proactive_api_accepts_pending_tasks_and_rejects_invalid_shapes(tmp_path
     assert invalid.get_json()["errorCode"] == "BAD_REQUEST"
 
 
+def test_proactive_api_fills_missing_mastery_from_user_profile(tmp_path):
+    client = create_app(tmp_path / "proactive-profile.json").test_client()
+
+    response = client.post("/api/v1/agent/proactive", json={
+        "userId": "demo-user",
+        "context": {"foreground": False, "daysLeft": 5},
+    })
+
+    assert response.status_code == 200
+    assert "掌握度 42" in response.get_json()["reason"]
+
+
+def test_proactive_api_keeps_explicit_mastery_override(tmp_path):
+    client = create_app(tmp_path / "proactive-override.json").test_client()
+
+    response = client.post("/api/v1/agent/proactive", json={
+        "userId": "demo-user",
+        "context": {"foreground": False, "daysLeft": 5, "masteryScore": 91},
+    })
+
+    assert response.status_code == 200
+    assert "掌握度 91" in response.get_json()["reason"]
+
+
 def test_proactive_rejects_malformed_pending_tasks(tmp_path):
     client = create_app(tmp_path / "proactive-invalid.json").test_client()
 
