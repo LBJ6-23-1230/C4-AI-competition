@@ -1,47 +1,573 @@
 {
   "knowledgePoints": [
-    {"id": "binary-tree-postorder", "name": "二叉树后序遍历", "prerequisites": ["binary-tree-traversal"], "importance": 0.9},
-    {"id": "binary-tree-search", "name": "二叉搜索树", "prerequisites": ["binary-tree-traversal"], "importance": 0.8},
-    {"id": "graph-algorithm", "name": "图算法", "prerequisites": ["algorithm-complexity"], "importance": 0.7},
-    {"id": "algorithm-complexity", "name": "算法复杂度先修", "prerequisites": [], "importance": 0.8},
-    {"id": "binary-tree-traversal", "name": "二叉树遍历基础", "prerequisites": [], "importance": 0.8},
-    {"id": "recursion-basics", "name": "递归基础先修", "prerequisites": [], "importance": 0.7}
+    {
+      "id": "binary-tree-postorder",
+      "name": "二叉树后序遍历",
+      "prerequisites": [
+        "binary-tree-traversal"
+      ],
+      "importance": 0.9
+    },
+    {
+      "id": "binary-tree-search",
+      "name": "二叉搜索树",
+      "prerequisites": [
+        "binary-tree-traversal"
+      ],
+      "importance": 0.8
+    },
+    {
+      "id": "graph-algorithm",
+      "name": "图算法",
+      "prerequisites": [
+        "algorithm-complexity"
+      ],
+      "importance": 0.7
+    },
+    {
+      "id": "algorithm-complexity",
+      "name": "算法复杂度先修",
+      "prerequisites": [],
+      "importance": 0.8
+    },
+    {
+      "id": "binary-tree-traversal",
+      "name": "二叉树遍历基础",
+      "prerequisites": [],
+      "importance": 0.8
+    },
+    {
+      "id": "recursion-basics",
+      "name": "递归基础先修",
+      "prerequisites": [],
+      "importance": 0.7
+    }
   ],
   "exercises": [
-    {"exerciseId": "exercise-preorder-001", "knowledgePointId": "binary-tree-postorder", "knowledgePointName": "二叉树后序遍历", "difficulty": "easy", "stem": "以下哪项是给定二叉树的前序遍历结果？", "options": ["A. 根-左-右", "B. 左-右-根", "C. 左-根-右", "D. 根-右-左"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-inorder-001", "knowledgePointId": "binary-tree-postorder", "knowledgePointName": "二叉树后序遍历", "difficulty": "easy", "stem": "二叉树中序遍历访问节点的顺序是什么？", "options": ["A. 根-左-右", "B. 左-根-右", "C. 左-右-根", "D. 根-右-左"], "answerKey": "B", "source": "demo"},
-    {"exerciseId": "exercise-postorder-001", "knowledgePointId": "binary-tree-postorder", "knowledgePointName": "二叉树后序遍历", "difficulty": "medium", "stem": "二叉树后序遍历访问节点的顺序是什么？", "options": ["A. 根-左-右", "B. 左-根-右", "C. 左-右-根", "D. 根-右-左"], "answerKey": "C", "source": "demo"},
-    {"exerciseId": "exercise-postorder-002", "knowledgePointId": "binary-tree-postorder", "knowledgePointName": "二叉树后序遍历", "difficulty": "easy", "stem": "后序遍历中，根节点通常在什么时候被访问？", "options": ["A. 最先", "B. 左子树之后、右子树之前", "C. 左右子树都访问后", "D. 任意时刻"], "answerKey": "C", "source": "demo"},
-    {"exerciseId": "exercise-postorder-003", "knowledgePointId": "binary-tree-postorder", "knowledgePointName": "二叉树后序遍历", "difficulty": "medium", "stem": "表达式树用后序遍历得到的结果最接近哪种表达式？", "options": ["A. 前缀表达式", "B. 中缀表达式", "C. 后缀表达式", "D. 自然语言"], "answerKey": "C", "source": "demo"},
-    {"exerciseId": "exercise-postorder-004", "knowledgePointId": "binary-tree-postorder", "knowledgePointName": "二叉树后序遍历", "difficulty": "medium", "stem": "递归实现后序遍历时，输出当前节点应放在哪一步？", "options": ["A. 递归左子树前", "B. 递归左右子树之间", "C. 递归左右子树后", "D. 只在叶节点执行"], "answerKey": "C", "source": "demo"},
-    {"exerciseId": "exercise-postorder-005", "knowledgePointId": "binary-tree-postorder", "knowledgePointName": "二叉树后序遍历", "difficulty": "hard", "stem": "若一棵树只有根节点，后序遍历结果是什么？", "options": ["A. 空序列", "B. 只有根节点", "C. 两个根节点", "D. 无法确定"], "answerKey": "B", "source": "demo"},
-    {"exerciseId": "exercise-postorder-006", "knowledgePointId": "binary-tree-postorder", "knowledgePointName": "二叉树后序遍历", "difficulty": "hard", "stem": "删除整棵二叉树时采用后序遍历的主要原因是什么？", "options": ["A. 先处理父节点", "B. 先处理子节点再处理父节点", "C. 保证节点有序", "D. 减少节点数量"], "answerKey": "B", "source": "demo"},
-    {"exerciseId": "exercise-bst-001", "knowledgePointId": "binary-tree-search", "knowledgePointName": "二叉搜索树", "difficulty": "medium", "stem": "二叉搜索树的中序遍历具有什么性质？", "options": ["A. 有序", "B. 逆序", "C. 随机", "D. 层序"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-bst-002", "knowledgePointId": "binary-tree-search", "knowledgePointName": "二叉搜索树", "difficulty": "hard", "stem": "二叉搜索树左子树节点通常小于什么？", "options": ["A. 根节点", "B. 叶节点", "C. 任意图节点", "D. 队列尾部"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-bst-003", "knowledgePointId": "binary-tree-search", "knowledgePointName": "二叉搜索树", "difficulty": "medium", "stem": "二叉搜索树查找的平均复杂度通常是？", "options": ["A. O(log n)", "B. O(n^2)", "C. O(1)", "D. O(2^n)"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-bst-004", "knowledgePointId": "binary-tree-search", "knowledgePointName": "二叉搜索树", "difficulty": "hard", "stem": "退化二叉搜索树的查找复杂度是？", "options": ["A. O(n)", "B. O(1)", "C. O(log n)", "D. O(n log n)"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-bst-005", "knowledgePointId": "binary-tree-search", "knowledgePointName": "二叉搜索树", "difficulty": "medium", "stem": "平衡二叉搜索树的高度约为？", "options": ["A. O(log n)", "B. O(n)", "C. O(n^2)", "D. O(1)"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-graph-001", "knowledgePointId": "graph-algorithm", "knowledgePointName": "图算法", "difficulty": "easy", "stem": "BFS 通常使用哪种数据结构？", "options": ["A. 栈", "B. 队列", "C. 堆", "D. 集合"], "answerKey": "B", "source": "demo"},
-    {"exerciseId": "exercise-graph-002", "knowledgePointId": "graph-algorithm", "knowledgePointName": "图算法", "difficulty": "medium", "stem": "DFS 通常使用哪种数据结构？", "options": ["A. 栈", "B. 队列", "C. 哈希表", "D. 数组"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-graph-003", "knowledgePointId": "graph-algorithm", "knowledgePointName": "图算法", "difficulty": "easy", "stem": "无权图最短路径常用什么算法？", "options": ["A. BFS", "B. 快排", "C. 二分查找", "D. 堆排序"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-graph-004", "knowledgePointId": "graph-algorithm", "knowledgePointName": "图算法", "difficulty": "medium", "stem": "Dijkstra 算法适用于哪类边权？", "options": ["A. 非负权", "B. 任意负权", "C. 只有负权", "D. 无边权"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-graph-005", "knowledgePointId": "graph-algorithm", "knowledgePointName": "图算法", "difficulty": "easy", "stem": "图的顶点和边分别表示什么？", "options": ["A. 对象和关系", "B. 栈和队列", "C. 键和值", "D. 根和叶"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-complexity-001", "knowledgePointId": "algorithm-complexity", "knowledgePointName": "算法复杂度先修", "difficulty": "easy", "stem": "二分查找的时间复杂度是？", "options": ["A. O(1)", "B. O(log n)", "C. O(n)", "D. O(n^2)"], "answerKey": "B", "source": "demo"},
-    {"exerciseId": "exercise-complexity-002", "knowledgePointId": "algorithm-complexity", "knowledgePointName": "算法复杂度先修", "difficulty": "easy", "stem": "遍历数组一次的复杂度是？", "options": ["A. O(n)", "B. O(log n)", "C. O(1)", "D. O(n^2)"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-complexity-003", "knowledgePointId": "algorithm-complexity", "knowledgePointName": "算法复杂度先修", "difficulty": "medium", "stem": "嵌套两层线性循环通常是？", "options": ["A. O(n^2)", "B. O(n)", "C. O(log n)", "D. O(1)"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-complexity-004", "knowledgePointId": "algorithm-complexity", "knowledgePointName": "算法复杂度先修", "difficulty": "medium", "stem": "归并排序的时间复杂度是？", "options": ["A. O(n log n)", "B. O(n^2)", "C. O(log n)", "D. O(1)"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-complexity-005", "knowledgePointId": "algorithm-complexity", "knowledgePointName": "算法复杂度先修", "difficulty": "medium", "stem": "哈希表平均查找复杂度通常是？", "options": ["A. O(1)", "B. O(n)", "C. O(log n)", "D. O(n^2)"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-traversal-001", "knowledgePointId": "binary-tree-traversal", "knowledgePointName": "二叉树遍历基础", "difficulty": "easy", "stem": "层序遍历通常按什么方向访问节点？", "options": ["A. 逐层", "B. 只访问叶子", "C. 只访问根", "D. 随机"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-traversal-002", "knowledgePointId": "binary-tree-traversal", "knowledgePointName": "二叉树遍历基础", "difficulty": "easy", "stem": "前序遍历的第一个节点通常是？", "options": ["A. 根", "B. 左叶", "C. 右叶", "D. 空节点"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-traversal-003", "knowledgePointId": "binary-tree-traversal", "knowledgePointName": "二叉树遍历基础", "difficulty": "medium", "stem": "中序遍历的顺序是？", "options": ["A. 左-根-右", "B. 根-左-右", "C. 左-右-根", "D. 右-根-左"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-traversal-004", "knowledgePointId": "binary-tree-traversal", "knowledgePointName": "二叉树遍历基础", "difficulty": "medium", "stem": "后序遍历的顺序是？", "options": ["A. 左-右-根", "B. 根-左-右", "C. 左-根-右", "D. 根-右-左"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-traversal-005", "knowledgePointId": "binary-tree-traversal", "knowledgePointName": "二叉树遍历基础", "difficulty": "medium", "stem": "二叉树遍历的基本对象是？", "options": ["A. 节点", "B. 只有边", "C. 只有根", "D. 数组下标"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-prerequisite-001", "knowledgePointId": "recursion-basics", "knowledgePointName": "递归基础先修", "difficulty": "easy", "stem": "递归函数必须具备什么？", "options": ["A. 终止条件", "B. 全局变量", "C. 图结构", "D. 排序"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-prerequisite-002", "knowledgePointId": "recursion-basics", "knowledgePointName": "递归基础先修", "difficulty": "medium", "stem": "递归调用需要逐步接近什么？", "options": ["A. 基线条件", "B. 无限循环", "C. 随机状态", "D. 空队列"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-prerequisite-003", "knowledgePointId": "recursion-basics", "knowledgePointName": "递归基础先修", "difficulty": "easy", "stem": "递归调用通常使用哪种结构保存现场？", "options": ["A. 调用栈", "B. 优先队列", "C. 哈希表", "D. 图"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-prerequisite-004", "knowledgePointId": "recursion-basics", "knowledgePointName": "递归基础先修", "difficulty": "medium", "stem": "没有终止条件的递归可能导致什么？", "options": ["A. 栈溢出", "B. 自动排序", "C. 常数时间", "D. 空结果"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-prerequisite-005", "knowledgePointId": "recursion-basics", "knowledgePointName": "递归基础先修", "difficulty": "easy", "stem": "递归问题通常可以拆成什么？", "options": ["A. 更小的同类问题", "B. 无关问题", "C. 只有循环", "D. 只有数组"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-prerequisite-006", "knowledgePointId": "recursion-basics", "knowledgePointName": "递归基础先修", "difficulty": "medium", "stem": "递归深度主要受什么影响？", "options": ["A. 输入规模和基线条件", "B. 屏幕大小", "C. 文件名", "D. 网络带宽"], "answerKey": "A", "source": "demo"},
-    {"exerciseId": "exercise-prerequisite-007", "knowledgePointId": "recursion-basics", "knowledgePointName": "递归基础先修", "difficulty": "medium", "stem": "树的遍历可以用什么实现？", "options": ["A. 递归或显式栈", "B. 只能哈希", "C. 只能排序", "D. 只能队列"], "answerKey": "A", "source": "demo"}
+    {
+      "exerciseId": "exercise-preorder-001",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "前序遍历",
+      "difficulty": "easy",
+      "stem": "以下哪项是给定二叉树的前序遍历结果？",
+      "options": [
+        "A. 根-左-右",
+        "B. 左-右-根",
+        "C. 左-根-右",
+        "D. 根-右-左"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-inorder-001",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "中序遍历",
+      "difficulty": "easy",
+      "stem": "二叉树中序遍历访问节点的顺序是什么？",
+      "options": [
+        "A. 根-左-右",
+        "B. 左-根-右",
+        "C. 左-右-根",
+        "D. 根-右-左"
+      ],
+      "answerKey": "B",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-postorder-001",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "difficulty": "medium",
+      "stem": "二叉树后序遍历访问节点的顺序是什么？",
+      "options": [
+        "A. 根-左-右",
+        "B. 左-根-右",
+        "C. 左-右-根",
+        "D. 根-右-左"
+      ],
+      "answerKey": "C",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-postorder-002",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "difficulty": "easy",
+      "stem": "后序遍历中，根节点通常在什么时候被访问？",
+      "options": [
+        "A. 最先",
+        "B. 左子树之后、右子树之前",
+        "C. 左右子树都访问后",
+        "D. 任意时刻"
+      ],
+      "answerKey": "C",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-postorder-003",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "difficulty": "medium",
+      "stem": "表达式树用后序遍历得到的结果最接近哪种表达式？",
+      "options": [
+        "A. 前缀表达式",
+        "B. 中缀表达式",
+        "C. 后缀表达式",
+        "D. 自然语言"
+      ],
+      "answerKey": "C",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-postorder-004",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "difficulty": "medium",
+      "stem": "递归实现后序遍历时，输出当前节点应放在哪一步？",
+      "options": [
+        "A. 递归左子树前",
+        "B. 递归左右子树之间",
+        "C. 递归左右子树后",
+        "D. 只在叶节点执行"
+      ],
+      "answerKey": "C",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-postorder-005",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "difficulty": "hard",
+      "stem": "若一棵树只有根节点，后序遍历结果是什么？",
+      "options": [
+        "A. 空序列",
+        "B. 只有根节点",
+        "C. 两个根节点",
+        "D. 无法确定"
+      ],
+      "answerKey": "B",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-postorder-006",
+      "knowledgePointId": "binary-tree-postorder",
+      "knowledgePointName": "二叉树后序遍历",
+      "difficulty": "hard",
+      "stem": "删除整棵二叉树时采用后序遍历的主要原因是什么？",
+      "options": [
+        "A. 先处理父节点",
+        "B. 先处理子节点再处理父节点",
+        "C. 保证节点有序",
+        "D. 减少节点数量"
+      ],
+      "answerKey": "B",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-bst-001",
+      "knowledgePointId": "binary-tree-search",
+      "knowledgePointName": "二叉搜索树",
+      "difficulty": "medium",
+      "stem": "二叉搜索树的中序遍历具有什么性质？",
+      "options": [
+        "A. 有序",
+        "B. 逆序",
+        "C. 随机",
+        "D. 层序"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-bst-002",
+      "knowledgePointId": "binary-tree-search",
+      "knowledgePointName": "二叉搜索树",
+      "difficulty": "hard",
+      "stem": "二叉搜索树左子树节点通常小于什么？",
+      "options": [
+        "A. 根节点",
+        "B. 叶节点",
+        "C. 任意图节点",
+        "D. 队列尾部"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-bst-003",
+      "knowledgePointId": "binary-tree-search",
+      "knowledgePointName": "二叉搜索树",
+      "difficulty": "medium",
+      "stem": "二叉搜索树查找的平均复杂度通常是？",
+      "options": [
+        "A. O(log n)",
+        "B. O(n^2)",
+        "C. O(1)",
+        "D. O(2^n)"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-bst-004",
+      "knowledgePointId": "binary-tree-search",
+      "knowledgePointName": "二叉搜索树",
+      "difficulty": "hard",
+      "stem": "退化二叉搜索树的查找复杂度是？",
+      "options": [
+        "A. O(n)",
+        "B. O(1)",
+        "C. O(log n)",
+        "D. O(n log n)"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-bst-005",
+      "knowledgePointId": "binary-tree-search",
+      "knowledgePointName": "二叉搜索树",
+      "difficulty": "medium",
+      "stem": "平衡二叉搜索树的高度约为？",
+      "options": [
+        "A. O(log n)",
+        "B. O(n)",
+        "C. O(n^2)",
+        "D. O(1)"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-graph-001",
+      "knowledgePointId": "graph-algorithm",
+      "knowledgePointName": "图算法",
+      "difficulty": "easy",
+      "stem": "BFS 通常使用哪种数据结构？",
+      "options": [
+        "A. 栈",
+        "B. 队列",
+        "C. 堆",
+        "D. 集合"
+      ],
+      "answerKey": "B",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-graph-002",
+      "knowledgePointId": "graph-algorithm",
+      "knowledgePointName": "图算法",
+      "difficulty": "medium",
+      "stem": "DFS 通常使用哪种数据结构？",
+      "options": [
+        "A. 栈",
+        "B. 队列",
+        "C. 哈希表",
+        "D. 数组"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-graph-003",
+      "knowledgePointId": "graph-algorithm",
+      "knowledgePointName": "图算法",
+      "difficulty": "easy",
+      "stem": "无权图最短路径常用什么算法？",
+      "options": [
+        "A. BFS",
+        "B. 快排",
+        "C. 二分查找",
+        "D. 堆排序"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-graph-004",
+      "knowledgePointId": "graph-algorithm",
+      "knowledgePointName": "图算法",
+      "difficulty": "medium",
+      "stem": "Dijkstra 算法适用于哪类边权？",
+      "options": [
+        "A. 非负权",
+        "B. 任意负权",
+        "C. 只有负权",
+        "D. 无边权"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-graph-005",
+      "knowledgePointId": "graph-algorithm",
+      "knowledgePointName": "图算法",
+      "difficulty": "easy",
+      "stem": "图的顶点和边分别表示什么？",
+      "options": [
+        "A. 对象和关系",
+        "B. 栈和队列",
+        "C. 键和值",
+        "D. 根和叶"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-complexity-001",
+      "knowledgePointId": "algorithm-complexity",
+      "knowledgePointName": "算法复杂度先修",
+      "difficulty": "easy",
+      "stem": "二分查找的时间复杂度是？",
+      "options": [
+        "A. O(1)",
+        "B. O(log n)",
+        "C. O(n)",
+        "D. O(n^2)"
+      ],
+      "answerKey": "B",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-complexity-002",
+      "knowledgePointId": "algorithm-complexity",
+      "knowledgePointName": "算法复杂度先修",
+      "difficulty": "easy",
+      "stem": "遍历数组一次的复杂度是？",
+      "options": [
+        "A. O(n)",
+        "B. O(log n)",
+        "C. O(1)",
+        "D. O(n^2)"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-complexity-003",
+      "knowledgePointId": "algorithm-complexity",
+      "knowledgePointName": "算法复杂度先修",
+      "difficulty": "medium",
+      "stem": "嵌套两层线性循环通常是？",
+      "options": [
+        "A. O(n^2)",
+        "B. O(n)",
+        "C. O(log n)",
+        "D. O(1)"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-complexity-004",
+      "knowledgePointId": "algorithm-complexity",
+      "knowledgePointName": "算法复杂度先修",
+      "difficulty": "medium",
+      "stem": "归并排序的时间复杂度是？",
+      "options": [
+        "A. O(n log n)",
+        "B. O(n^2)",
+        "C. O(log n)",
+        "D. O(1)"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-complexity-005",
+      "knowledgePointId": "algorithm-complexity",
+      "knowledgePointName": "算法复杂度先修",
+      "difficulty": "medium",
+      "stem": "哈希表平均查找复杂度通常是？",
+      "options": [
+        "A. O(1)",
+        "B. O(n)",
+        "C. O(log n)",
+        "D. O(n^2)"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-traversal-001",
+      "knowledgePointId": "binary-tree-traversal",
+      "knowledgePointName": "二叉树遍历基础",
+      "difficulty": "easy",
+      "stem": "层序遍历通常按什么方向访问节点？",
+      "options": [
+        "A. 逐层",
+        "B. 只访问叶子",
+        "C. 只访问根",
+        "D. 随机"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-traversal-002",
+      "knowledgePointId": "binary-tree-traversal",
+      "knowledgePointName": "二叉树遍历基础",
+      "difficulty": "easy",
+      "stem": "前序遍历的第一个节点通常是？",
+      "options": [
+        "A. 根",
+        "B. 左叶",
+        "C. 右叶",
+        "D. 空节点"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-traversal-003",
+      "knowledgePointId": "binary-tree-traversal",
+      "knowledgePointName": "二叉树遍历基础",
+      "difficulty": "medium",
+      "stem": "中序遍历的顺序是？",
+      "options": [
+        "A. 左-根-右",
+        "B. 根-左-右",
+        "C. 左-右-根",
+        "D. 右-根-左"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-traversal-004",
+      "knowledgePointId": "binary-tree-traversal",
+      "knowledgePointName": "二叉树遍历基础",
+      "difficulty": "medium",
+      "stem": "后序遍历的顺序是？",
+      "options": [
+        "A. 左-右-根",
+        "B. 根-左-右",
+        "C. 左-根-右",
+        "D. 根-右-左"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-traversal-005",
+      "knowledgePointId": "binary-tree-traversal",
+      "knowledgePointName": "二叉树遍历基础",
+      "difficulty": "medium",
+      "stem": "二叉树遍历的基本对象是？",
+      "options": [
+        "A. 节点",
+        "B. 只有边",
+        "C. 只有根",
+        "D. 数组下标"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-prerequisite-001",
+      "knowledgePointId": "recursion-basics",
+      "knowledgePointName": "递归基础先修",
+      "difficulty": "easy",
+      "stem": "递归函数必须具备什么？",
+      "options": [
+        "A. 终止条件",
+        "B. 全局变量",
+        "C. 图结构",
+        "D. 排序"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-prerequisite-002",
+      "knowledgePointId": "recursion-basics",
+      "knowledgePointName": "递归基础先修",
+      "difficulty": "medium",
+      "stem": "递归调用需要逐步接近什么？",
+      "options": [
+        "A. 基线条件",
+        "B. 无限循环",
+        "C. 随机状态",
+        "D. 空队列"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-prerequisite-003",
+      "knowledgePointId": "recursion-basics",
+      "knowledgePointName": "递归基础先修",
+      "difficulty": "easy",
+      "stem": "递归调用通常使用哪种结构保存现场？",
+      "options": [
+        "A. 调用栈",
+        "B. 优先队列",
+        "C. 哈希表",
+        "D. 图"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-prerequisite-004",
+      "knowledgePointId": "recursion-basics",
+      "knowledgePointName": "递归基础先修",
+      "difficulty": "medium",
+      "stem": "没有终止条件的递归可能导致什么？",
+      "options": [
+        "A. 栈溢出",
+        "B. 自动排序",
+        "C. 常数时间",
+        "D. 空结果"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-prerequisite-005",
+      "knowledgePointId": "recursion-basics",
+      "knowledgePointName": "递归基础先修",
+      "difficulty": "easy",
+      "stem": "递归问题通常可以拆成什么？",
+      "options": [
+        "A. 更小的同类问题",
+        "B. 无关问题",
+        "C. 只有循环",
+        "D. 只有数组"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-prerequisite-006",
+      "knowledgePointId": "recursion-basics",
+      "knowledgePointName": "递归基础先修",
+      "difficulty": "medium",
+      "stem": "递归深度主要受什么影响？",
+      "options": [
+        "A. 输入规模和基线条件",
+        "B. 屏幕大小",
+        "C. 文件名",
+        "D. 网络带宽"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    },
+    {
+      "exerciseId": "exercise-prerequisite-007",
+      "knowledgePointId": "recursion-basics",
+      "knowledgePointName": "递归基础先修",
+      "difficulty": "medium",
+      "stem": "树的遍历可以用什么实现？",
+      "options": [
+        "A. 递归或显式栈",
+        "B. 只能哈希",
+        "C. 只能排序",
+        "D. 只能队列"
+      ],
+      "answerKey": "A",
+      "source": "demo"
+    }
   ]
 }

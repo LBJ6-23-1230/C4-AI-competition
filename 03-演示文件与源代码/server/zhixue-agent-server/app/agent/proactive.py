@@ -66,6 +66,40 @@ def _pending_ddl_task(context: dict[str, Any], days_left: float) -> dict[str, An
     return min(due_tasks, key=lambda item: (item[0], item[1]))[2] if due_tasks else None
 
 
+def _task_name(context: dict[str, Any], pending_task: dict[str, Any] | None) -> str:
+    """当前该补什么（任务名 / 知识点名）。
+
+    优先级：待办任务标题 → 调用方按画像算出的最薄弱知识点（`context.taskName`）
+    → 中性占位。
+
+    ⚠️ **绝不写死具体知识点**。原实现把任务名/知识点名硬编码成"二叉树后序遍历"，
+    于是刚诊断出"哈希表"的用户，首页与学习页的卡片文案仍然是"二叉树后序遍历" ——
+    实测反馈：「这里就有哈希了，但是上面的不能一味的写二叉树后序遍历，要具体看题目」。
+    """
+    if isinstance(pending_task, dict):
+        title = str(pending_task.get("title") or "").strip()
+        if title:
+            return title
+    return str(context.get("taskName") or "").strip() or "当前薄弱知识点"
+
+
+def _task_card(context: dict[str, Any], days_left: float,
+               pending_task: dict[str, Any] | None = None,
+               duration: int = 45) -> dict[str, Any]:
+    """卡片里的任务信息，按真实薄弱点填（见 `_task_name`）。"""
+    point_id = ""
+    if isinstance(pending_task, dict):
+        point_id = str(pending_task.get("knowledgePointId") or "")
+    point_id = point_id or str(context.get("knowledgePointId") or "")
+    return {
+        "taskName": _task_name(context, pending_task),
+        "knowledgePointId": point_id,
+        "durationMinutes": duration,
+        "examCountdownDays": int(days_left),
+        "hint": "",
+    }
+
+
 def proactive_decision(payload: dict[str, Any]) -> dict[str, Any]:
     """Return a deterministic proactive reminder payload for the current user context."""
     payload = payload if isinstance(payload, dict) else {}
@@ -82,8 +116,7 @@ def proactive_decision(payload: dict[str, Any]) -> dict[str, Any]:
             "contextTags": [],
             "reason": "当前正处于专注会话，不打扰用户",
             "factors": [],
-            "cardData": {"taskName": "二叉树后序遍历", "knowledgePointId": "binary-tree-postorder",
-                          "durationMinutes": 45, "examCountdownDays": 0, "hint": ""},
+            "cardData": _task_card(context, 0.0),
         }
 
     mastery_score = _as_float(context.get("masteryScore", 58), 58.0)
@@ -119,8 +152,7 @@ def proactive_decision(payload: dict[str, Any]) -> dict[str, Any]:
             "contextTags": [],
             "reason": "用户当前前台使用应用，暂不打扰",
             "factors": [],
-            "cardData": {"taskName": "二叉树后序遍历", "knowledgePointId": "binary-tree-postorder",
-                          "durationMinutes": 45, "examCountdownDays": int(days_left), "hint": ""},
+            "cardData": _task_card(context, days_left),
         }
 
     priority = calculate_learning_priority([
@@ -154,11 +186,14 @@ def proactive_decision(payload: dict[str, Any]) -> dict[str, Any]:
     if exam_weak:
         trigger_reasons.append("exam_within_7d_low_mastery")
     should_notify = bool(trigger_reasons) and not context.get("focusSessionActive", False)
+    # 任务 id 仍沿用演示计划里的 `task-postorder`：它是**计划条目的标识**，
+    # 专注完成后要靠它回写计划进度（见 AppState.markPlanTaskStatus），
+    # 不能跟着展示名一起变；展示名走 `_task_name()`，与真实薄弱点对齐。
     task_id = str(pending_task.get("taskId") or "task-postorder") if pending_task else "task-postorder"
-    task_name = str(pending_task.get("title") or "二叉树后序遍历") if pending_task else "二叉树后序遍历"
+    task_name = _task_name(context, pending_task)
     knowledge_point_id = str(
-        pending_task.get("knowledgePointId") or "binary-tree-postorder"
-    ) if pending_task else "binary-tree-postorder"
+        pending_task.get("knowledgePointId") or context.get("knowledgePointId") or ""
+    ) if pending_task else str(context.get("knowledgePointId") or "")
     action = {
         "type": "focus",
         "label": "开始 45 分钟专注",
@@ -171,16 +206,25 @@ def proactive_decision(payload: dict[str, Any]) -> dict[str, Any]:
         reason = f"待办「{task_name}」临近截止，且当前没有进行中的专注会话"
         title = f"待办「{task_name}」即将截止"
     else:
+        # ⚠️ 两条修正：
+        #   1. 不再编造"你上次只答对 2/3"这种**没有证据支撑**的具体数字 ——
+        #      同一响应里没有任何答题记录可依据，属于凭空生成。
+        #   2. 位置未知时**不再把 "unknown" 拼进句子**（此前输出
+        #      "近 0 天未学习，当前在unknown适合深度专注"，中英混杂）。
         body = (
-            "你上次后序遍历只答对 2/3，建议先补这个。要不要现在用 45 分钟？"
-            if should_notify else "建议在下一次复习时优先回顾二叉树后序遍历"
+            f"「{task_name}」还没补上，要不要现在用 45 分钟？"
+            if should_notify else f"建议在下一次复习时优先回顾「{task_name}」"
         )
+        location_clause = "" if location in ("", "unknown") else f"，当前在{location}"
         reason = (
             f"考试剩 {int(days_left)} 天（紧迫度贡献 {priority['factors']['urgency']['contribution']:.3f}），"
-            f"后序遍历掌握度 {mastery_score:.0f} 偏低（贡献 {priority['factors']['mastery']['contribution']:.3f}），"
-            f"近 {gap_days} 天未学习，当前在{location}适合深度专注"
+            f"「{task_name}」掌握度 {mastery_score:.0f} 偏低（贡献 {priority['factors']['mastery']['contribution']:.3f}），"
+            f"近 {gap_days} 天未学习{location_clause}，适合深度专注"
         )
-        title = "数据结构考试还有 5 天" if should_notify else ""
+        # 标题里的天数**必须用真实值**：原来写死"数据结构考试还有 5 天"，
+        # 与同一响应 reason 里的真实天数互相打架（实测：导入 20 天后的考试，
+        # 通知标题仍写"还有 5 天"）。
+        title = f"考试还有 {int(days_left)} 天" if should_notify else ""
 
     factors = [
         {"name": "1-Mastery", "value": priority["factors"]["mastery"]["value"], "weight": priority["factors"]["mastery"]["weight"], "contribution": priority["factors"]["mastery"]["contribution"]},

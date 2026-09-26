@@ -6,6 +6,8 @@ from pathlib import Path
 from flask import Blueprint, jsonify, request
 
 from app.api.identity import resolve_user_id
+# 计划归属判定与 `GET /plans/current` 共用同一口径，避免"读得到计划但练习不再重排"。
+from app.api.plans import plan_belongs_to
 from app.api.validation import (MAX_ID_CHARS, bounded_str, json_object, validate_answers)
 from app.domain.evidence import Evidence, MasteryHistory
 from app.domain.plan import LearningPlan
@@ -38,10 +40,14 @@ _SUBMIT_LOCK = threading.RLock()
 
 _EXERCISE_BANK = [
 	{"exerciseId": "exercise-preorder-001", "knowledgePointId": "binary-tree-postorder",
-	 "knowledgePointName": "二叉树后序遍历", "difficulty": "easy", "stem": "以下哪项是给定二叉树的前序遍历结果？",
+	 # 展示名按**题干实际考什么**写：这题问的是前序遍历，原先被标成"后序遍历"，
+	 # 于是练习页每道题都挂同一个错标签（实测反馈：「不能一味的写二叉树后序遍历，
+	 # 要具体看题目」）。knowledgePointId 保持不动 —— 演示题集按它选取。
+	 "knowledgePointName": "前序遍历", "difficulty": "easy", "stem": "以下哪项是给定二叉树的前序遍历结果？",
 	 "options": ["A. 根-左-右", "B. 左-右-根", "C. 左-根-右", "D. 根-右-左"], "source": "demo"},
 	{"exerciseId": "exercise-inorder-001", "knowledgePointId": "binary-tree-postorder",
-	 "knowledgePointName": "二叉树后序遍历", "difficulty": "easy", "stem": "二叉树中序遍历访问节点的顺序是什么？",
+	 # 同上：这题考的是中序遍历。
+	 "knowledgePointName": "中序遍历", "difficulty": "easy", "stem": "二叉树中序遍历访问节点的顺序是什么？",
 	 "options": ["A. 根-左-右", "B. 左-根-右", "C. 左-右-根", "D. 根-右-左"], "source": "demo"},
 	{"exerciseId": "exercise-postorder-001", "knowledgePointId": "binary-tree-postorder",
 	 "knowledgePointName": "二叉树后序遍历", "difficulty": "medium", "stem": "二叉树后序遍历访问节点的顺序是什么？",
@@ -312,12 +318,14 @@ def submit_exercises(set_id: str):
 			response["traceId"] = trace_id
 			response["evidenceIds"] = [evidence_id]
 			timestamp = datetime.now(timezone.utc)
+			#: 本次提交是否**真的**重排了计划（供 trace 补记 planner 事件）。
+			replanned: bool = False
 			profile_model_dict = persist_mastery(_repository, user_id, assessment,
 					evidence_id, result_id, timestamp)
 			if profile_model_dict:
 				if response["needReplan"]:
 					plans = [item for item in _repository.list("plans")
-						if item.get("userId", "demo-user") == user_id]
+						if plan_belongs_to(item, user_id)]
 					plan = next((item for item in plans if item.get("planId") == "plan-demo-001"), None)
 					plan = plan or (plans[0] if plans else None)
 					if plan is not None:
@@ -328,8 +336,17 @@ def submit_exercises(set_id: str):
 						updated_plan = replan_result["plan"]
 						updated_tasks = updated_plan["tasks"]
 						new_plan = LearningPlan(plan["planId"], updated_plan["version"], updated_tasks,
-							profile_model_dict["profileVersion"], "根据练习结果重规划")
+							profile_model_dict["profileVersion"], "根据练习结果重规划",
+							# 归属必须显式带上：这是一次**整条覆盖**写回，`to_dict()`
+							# 若不带 userId，记录就丢了归属，读侧 `plans.py` 的
+							# `plan.get("userId", "demo-user")` 会把它当成演示身份 ——
+							# 真实账号做完一次练习就读不到自己的计划（404）。
+							# 老记录可能已经丢了该键，此时回落到本次提交者（就是 owner，
+							# 上面已按 user_id 过滤过）。
+							plan.get("userId") or user_id)
 						_repository.save("plans", new_plan.plan_id, new_plan.to_dict())
+						# 重排确实发生了 —— 后面要往 trace 里补一条 planner 事件。
+						replanned = True
 						history = create_plan_history(plan, new_plan.to_dict(),
                             "按本次得分 %.2f 重分配时间：薄弱点加时、其余任务减时" % score,
                             [evidence_id])
@@ -340,11 +357,29 @@ def submit_exercises(set_id: str):
 							f"{new_plan.plan_id}:v{history['newVersion']}", history)
 						response["plan"] = new_plan.to_dict()
 						response["planDiff"] = {"planId": new_plan.plan_id, **history}
-			trace = {"traceId": trace_id, "userId": user_id, "events": [{"agent": "assessment", "toolCalls": ["grade_exercise"],
+			events: list[dict] = [{
+				"agent": "assessment", "toolCalls": ["grade_exercise"],
 				"inputSummary": f"提交题集 {set_id}", "outputSummary": f"得分 {score}",
 				"evidenceIds": [evidence_id], "stateVersion": 1, "timestamp": timestamp.isoformat(),
 				"status": "completed", "sessionId": data.get("sessionId"), "stepId": "step-1",
-				"inputStateVersion": 1, "outputStateVersion": 1}]}
+				"inputStateVersion": 1, "outputStateVersion": 1}]
+			if replanned:
+				# ★ 计划确实被重排了，就必须在 trace 里留痕。
+				#
+				# 原实现只写 assessment 一条事件 —— 于是"计划 V1→V2、时长
+				# [30,30]→[45,15]"这件事在决策轨迹里**完全看不到**，
+				# 而 trace 正是本项目"可复核的 Agent 决策链"这个卖点的落点。
+				# 实测：提交后 trace 里只有 assessment/grade_exercise，
+				# 找不到任何 planner 痕迹。
+				events.append({
+					"agent": "planner", "toolCalls": ["replan_learning_path"],
+					"inputSummary": f"掌握度 {report_old} → {report_new}，本次得分 {score}",
+					"outputSummary": f"计划重排为 V{response['plan'].get('version')}",
+					"evidenceIds": [evidence_id], "stateVersion": 2,
+					"timestamp": datetime.now(timezone.utc).isoformat(),
+					"status": "completed", "sessionId": data.get("sessionId"), "stepId": "step-2",
+					"inputStateVersion": 1, "outputStateVersion": 2})
+			trace = {"traceId": trace_id, "userId": user_id, "events": events}
 			_repository.save("traces", trace_id, trace)
 			_repository.save("submissions", result_id, {"response": response})
 		return jsonify(response)

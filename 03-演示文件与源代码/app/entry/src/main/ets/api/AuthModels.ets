@@ -1,11 +1,10 @@
 /**
  * 鉴权 DTO —— 与 `contracts/openapi.json` 的 Auth* 定义逐字段对应。
  *
- * 设计要点：**没有密码字段**。本项目的登录是"昵称即身份 + 长期 token"，
- * 不做密码体系（见 docs/02-登录界面设计与用户数据库方案.md §4.2）。
+ * 密码字段只出现在请求 DTO；服务端仅保存加盐哈希，响应与本地用户视图不含密码。
  */
 
-/** 认证来源。local = 本服务免密注册；guest = 演示/游客身份。 */
+/** 认证来源。local = 本服务账号；guest = 演示/游客身份。 */
 export type AuthProvider = 'local' | 'guest' | 'agc_phone' | 'agc_anonymous';
 
 /** 登录态来源，用于界面标注与调试。 */
@@ -26,6 +25,7 @@ export interface AuthUser {
 
 export interface AuthRegisterRequest {
   nickname: string;
+  password?: string;
   grade?: string;
   /**
    * 手机号。**注册必填**（唯一身份标识）；后端做格式校验与唯一约束。
@@ -66,6 +66,7 @@ export interface AuthLoginRequest {
   token?: string;
   nickname?: string;
   phone?: string;
+  password?: string;
 }
 
 // ------------------------------------------------------------------ 手机号验证码
@@ -131,6 +132,7 @@ export const VERIFICATION_CODE_MESSAGES: Record<string, string> = {
  */
 export interface AuthLoginOrRegisterRequest {
   nickname: string;
+  password?: string;
   grade?: string;
   phone?: string;
 }

@@ -5,6 +5,7 @@
 ----------------------------------------------------
 POST   /api/v1/auth/register   {nickname, phone, password?} → {user, token, expiresAt}
 POST   /api/v1/auth/login      {phone|nickname, password}   → {user, token, expiresAt}
+POST   /api/v1/auth/change-password {oldPassword?, newPassword} (Bearer) → {status, hasPassword, wasFirstTime}
 POST   /api/v1/auth/logout     (Bearer)                → {status: "ok"}
 GET    /api/v1/auth/me         (Bearer)                → {user}
 DELETE /api/v1/auth/account    (Bearer)                → {status: "deactivated"}
@@ -245,6 +246,31 @@ def login_with_huawei():
         service.provision_starter_profile(
             _repository, result["user"]["userId"], result["user"]["nickname"])
         return jsonify(result), 201
+    return jsonify(result)
+
+
+@auth_api.post("/api/v1/auth/change-password")
+def change_password():
+    """修改 / **首次设置**密码（需 `Authorization: Bearer <token>`）。
+
+    * 账号已设过密码 → 必须带对 `oldPassword`，否则 401；
+    * 从未设过密码（验证码建号）→ 这是首次设置，无需旧密码。
+
+    存在的意义：「我的 → 账号与密码管理」这个入口一直有，但**没有任何密码管理能力**；
+    而且验证码建出来的账号是无密码的，没有这个接口就永远补不上密码。
+    """
+    if _repository is None:
+        return _error("INTERNAL_ERROR", "auth repository is not configured", 500)
+    resolved, failure = _require_user()
+    if failure is not None:
+        return failure
+    user, _token = resolved
+    data = _body()
+    try:
+        result = service.change_password(_repository, user["userId"],
+                                         data.get("oldPassword"), data.get("newPassword"))
+    except service.AuthError as error:
+        return _auth_error(error)
     return jsonify(result)
 
 

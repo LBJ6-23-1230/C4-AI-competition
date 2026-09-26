@@ -38,7 +38,7 @@ export default class StartFocusIntent extends InsightIntentEntryExecutor<string>
     const normalizedDuration: number = this.durationMinutes >= 1 && this.durationMinutes <= 180 ?
       Math.round(this.durationMinutes) : 30;
     appState.setFocusTask({
-      course: appState.getHighPriorityCourse().courseName,
+      course: appState.getHighPriorityCourse()?.courseName ?? '通用学习',
       task: normalizedTask.length > 0 ? normalizedTask : '完成今日学习建议',
       plannedMinutes: normalizedDuration,
       source: 'agent',

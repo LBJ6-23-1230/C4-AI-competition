@@ -23,6 +23,14 @@ import {
 import { ChatHandoff } from '../models/ChatModels';
 import { ApiDefaults } from '../api/ApiDefaults';
 import { AuthSource, AuthUser } from '../api/AuthModels';
+// 契约形状的「用户看得见的那份计划」。用别名避免与 AgentModels 里的本地模型撞名 ——
+// 两者的 `PlanTaskStatus` 取值集**不同**：契约是 pending/in_progress/completed，
+// 本地还多 partial/deferred。
+import {
+  LearningPlan as VisiblePlan,
+  PlanTask as VisiblePlanTask,
+  PlanTaskStatus as VisiblePlanTaskStatus
+} from '../api/ApiModels';
 import {
   mockCurrentUser,
   mockCoursesList,
@@ -146,7 +154,13 @@ export class AppState {
       userId: user.userId,
       basicInfo: {
         name: user.nickname,
-        grade: user.grade.length > 0 ? user.grade : this.currentUser.basicInfo.grade,
+        // ⚠️ 服务端对"注册时跳过年级"的账号存的是**空串**；原实现回落成
+        // `this.currentUser.basicInfo.grade` —— 而登出分支把这个值设成了
+        // MockData 里写死的「大二」，于是**没选年级的新账号会凭空显示
+        // 「在读年级：大二」**，并且 `Account.ets` 只在服务端值非空时才用它纠正
+        // （`user.grade.length > 0`），永远纠不回来。
+        // 这里如实留空，由页面显示「未设置」——不替用户编属性。
+        grade: user.grade.length > 0 ? user.grade : '',
         major: this.currentUser.basicInfo.major
       },
       learningGoal: this.currentUser.learningGoal,
@@ -387,30 +401,166 @@ export class AppState {
     this.weeklyPlan = null;
   }
 
+  /**
+   * 今天的计划任务。
+   *
+   * ⚠️ 两处修正：
+   *   1. 用 `dateLabel.indexOf(todayLabel) !== -1` 做**子串**匹配是错的 ——
+   *      `getTodayLabel()` 给的是 `"2月1日"` 这种月日串，子串匹配会让它命中
+   *      `"12月1日 周二"`，把 12 月 1 日的任务当成"今天"。改为按空格取日期段
+   *      **精确**比较（`dateLabel` 的格式是 `"9月26日 周六"`）。
+   *   2. 删掉声明后从未使用的 `todayFullLabel`。
+   *
+   * 注：当前没有页面调用本方法（属历史遗留）。保留并修正，是为了避免将来
+   * 一旦被复用就按错误日期取任务。
+   */
   public getTodayPlanTasks(): LearningPlanTask[] {
     if (this.weeklyPlan === null) {
       return [];
     }
     const todayLabel: string = DateHelper.getTodayLabel();
-    const todayFullLabel: string = DateHelper.getTodayLabel();
     return this.weeklyPlan.tasks.filter((task: LearningPlanTask) =>
-      task.dateLabel.indexOf(todayLabel) !== -1
+      task.dateLabel.split(' ')[0] === todayLabel
     );
   }
 
+  /**
+   * 专注结算写入的**任务完成状态**，按任务 id 归档（overlay 用）。
+   *
+   * 为什么必须有这张表：App 里同时存在**两份计划**——
+   *   · **用户看得见的那份**：接口返回的契约计划（联机为后端、离线为 Fixture），
+   *     `taskId` 形如 `task-postorder`；
+   *   · `weeklyPlan`：`LocalAgentService.generateWeeklyPlan` 本地生成的，
+   *     `id` 形如 `agent-数据结构-0`。
+   *
+   * 两套 id 空间**互不相通**，而"首页主行动卡 → 专注 → 完成"沿路带下来的是
+   * **契约 id**，于是完成状态永远匹配不到任何计划任务：「任务完成度」恒为 0%、
+   * 「学习复盘」恒说"还没有完成任务"（实测复现）。
+   *
+   * 产品口径（已与产品确认）：**完成状态以用户看得见的那份计划为准**。
+   * 后端没有回写 `task.status` 的接口，所以状态记在本地，读取时与计划做 overlay。
+   */
+  private taskStatusOverrides: Map<string, PlanTaskStatus> = new Map<string, PlanTaskStatus>();
+
+  /**
+   * 对外只读口径：这个计划任务算不算"已完成"。
+   *
+   * 计划页要据此把任务卡从「待执行」改成「已完成」—— 接口不会回写 `task.status`
+   * （后端没有这个接口），完成状态只存在于本地，所以**页面必须问本地**，
+   * 否则专注做完了、计划页还写着「待执行」，与「我的」里的完成度互相打架。
+   */
+  public isTaskCompleted(taskId: string, status: string): boolean {
+    return this.isPlanTaskDone(taskId, status);
+  }
+
+  /** 判定任务是否完成：计划里标了 completed，或本地记录过 completed。 */
+  private isPlanTaskDone(taskId: string, status: string): boolean {
+    if (status === 'completed') {
+      return true;
+    }
+    return this.taskStatusOverrides.get(taskId) === 'completed';
+  }
+
+  /** 已知计划里出现过的全部任务 id（用于判断一次标记有没有命中计划）。 */
+  private knownPlanTaskIds(): string[] {
+    const ids: string[] = [];
+    const visible: VisiblePlan | null = ClientCache.getCurrentPlan();
+    if (visible !== null) {
+      visible.tasks.forEach((task: VisiblePlanTask) => ids.push(task.taskId));
+    }
+    if (this.weeklyPlan !== null) {
+      this.weeklyPlan.tasks.forEach((task: LearningPlanTask) => ids.push(task.id));
+    }
+    return ids;
+  }
+
+  /**
+   * 记录任务完成状态。**无论有没有命中计划都要记**——否则"先专注、后打开计划页"
+   * 的顺序会让完成状态丢掉。
+   *
+   * @returns 是否在"已知的计划"里命中了这个 id（调用方据此决定提示文案，
+   *          避免像原来那样没命中还报"计划进度已更新"）。
+   */
+  public markPlanTaskStatus(taskId: string | undefined, status: PlanTaskStatus): boolean {
+    const key: string = (taskId ?? '').trim();
+    if (key.length === 0) {
+      return false;
+    }
+    this.taskStatusOverrides.set(key, status);
+    return this.knownPlanTaskIds().indexOf(key) !== -1;
+  }
+
+  /**
+   * 「任务完成度」。**优先用用户看得见的那份计划**（契约 / Fixture），
+   * 它才是专注入口传下来的 id 所属的那一份；没有才回落到本地生成的计划。
+   */
   public getPlanProgress(): number {
+    const visible: VisiblePlan | null = ClientCache.getCurrentPlan();
+    if (visible !== null && visible.tasks.length > 0) {
+      const done: number = visible.tasks.filter(
+        (task: VisiblePlanTask) => this.isPlanTaskDone(task.taskId, task.status)).length;
+      return Math.round(done / visible.tasks.length * 100);
+    }
     if (this.weeklyPlan === null || this.weeklyPlan.tasks.length === 0) {
       return 0;
     }
-    const completed: number = this.weeklyPlan.tasks.filter((task: LearningPlanTask) => task.status === 'completed').length;
-    return Math.round(completed / this.weeklyPlan.tasks.length * 100);
+    const done: number = this.weeklyPlan.tasks.filter(
+      (task: LearningPlanTask) => this.isPlanTaskDone(task.id, task.status)).length;
+    return Math.round(done / this.weeklyPlan.tasks.length * 100);
+  }
+
+  /**
+   * 「已完成」任务列表（学习复盘展示用）。与 `getPlanProgress()` 同一口径，
+   * 保证"完成度"和"完成任务数"永远对得上。
+   */
+  public getCompletedPlanTasks(): LearningPlanTask[] {
+    const visible: VisiblePlan | null = ClientCache.getCurrentPlan();
+    if (visible !== null && visible.tasks.length > 0) {
+      const done: VisiblePlanTask[] = visible.tasks.filter(
+        (task: VisiblePlanTask) => this.isPlanTaskDone(task.taskId, task.status));
+      const mapped: LearningPlanTask[] = [];
+      done.forEach((task: VisiblePlanTask) => mapped.push(AppState.toDisplayTask(task)));
+      return mapped;
+    }
+    if (this.weeklyPlan === null) {
+      return [];
+    }
+    return this.weeklyPlan.tasks.filter(
+      (task: LearningPlanTask) => this.isPlanTaskDone(task.id, task.status));
+  }
+
+  /** 把契约任务转成复盘页渲染用的本地形状（只填页面真正用到的字段）。 */
+  private static toDisplayTask(task: VisiblePlanTask): LearningPlanTask {
+    return {
+      id: task.taskId,
+      course: '专项学习',
+      title: task.knowledgePointName,
+      knowledgePoint: task.knowledgePointName,
+      type: 'practice',
+      dateLabel: '',
+      plannedMinutes: task.durationMinutes,
+      priorityScore: 0,
+      priorityLabel: '',
+      reason: '',
+      completionCriteria: '',
+      steps: [],
+      status: 'completed',
+      source: 'agent',
+      canCollaborate: false
+    };
   }
 
   public updatePlanTaskStatus(taskId: string, status: PlanTaskStatus): void {
+    // 先记账：即使此刻计划还没加载，"完成"这件事也不能丢。
+    const key: string = (taskId ?? '').trim();
+    if (key.length === 0) {
+      return;
+    }
+    this.taskStatusOverrides.set(key, status);
     if (this.weeklyPlan === null) {
       return;
     }
-    const task: LearningPlanTask | undefined = this.weeklyPlan.tasks.find((item: LearningPlanTask) => item.id === taskId);
+    const task: LearningPlanTask | undefined = this.weeklyPlan.tasks.find((item: LearningPlanTask) => item.id === key);
     if (task !== undefined) {
       task.status = status;
     }
@@ -687,6 +837,9 @@ export class AppState {
     this.focusSessions = [];
     this.activeFocusTask = null;
     this.clearFocusResultDraft();
+    // 任务完成状态是**账号维度**的：不清会让下一个登录的人看到上一个人的
+    // "已完成"任务（与 focusSessions / courses 同一类跨身份串数据）。
+    this.taskStatusOverrides.clear();
     // 课程和 DDL 目前是本地内存数据，没有服务端账号归属。切换身份时若保留，
     // 会让账号看到游客导入的内容（反之亦然），形成明显的跨身份串数据。
     this.courses = [];

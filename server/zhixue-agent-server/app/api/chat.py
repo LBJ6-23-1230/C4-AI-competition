@@ -17,7 +17,7 @@ import json
 from flask import Blueprint, jsonify, request
 
 from app.agent import chat_llm
-from app.api.identity import resolve_user_id
+from app.api.identity import DEMO_USER_ID, resolve_user_id
 from app.repositories.json_repository import JsonRepository
 
 chat_api = Blueprint("chat", __name__)
@@ -127,6 +127,66 @@ def _chat_identity() -> str:
     return resolve_user_id(supplied)
 
 
+def _user_context_for(user_id: str) -> dict:
+    """按**当前身份**组装喂给模型的「用户信息」块。
+
+    ⚠️ 此前 `chat_llm._user_data()` 永远读 `chat/mock_users.json`（u001 / 小明 /
+    薄弱点写死 `['二叉树遍历','递归理解']`），**与当前登录是谁无关** —— 于是模型
+    照着"小明"的画像回话：称呼用户"小明"、张口就是"二叉树遍历"。
+    实测反馈里的「怎么一直在小明」「默认不要直接说我掌握了二叉树遍历」就是这条。
+
+    现在：真实账号用**自己的昵称 + 自己的画像**（薄弱点由掌握度排序推出）；
+    游客/查无此人/无仓储时才回落演示数据（返回空 dict 即回落）。
+    """
+    if _repository is None or user_id == DEMO_USER_ID:
+        return {}
+    user = _repository.get("users", user_id)
+    profile = _repository.get("profiles", user_id)
+    if not isinstance(user, dict) and not isinstance(profile, dict):
+        return {}
+
+    nickname = user.get("nickname") if isinstance(user, dict) else ""
+    grade = user.get("grade") if isinstance(user, dict) else ""
+
+    weak: list[str] = []
+    strong: list[str] = []
+    scored: list[dict] = []
+    mastery = profile.get("mastery") if isinstance(profile, dict) else None
+    if isinstance(mastery, list):
+        scored = [item for item in mastery
+                  if isinstance(item, dict) and isinstance(item.get("masteryScore"), (int, float))]
+        scored.sort(key=lambda item: item["masteryScore"])
+        for item in scored:
+            name = str(item.get("knowledgePointName") or item.get("knowledgePointId") or "").strip()
+            if not name:
+                continue
+            if item["masteryScore"] < 60:
+                weak.append(name)
+            elif item["masteryScore"] >= 80:
+                strong.append(name)
+
+    context: dict = {
+        "userId": user_id,
+        "basicInfo": {"name": nickname or "同学", "grade": grade, "major": ""},
+        # 掌握度低的是薄弱点、高的是强项 —— **由真实数据推出，不是写死的**。
+        "knowledge": {"weakness": weak[:5], "strength": strong[:5]},
+        # 逐条掌握度：用户自称"我掌握了 X"时，对话层要拿**真实数字**对一遍，
+        # 而不是照单全收（见 `chat_llm._mastery_claim_gate`）。
+        "mastery": [
+            {"knowledgePointName": str(item.get("knowledgePointName") or ""),
+             "knowledgePointId": str(item.get("knowledgePointId") or ""),
+             "masteryScore": item["masteryScore"]}
+            for item in scored
+        ],
+    }
+    if isinstance(profile, dict):
+        if profile.get("goal"):
+            context["learningGoal"] = {"course": "", "goal": profile["goal"]}
+        if profile.get("freeTimeSlots"):
+            context["time"] = {"freeTime": profile["freeTimeSlots"]}
+    return context
+
+
 def _payload() -> dict:
     """宽松地取出请求体 JSON。
 
@@ -222,11 +282,15 @@ def agent_chat():
     if not isinstance(frontend_data, dict):
         frontend_data = None
 
+    _identity: str = _chat_identity()
     result = chat_llm.chat(
         message=message,
         image_base64=image if isinstance(image, str) and image else None,
         frontend_data=frontend_data,
-        user_id=_chat_identity(),
+        user_id=_identity,
+        # 把**当前身份的真实资料**传给对话层：没有它，模型只会照着
+        # mock 的 u001/小明 回话（见 `_user_context_for` 的说明）。
+        user_context=_user_context_for(_identity),
     )
 
     # 响应结构：契约基线三字段 { reply, intent, card } + 可选 llmUsed。
@@ -288,10 +352,33 @@ def chat_history_clear():
 
 @chat_api.get("/api/agent/user-data")
 def user_data_snapshot():
-    data = chat_llm._user_data(None)  # noqa: SLF001 - 自用只读快照
+    identity: str = _chat_identity()
+    data = chat_llm._user_data(None, _user_context_for(identity))  # noqa: SLF001 - 自用只读快照
     return jsonify({
         "users": data.get("users", {}),
         "courses": data.get("courses", {}),
         "candidates": chat_llm._load_json("mock_candidates.json", []),  # noqa: SLF001
-        "wrong_questions": chat_llm._load_json("mock_wrong_questions.json", [])[-10:],  # noqa: SLF001
+        "wrong_questions": _wrong_questions_for(identity),
     })
+
+
+def _wrong_questions_for(user_id: str) -> list:
+    """当前身份可见的错题（最多最近 10 条）。
+
+    ⚠️ 原实现是 `_load_json(...)[-10:]` —— **完全不按身份过滤**，直接取文件最后
+    10 条。后果已实测复现：一个**刚注册、零错题**的新账号调这个接口，拿到的是
+    `u001` 的 10 条错题。项目的身份隔离闸门（`check_identity_isolation.py`
+    22 项、`check_logged_in_flows.py` 越权检查）恰好都没覆盖这个端点。
+
+    演示身份额外认 `u001`：历史种子数据的 userId 就是它（随包那份已清理为
+    `demo-user`，这里保留兼容，避免旧运行库看不到演示错题）。
+    """
+    rows = chat_llm._load_json("mock_wrong_questions.json", [])  # noqa: SLF001
+    if not isinstance(rows, list):
+        return []
+    accepted = {user_id}
+    if user_id == DEMO_USER_ID:
+        accepted.add("u001")
+    own = [row for row in rows
+           if isinstance(row, dict) and str(row.get("userId") or "") in accepted]
+    return own[-10:]

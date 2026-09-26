@@ -3141,6 +3141,13 @@
           "phone": {
             "type": "string",
             "description": "手机号。注册必填；生产登录应先调用 send-code + verify-code。当前 /auth/login 的免验证码手机号登录保留给演示与单机环境。"
+          },
+          "password": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 6,
+            "maxLength": 72,
+            "description": "可选。设置后该账号可用密码登录；服务端只保存 Werkzeug 生成的加盐哈希，明文不落库也不回传。未设置（例如走验证码建号）时，该账号的密码登录会被如实拒绝并提示改用验证码登录 —— 不会接受任意密码。"
           }
         }
       },
@@ -3157,11 +3164,16 @@
           "nickname": {
             "type": "string",
             "nullable": true,
-            "description": "按昵称免密登录。与 userId/token 二选一；两者都提供时优先按凭据恢复。昵称不是秘密，此形式仅适用于演示/单机场景。"
+            "description": "按昵称登录。与 userId/token 二选一；两者都提供时优先按凭据恢复。账号设过密码时需同时提供 password。昵称本身不是秘密，此形式仅适用于演示/单机场景。"
           },
           "phone": {
             "type": "string",
             "description": "按手机号登录。与 userId/token、nickname 三选一；分派优先级：凭据 > 手机号 > 昵称。"
+          },
+          "password": {
+            "type": "string",
+            "nullable": true,
+            "description": "配合 phone / nickname 使用。账号设过密码时**必须**正确，否则返回 401 UNAUTHORIZED；从未设过密码的账号会被拒绝并提示改用「验证码登录」。"
           }
         }
       },

@@ -6,12 +6,22 @@ export struct FactorBreakdownCard {
   @Prop reason: string;
   @State expanded: boolean = false;
 
+  /**
+   * 因子名 → 中文。
+   *
+   * ⚠️ 必须同时认**两种拼法**：两个后端路径给出的因子名不一致 ——
+   *   · `/api/v1/agent/proactive` 给 `1-Mastery` / `ErrorIntensity` …（帕斯卡式）
+   *   · `/api/v1/plans/current`   给 `mastery`  / `errorIntensity` …（小驼峰）
+   * 原来只映射帕斯卡式，于是**在线模式下这个面板把英文原名直接显示给用户**
+   * （实测反馈：「有的东西不要写给用户直接看」）。
+   * 认不出来的仍然原样返回，不编造。
+   */
   private factorName(name: string): string {
-    if (name === '1-Mastery') return '1 − 掌握度';
-    if (name === 'ErrorIntensity') return '错误强度';
-    if (name === 'Importance') return '课程重要性';
-    if (name === 'Urgency') return '时间紧迫度';
-    if (name === 'PrerequisiteImpact') return '先修影响';
+    if (name === '1-Mastery' || name === 'mastery') return '1 − 掌握度';
+    if (name === 'ErrorIntensity' || name === 'errorIntensity') return '错误强度';
+    if (name === 'Importance' || name === 'importance') return '课程重要性';
+    if (name === 'Urgency' || name === 'urgency') return '时间紧迫度';
+    if (name === 'PrerequisiteImpact' || name === 'prerequisiteImpact') return '先修影响';
     return name;
   }
 

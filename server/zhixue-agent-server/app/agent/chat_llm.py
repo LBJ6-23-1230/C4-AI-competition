@@ -398,8 +398,21 @@ def _format_frontend_courses(courses: list[Any], ddls: list[Any]) -> list[dict[s
     return result or _load_json("mock_courses.json", [])
 
 
-def _user_data(frontend_data: dict[str, Any] | None) -> dict[str, Any]:
-    users = _load_json("mock_users.json", {})
+def _user_data(frontend_data: dict[str, Any] | None,
+               user_context: dict[str, Any] | None = None) -> dict[str, Any]:
+    """组装喂给模型的上下文。
+
+    `users` 一节**优先用调用方传入的真实身份资料** `user_context`（由 API 层按
+    当前登录身份组装）；只有在它为空的场景（游客 / 演示 / 直接调用对话层）才回落
+    `chat/mock_users.json`。
+
+    ⚠️ 为什么必须这样：原实现无条件读 mock_users.json，里面是写死的
+    `u001 / 小明 / weakness: ['二叉树遍历','递归理解']` —— 于是**任何账号**聊天，
+    模型都会把用户当成"小明"、张口就"二叉树遍历"。这是实测反馈
+    「怎么一直在小明」「默认不要直接说我掌握了二叉树遍历」的根因。
+    """
+    users = (user_context if isinstance(user_context, dict) and user_context
+             else _load_json("mock_users.json", {}))
     if frontend_data and frontend_data.get("isDataImported"):
         courses = _format_frontend_courses(
             frontend_data.get("courses") or [], frontend_data.get("homeworkDDLs") or [])
@@ -628,6 +641,78 @@ def _authoritative_partner_scores(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+#: 用户"自称已掌握"的常见说法。命中后**不会**直接采信，先拿真实掌握度对一遍。
+_MASTERY_CLAIM_VERBS = ("掌握了", "我学会", "学会了", "已经掌握", "学懂了", "搞懂了")
+
+
+def _claimed_knowledge_name(text: str, rows: list) -> str:
+    """从用户这句话里，找出他自称掌握的那个知识点在**画像里的名字**。
+
+    匹配规则与 `exercises.py` 的知识点容错**同源**（先精确包含，再共同前缀 ≥2 字）：
+    用户口语说"二叉树遍历"，而档案里写的是"二叉树后序遍历" ——
+    两个名字**互不包含**，只有共同前缀能认出来。实测第一版就是卡在这里没生效。
+    """
+    names: list[str] = []
+    for row in rows:
+        if isinstance(row, dict):
+            name = str(row.get("knowledgePointName") or "").strip()
+            if len(name) >= 2:
+                names.append(name)
+    for name in names:
+        if name in text:
+            return name
+    for name in names:
+        for size in range(len(name), 1, -1):
+            if name[:size] in text:
+                return name
+    return ""
+
+
+def _mastery_claim_gate(message: str, data: dict[str, Any]) -> str | None:
+    """用户自称"我掌握了 X"时，先拿**真实掌握度**对一遍，再决定认不认。
+
+    实测反馈（原话）：「不能用户说自己掌握了你就直接更新画像，要你自己去看他的
+    掌握程度，真的掌握了再进行更新，如果没有掌握就再次给用户提醒，练习相关题目」。
+
+    返回一句**如实**的回复文案（调用方此时**不得**再宣称已更新掌握度）；
+    判定不了、或不构成"自述掌握"时返回 None，按原流程走。
+
+    依据是 `user_context.mastery`（由 API 层按**真实画像**组装，见
+    `app/api/chat.py::_user_context_for`）—— 没有真实数据时不做任何断言。
+    """
+    text = message or ""
+    if not any(verb in text for verb in _MASTERY_CLAIM_VERBS):
+        return None
+    users = data.get("users") if isinstance(data, dict) else None
+    rows = users.get("mastery") if isinstance(users, dict) else None
+    if not isinstance(rows, list) or not rows:
+        return None
+
+    name = _claimed_knowledge_name(text, rows)
+    if not name:
+        # 画像里对不上任何知识点 —— **同样不能凭一句话就认**。
+        return ("这条我先不记成「已掌握」—— 学习档案里还没有这个知识点的练习记录，"
+                "只凭一句话我不能改掌握度。\n"
+                "建议先做几道相关题目，做完我会按**实际答题结果**更新掌握度。")
+
+    score: float | None = None
+    for row in rows:
+        if isinstance(row, dict) and str(row.get("knowledgePointName") or "").strip() == name:
+            value = row.get("masteryScore")
+            if isinstance(value, (int, float)):
+                score = float(value)
+            break
+    if score is None:
+        return None
+    if score >= 80:
+        return (f"「{name}」在你的练习记录里已经是优势知识点（掌握度 {score:.0f}/100），"
+                f"档案里本来就记着，不用再加一遍～")
+    return (f"「{name}」我先不记成「已掌握」—— 你目前的练习记录显示它的掌握度是 "
+            f"{score:.0f}/100，还不算真的掌握。\n"
+            f"建议先做 3 道同类题验证一下：做完我会按**实际答题结果**更新掌握度，"
+            f"真的达到水平就会自动进优势知识点。")
+
+
 def _handle_update_profile(message: str, data: dict[str, Any],
              user_id: str | None = None) -> tuple[str, dict[str, Any]]:
     """解析画像更新意图，**真正落盘**后端拥有的字段，并如实区分"已改/未改"。
@@ -661,6 +746,11 @@ def _handle_update_profile(message: str, data: dict[str, Any],
     if not isinstance(updates, dict):
         updates = {}
 
+    # ★ 掌握度自述闸：用户说"我掌握了 X"**不能直接采信** —— 先拿真实掌握度对一遍。
+    # 刻意**不在这里提前返回**：同一句话里其它可写字段（学习目标 / 空闲时间 / 考试日期）
+    # 仍应正常生效，被拦下的只是"凭一句话就把知识点记成已掌握"这一件事。
+    claim_reply = _mastery_claim_gate(message, data)
+
     applied: list[str] = []
     if updates and _PROFILE_UPDATE_HOOK is not None:
         try:
@@ -677,10 +767,18 @@ def _handle_update_profile(message: str, data: dict[str, Any],
     if applied:
         reply = (reply or "已更新。") + f"\n\n（已写入学习档案：{'、'.join(applied)}。）"
     elif has_user_updates and not has_course_updates:
-        # 模型给了用户档案更新，但没有一个字段是后端拥有的（例如只改了姓名/专业）
-        reply = (reply or "已更新。") + "\n\n（这部分档案字段由 App 本地保存，服务端不持有。）"
+        # 模型给了用户档案更新，但没有一个字段是后端拥有的（例如只改了姓名/专业）。
+        # ⚠️ 原文案是"（这部分档案字段由 App 本地保存，服务端不持有。）" —— 那是
+        # **内部实现说明**，实测反馈明确要求「有的东西不要写给用户直接看」，改写成人话。
+        reply = (reply or "已记下。") + "\n\n这些信息只保存在本机 App 里。"
     if has_course_updates:
-        reply += "\n\n（课程与任务由 App 本地维护，已随本次结果一并下发，请以 App 内显示为准。）"
+        reply += "\n\n课程与任务已同步到 App，请以 App 内显示为准。"
+
+    if claim_reply is not None:
+        # 掌握度自述不采信：回复以闸门文案为准（它已如实说明），
+        # 并向用户交代同一句话里其它字段实际改了什么。
+        tail = f"\n\n（另外已更新：{'、'.join(applied)}。）" if applied else ""
+        return claim_reply + tail, updates
 
     return reply or "我理解你想更新档案，但没解析出可写入的字段，能再说具体一点吗？", updates
 
@@ -768,7 +866,8 @@ def build_card(intent: str) -> dict[str, Any] | None:
 
 def chat(message: str, image_base64: str | None = None,
          frontend_data: dict[str, Any] | None = None,
-         user_id: str | None = None) -> dict[str, Any]:
+         user_id: str | None = None,
+         user_context: dict[str, Any] | None = None) -> dict[str, Any]:
     """统一对话入口：返回 {reply, intent, card, llmUsed}。
 
     `llmUsed=False` 表示本次回复由本地确定性规则兜底（未配置 Key 或调用失败），
@@ -776,12 +875,16 @@ def chat(message: str, image_base64: str | None = None,
 
     `user_id` 用于**对话历史与上下文隔离**：不同用户的 `_format_history()`
     只看到自己的历史；缺省时退回演示身份（评委/curl 不带凭据也能跑通）。
+
+    `user_context` 是**当前身份的真实资料**（昵称 / 年级 / 由掌握度推出的薄弱点与强项），
+    由 API 层组装后传入。不传或为空时回落 `chat/mock_users.json` 的演示用户 ——
+    那条回落路径此前被无条件使用，导致模型照着"小明 + 二叉树遍历"回话。
     """
     message = (message or "").strip()
     if not message and image_base64:
         message = "帮我分析这道题"
 
-    data = _user_data(frontend_data)
+    data = _user_data(frontend_data, user_context)
     intent, llm_used = detect_intent(message, has_image=bool(image_base64))
 
     reply = ""

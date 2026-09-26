@@ -47,7 +47,7 @@ struct FocusSetup {
       this.selectedDuration = imported.timerType === 'stopwatch' ? 'stopwatch' : this.durationKey(this.minutes);
       this.customMinutesText = this.selectedDuration === 'custom' ? this.minutes.toString() : this.customMinutesText;
     } else if (appState.courses.length > 0) {
-      this.course = appState.getHighPriorityCourse().courseName;
+      this.course = appState.getHighPriorityCourse()?.courseName ?? this.course;
     }
 
     // 订阅跨设备同步状态，并立刻拉一次当前快照（服务可能在进入本页之前就已就绪）。
@@ -220,7 +220,9 @@ struct FocusSetup {
         SymbolGlyph($r('sys.symbol.dot_radiowaves_left_and_right'))
           .fontSize(16)
           .fontColor([this.syncReady ? '#0F766E' : '#B45309'])
-        Text('全场景接续')
+        // 原标题是「全场景接续」—— 内部术语，实测反馈明确问"这个全场接续是什么意思"。
+        // 换成用户一眼能懂的说法（卡片下方的说明进一步解释）。
+        Text('换设备接着做')
           .fontSize(15).fontWeight(FontWeight.Medium).fontColor('#202522')
         Blank()
         Text(this.syncReady

@@ -88,7 +88,15 @@ struct ApiEnvironment {
       this.message = `连接成功：${result.source === 'fixture' ? 'Fixture' : '真实后端'}返回 Plan V${result.data.version}。`;
       return;
     }
-    this.message = `连接失败：${(result as ApiFailure).error.message}`;
+    const failure: ApiFailure = result as ApiFailure;
+    // ⚠️ 区分「连不上」与「连上了、但服务端返回了错误」。
+    // `statusCode > 0` 说明**已经拿到 HTTP 响应** —— 例如账号还没有计划时的
+    // 404 `current plan not found`，那恰恰证明地址与网络都是通的。
+    // 原来一律写成"连接失败：<服务端 message>"，把**业务错误说成网络问题**，
+    // 会把排查方向带偏（与审计里记过的"响应体解析错误被改写成连接超时"同类）。
+    this.message = failure.error.statusCode > 0
+      ? `已连上服务（HTTP ${failure.error.statusCode}），但接口返回错误：${failure.error.message}`
+      : `连接失败：${failure.error.message}`;
   }
 
   build() {

@@ -109,7 +109,13 @@ struct Index {
     this.isProactiveLoading = true;
     this.proactiveMessage = '';
     const requestVersion: number = ++this.proactiveRequestVersion;
-    const daysLeft: number = appState.getHighPriorityCourse().exam.daysLeft;
+    // ⚠️ 不要用 `?? 30` 编一个倒计时：没有课程/考试日期时**如实传 undefined**，
+    // 由 `ProactiveViewModel.buildRequest` 决定不下发该字段（后端会跳过考试类判断）。
+    // 原来编的 30 会让卡片文案写成"考试剩 30 天（紧迫度贡献 0.000）"，
+    // 与计划页的后端口径（5 天 → 0.83）互相矛盾。
+    const highPriorityCourse = appState.getHighPriorityCourse();
+    const daysLeft: number | undefined = highPriorityCourse !== null
+      ? highPriorityCourse.exam.daysLeft : undefined;
     const recentSessions = appState.getFocusSummary().recentSessions;
     const lastStudyAt: string | undefined = recentSessions.length > 0 ? recentSessions[0].endedAt : undefined;
     // `foreground` 传 **false** —— 这一点是修过的缺陷。
@@ -221,10 +227,35 @@ struct Index {
       } else {
         await this.workflowViewModel.refreshStatus(true);
       }
+      // ★ 自愈：本地缓存的会话在服务端已不存在（典型触发：刚跑过 `demo/reset`，
+      //   它会把演示名下的 workflows 清掉）。
+      //
+      //   光清 `ClientCache` 不够 —— `WorkflowSessionStore` 里还存着同一个 id，
+      //   下次冷启动又会把它读回来，用户就永远停在「workflow not found + 重试」
+      //   （而重试**永远不会成功**）。这里连持久化一起清，并立刻新建一个会话，
+      //   用户不必自己点重试。实测触发路径：重置演示数据 → 回首页。
+      if (this.workflowViewModel.wasSessionStale()) {
+        // 会话失效：`WorkflowViewModel` 内部**已经**清掉 `ClientCache` 并新建了一个，
+        // 这里只负责把**持久化**那份也换掉 —— 否则下次冷启动又会把死 id 读回来。
+        // ⚠️ 不要再调 `start()`：那会多建一个用不上的 workflow。
+        const staleContext: common.UIAbilityContext =
+          this.getUIContext().getHostContext() as common.UIAbilityContext;
+        WorkflowSessionStore.clear(staleContext);
+        const fresh: WorkflowResponse | null = ClientCache.getWorkflow();
+        if (fresh !== null) {
+          WorkflowSessionStore.save(staleContext, fresh, appState.currentUser.userId);
+        }
+      }
     }
-    if (!this.isFixture()) {
-      await this.loadAgentPlan(true);
-    }
+    // ⚠️ 这里**不能**加 `if (!this.isFixture())` 的门槛。
+    //
+    // 原来只在联机模式加载计划，于是离线模式下 `ClientCache` 里没有"用户看得见的那份
+    // 计划"，而首页主行动卡带下来的 taskId 是**契约 id**（`task-postorder`）、
+    // `appState.weeklyPlan` 里却是本地 id（`agent-数据结构-0`）—— 专注完成后
+    // 完成状态匹配不到任何任务，「任务完成度」恒 0%、复盘恒说"还没有完成任务"
+    // （文档 P0-2，复现路径正是离线模式）。
+    // 离线模式下 `AgentApiClient.getCurrentPlan()` 走 Fixture 传输层，不发网络请求。
+    await this.loadAgentPlan(true);
     if (!this.isPageActive || requestVersion !== this.workflowRequestVersion) {
       return;
     }
@@ -594,13 +625,47 @@ struct Index {
     this.activeTab = index;
   }
 
+  /**
+   * 把后端的**内部标签**翻译成用户看得懂的话。
+   *
+   * ⚠️ 原来直接把 `contextTags` 原样 `join(' · ')` 显示出来，界面上就出现了
+   * `已掌握 0 门课程、0 项临近作业 · exam_within_7d · r…` —— 那是给日志与联调看的
+   * 英文枚举，不是给用户看的文案（实测反馈：「有的东西不要写给用户直接看」）。
+   *
+   * 翻不出来的标签**一律不显示**，宁可少说，也不把内部标识泄给用户。
+   */
+  private tagLabel(tag: string): string {
+    if (tag === 'exam_within_7d' || tag === 'exam_within_7d_low_mastery') {
+      return '考试临近';
+    }
+    if (tag === 'no_study_for_2d' || tag === 'recent_gap_2d') {
+      return '两天没学习了';
+    }
+    if (tag === 'pending_ddl_within_2d') {
+      return '有作业快截止';
+    }
+    if (tag === 'focus_session_active') {
+      return '正在专注';
+    }
+    return '';
+  }
+
   /** Agent 一句话感知摘要：先说"我知道什么"，再说"所以做什么"。 */
   private perceptionLine(): string {
     const courses: number = appState.courses.length;
     const ddls: number = appState.getUrgentDDLs().length;
     const d: ProactiveResponse | null = this.proactiveDecision;
     if (d !== null && d.contextTags.length > 0) {
-      return `已掌握 ${courses} 门课程、${ddls} 项临近作业 · ${d.contextTags.join(' · ')}`;
+      const labels: string[] = [];
+      d.contextTags.forEach((tag: string) => {
+        const label: string = this.tagLabel(tag);
+        if (label.length > 0 && labels.indexOf(label) === -1) {
+          labels.push(label);
+        }
+      });
+      if (labels.length > 0) {
+        return `已掌握 ${courses} 门课程、${ddls} 项临近作业 · ${labels.join(' · ')}`;
+      }
     }
     return `已掌握 ${courses} 门课程、${ddls} 项临近作业`;
   }
@@ -723,7 +788,7 @@ struct Index {
       return status.finalAction;
     }
     const workflow: WorkflowResponse | null = ClientCache.getWorkflow();
-    if (workflow !== null) return `下一步：${workflow.nextAction}`;
+    if (workflow !== null) return `下一步：${ApiDisplayFormatter.nextAction(workflow.nextAction)}`;
     return this.isFixture() ? this.plan().decisionTrace.inputSummary : '等待真 Agent 后端返回会话状态。';
   }
 

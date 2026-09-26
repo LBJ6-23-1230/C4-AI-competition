@@ -195,7 +195,9 @@ struct ChatMain {
       return;
     }
     this.workflowTitle = `Agent 会话 · ${ApiDisplayFormatter.workflowStatus(workflow.status)}`;
-    this.workflowDetail = `下一步：${workflow.nextAction}`;
+    // 翻译内部步骤名（实测卡片上出现过「下一步：diagnose」）——
+    // 中文句子原样通过，见 `ApiDisplayFormatter.nextAction`。
+    this.workflowDetail = `下一步：${ApiDisplayFormatter.nextAction(workflow.nextAction)}`;
     this.workflowStateVersion = 0;
   }
 

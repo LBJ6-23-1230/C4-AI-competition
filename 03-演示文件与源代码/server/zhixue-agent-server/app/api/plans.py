@@ -27,6 +27,32 @@ def _evidence_belongs_to(evidence: dict, user_id: str) -> bool:
 	return isinstance(source_id, str) and source_id.startswith(f"{user_id}:")
 
 
+def plan_belongs_to(plan: dict, user_id: str) -> bool:
+	"""计划记录是否属于该用户。
+
+	主口径：记录里的 `userId`；**键缺失时按 demo-user**（与 `demo.py` 的清理
+	逻辑、以及历史数据口径一致）。
+
+	⚠️ 兜底 `planId`：`LearningPlan.to_dict()` 曾长期不返回 `userId`，而计划重排是
+	**整条覆盖**写回，于是做过练习的账号，记录里的 `userId` 键会被抹掉 ——
+	读侧默认值一生效，真实账号就再也读不到自己的计划（`GET /plans/current` → 404，
+	已实测复现）。计划 id 的构造口径是 `plan-<userId>`（见 `auth/service.py`
+	与 `workflows.py`），可直接反推归属，让既有脏记录自愈，不必等用户再练一次。
+
+	注意这个兜底是**纯增量**的：只在"能反推出归属且匹配"时返回 True，
+	其余情况一律回落到原口径，绝不影响演示基线（`plan-demo-001` 的 id 反推结果是
+	`demo-001`，仍靠"键缺失 == demo-user"这条老规则命中）。
+	"""
+	owner = plan.get("userId")
+	if isinstance(owner, str) and owner:
+		return owner == user_id
+	plan_id = plan.get("planId")
+	if isinstance(plan_id, str) and plan_id.startswith("plan-"):
+		if plan_id[len("plan-"):] == user_id:
+			return True
+	return user_id == "demo-user"
+
+
 @plans_api.get("/api/v1/plans/current")
 def get_current_plan():
 	# 身份解析统一走 identity.resolve_user_id：
@@ -36,7 +62,7 @@ def get_current_plan():
 	# 而前端不带该参数，于是**登录后读到的仍是演示账号的计划**。
 	user_id = resolve_user_id(request.args.get("userId"))
 	plans = [plan for plan in (_repository.list("plans") if _repository else [])
-		if plan.get("userId", "demo-user") == user_id]
+		if plan_belongs_to(plan, user_id)]
 	if not plans:
 		return jsonify({"errorCode": "NOT_FOUND", "message": "current plan not found", "details": {"userId": user_id}}), 404
 	plan = dict(plans[0])

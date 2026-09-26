@@ -164,6 +164,20 @@ struct Login {
    */
   private enterOffline(): void {
     AgentApiClient.setUseFixture(true);
+    // ⚠️ 必须持久化：`setUseFixture()` 只改**内存**里的 `config.useFixture`。
+    //
+    // 这里原先漏了落盘，而对称的 `useOnlineSource()`（上面那个）是落盘的 ——
+    // 两条路径行为不一致，表现为"从登录页点『无网络？用离线模式进入』，
+    // 关掉 App 再打开又变回联机"。
+    // 实测证据：`preferences/api_environment` 里的 `use_fixture` 始终是 `false`，
+    // 从没被这个按钮改过。
+    try {
+      const context: common.UIAbilityContext =
+        this.getUIContext().getHostContext() as common.UIAbilityContext;
+      ApiEnvironmentStore.save(context, AgentApiClient.getConfig());
+    } catch (error) {
+      // 落盘失败不影响本次进入：本次会话已经是离线的，只是下次启动会按旧值。
+    }
     const result: AuthResult = AuthClient.continueOffline(true);
     appState.applyLogin(result.user, 'fixture');
     this.goHome();
@@ -623,13 +637,20 @@ struct Login {
             // 主按钮
             // 文案必须与当前标签严格对应：此前两个标签下都是"登录 →"，
             // 用户以为在登录、实际在注册（见 onSubmit 的说明）。
+            // ⚠️ 按钮**不再因为"还没填完"而变灰**。
+            //
+            // 原实现是 `.backgroundColor(canSubmit() ? 蓝 : 灰)` + `.enabled(canSubmit())`：
+            // 注册模式下只要手机号还没填成合法的 11 位，按钮就是灰的、而且**不告诉用户
+            // 差什么** —— 实测反馈：「为什么这里注册按钮是灰的？必须是正确的电话号码吗？
+            // 这里需要给一个提示」。现在按钮常亮可点，由 `onSubmit()` 逐项校验并给出
+            // 可读原因（昵称 / 手机号 / 密码三段，各自有明确文案）。
             Button(this.busy ? '处理中…'
               : (this.mode === 'login' ? '登录  →' : '注册并进入  →'))
               .width('100%').height(50).fontSize(16).fontWeight(FontWeight.Bold)
               .fontColor('#FFFFFF')
-              .backgroundColor(this.canSubmit() ? '#3B82F6' : '#CBD5E1')
+              .backgroundColor(this.busy ? '#93C5FD' : '#3B82F6')
               .borderRadius(12)
-              .enabled(this.canSubmit())
+              .enabled(!this.busy)
               .onClick(() => { this.onSubmit(); })
           }
           .width('100%').padding({ top: 22 })
@@ -684,7 +705,9 @@ struct Login {
 
           Blank().height(28)
 
-          Text('当前身份仅用于保存你的学习画像与计划，不含手机号等敏感信息。')
+          // ⚠️ 原文案写「不含手机号等敏感信息」，就印在**必填手机号 + 密码**的
+          // 表单正下方 —— 与实现相反。如实改写。
+          Text('手机号仅用于登录与账号识别；密码由服务端加盐哈希保存，不存明文。')
             .fontSize(11).fontColor('#B0B7C3').lineHeight(17).width('100%')
 
           Blank().height(24)

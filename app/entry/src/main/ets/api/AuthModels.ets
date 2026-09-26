@@ -157,6 +157,38 @@ export interface AuthStatusResponse {
   userId?: string;
 }
 
+/** 修改 / 首次设置密码的请求体。 */
+export interface AuthChangePasswordRequest {
+  /**
+   * 原密码。
+   *
+   * * 账号**已设过密码** → 必须提供且正确，否则后端 401；
+   * * 账号**从未设过密码**（验证码建号）→ 这是「首次设置」，可省略。
+   */
+  oldPassword?: string;
+  /** 新密码，6–72 位。服务端只保存加盐哈希。 */
+  newPassword: string;
+}
+
+export interface AuthChangePasswordResponse {
+  status: string;
+  /** 改完之后该账号是否已设置密码（本接口后恒为 true）。 */
+  hasPassword: boolean;
+  /** 本次是「首次设置」还是「修改已有密码」——前端据此决定提示文案。 */
+  wasFirstTime: boolean;
+}
+
+/**
+ * 改密码的结果。
+ *
+ * 刻意**不复用** `AuthResult`：该接口不返回用户对象，
+ * 硬塞一个 `user: null` 会让调用方误以为"登录态变了"（甚至可能触发退出登录的逻辑）。
+ */
+export interface ChangePasswordResult {
+  ok: boolean;
+  message: string;
+}
+
 /**
  * 设备本地保存的登录态。
  *

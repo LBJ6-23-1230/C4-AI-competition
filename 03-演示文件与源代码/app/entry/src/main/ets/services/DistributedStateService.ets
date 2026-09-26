@@ -18,6 +18,13 @@ const TAG = 'DistributedState';
 export interface DistributedFocusTask {
   taskJson: string;
   deviceLabel: string;
+  //: **设备唯一标识**，用于判断"这条共享状态是不是我自己写的"。
+  //:
+  //: ⚠️ 不能用 `deviceLabel`（手机/平板/电脑）代替：**两台手机形态完全相同**，
+  //: 对端写入会被误判成"本机自己的写入"而丢弃 —— 按 README「开两个模拟器实例
+  //: 即可演示」时，对端任务永远不出现、界面一直停在"等待其他设备"，且**不报错**
+  //: （静默失效）。`deviceLabel` 只保留给 UI 显示"我是谁"。
+  deviceId: string;
   updatedAt: number;
   active: boolean;
 }
@@ -120,6 +127,8 @@ export class DistributedStateService {
   private localJoined: boolean = false;
   private sessionId: string = '';
   private localDeviceLabel: string = '';
+  //: 本机设备唯一标识（进程内唯一即可满足"区分是不是自己写的"这个用途）。
+  private localDeviceId: string = '';
   private peers: Map<string, DistributedPeer> = new Map<string, DistributedPeer>();
   private remoteTask: FocusTask | null = null;
   private remoteDeviceLabel: string = '';
@@ -148,6 +157,8 @@ export class DistributedStateService {
     this.context = context;
     this.permissionGranted = permissionGranted;
     this.localDeviceLabel = DistributedStateService.resolveDeviceLabel();
+    // 唯一标识与"形态标签"分开：标签给用户看，标识用来判断来源。
+    this.localDeviceId = DistributedStateService.resolveDeviceId();
 
     if (!permissionGranted) {
       this.lastError = '未授予「多设备协同」权限，跨设备同步未开启。';
@@ -166,6 +177,7 @@ export class DistributedStateService {
       const initial: DistributedFocusTask = {
         taskJson: '',
         deviceLabel: this.localDeviceLabel,
+        deviceId: this.localDeviceId,
         updatedAt: 0,
         active: false
       };
@@ -261,6 +273,7 @@ export class DistributedStateService {
       const shared: distributedDataObject.DataObject = target;
       shared['taskJson'] = JSON.stringify(task);
       shared['deviceLabel'] = this.localDeviceLabel;
+      shared['deviceId'] = this.localDeviceId;
       shared['updatedAt'] = Date.now();
       shared['active'] = true;
       this.remoteTask = null;          // 本机成为发布方，清掉对端残留
@@ -288,6 +301,7 @@ export class DistributedStateService {
         shared['active'] = false;
         shared['updatedAt'] = Date.now();
         shared['deviceLabel'] = this.localDeviceLabel;
+        shared['deviceId'] = this.localDeviceId;
       }
     } catch (error) {
       const err = error as BusinessError;
@@ -348,16 +362,28 @@ export class DistributedStateService {
   private consumeRemoteTask(target: distributedDataObject.DataObject): void {
     try {
       const sourceLabel: string = `${target['deviceLabel'] ?? ''}`;
+      // ★ 来源判定用 **deviceId**，不是 deviceLabel。
+      //
+      // `deviceLabel` 是设备**形态**（手机/平板/电脑）—— 两台手机会得到完全相同的
+      // 标签，于是对端写入被误判成"本机自己的写入"而丢弃：按 README「开两个模拟器
+      // 实例即可演示全场景接续」时，对端任务永远不出现、界面一直停在"等待其他设备"，
+      // 而且**不报错**（静默失效）。
+      //
+      // 旧对端只有 label 时退回原口径，避免跨版本时彻底收不到。
+      const sourceId: string = `${target['deviceId'] ?? ''}`;
+      const mine: boolean = sourceId.length > 0
+        ? sourceId === this.localDeviceId
+        : sourceLabel === this.localDeviceLabel;
       const active: boolean = target['active'] === true;
       if (!active) {
         // 对端停止专注
-        if (sourceLabel !== '' && sourceLabel !== this.localDeviceLabel) {
+        if (sourceLabel !== '' && !mine) {
           this.remoteTask = null;
           this.remoteDeviceLabel = '';
         }
         return;
       }
-      if (sourceLabel === '' || sourceLabel === this.localDeviceLabel) {
+      if (mine) {
         return;   // 本机自己的写入，忽略
       }
       const raw: string = `${target['taskJson'] ?? ''}`;
@@ -428,6 +454,20 @@ export class DistributedStateService {
    * 在模拟器上还会显示成 "emulator"，对"我是手机 / 我是平板"这个语义没有帮助。
    * 这里映射成中文形态，且与 `module.json5` 声明的 `phone / tablet / 2in1` 三种形态同口径。
    */
+  /**
+   * 生成本机**设备唯一标识**（用于判断一条共享状态是不是自己写的）。
+   *
+   * 为什么不能复用 `resolveDeviceLabel()`：那个返回的是设备**形态**
+   * （手机/平板/电脑），两台手机完全相同 —— 拿它做来源判定会把对端写入当成
+   * 自己的写入丢掉，全场景接续在"两个模拟器实例"下静默失效。
+   *
+   * 进程内唯一就够了：这个标识只回答"这条写入是不是我刚刚发的"，
+   * 不承担跨重启的身份追踪，所以不需要持久化。
+   */
+  private static resolveDeviceId(): string {
+    return `dev-${Date.now()}-${Math.floor(Math.random() * 1000000000)}`;
+  }
+
   private static resolveDeviceLabel(): string {
     let type: string = '';
     try {

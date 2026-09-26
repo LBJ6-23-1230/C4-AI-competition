@@ -83,8 +83,8 @@ python run.py                                       # 默认监听 0.0.0.0:5000
 ## 测试
 
 ```bash
-python -m pytest -q                                  # 320 项单元测试
-python ../../integration/run_liantiao5.py            # 契约 + 单测 + 95 项 HTTP + 归档
+python -m pytest -q                                  # 342 项单元测试
+python ../../integration/run_liantiao5.py            # 契约 + 单测 + 98 项 HTTP + 归档
 ```
 
 ## 契约

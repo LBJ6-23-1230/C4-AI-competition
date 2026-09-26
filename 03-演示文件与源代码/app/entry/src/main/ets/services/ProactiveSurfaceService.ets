@@ -18,9 +18,12 @@ export class ProactiveSurfaceService {
     if (foreground || !ProactiveSettingsStore.isEnabled()) return;
     const recentSessions = appState.getFocusSummary().recentSessions;
     const lastStudyAt: string | undefined = recentSessions.length > 0 ? recentSessions[0].endedAt : undefined;
+    // 同 Index：没有课程/考试信息时**不传**倒计时，不编一个 30 天
+    // （否则通知标题里的天数会与真实情况不符，见 `buildRequest` 的注释）。
+    const highPriorityCourse = appState.getHighPriorityCourse();
     const request = ProactiveViewModel.buildRequest(
       appState.currentUser.userId,
-      appState.getHighPriorityCourse().exam.daysLeft,
+      highPriorityCourse !== null ? highPriorityCourse.exam.daysLeft : undefined,
       false,
       appState.activeFocusTask !== null && appState.focusResultDraft === null,
       lastStudyAt

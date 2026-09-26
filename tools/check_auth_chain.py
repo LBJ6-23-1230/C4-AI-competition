@@ -90,8 +90,12 @@ print("=" * 90)
 p1 = phone()
 # 昵称必须随机：后端把「一个昵称对应多个账号」视为 409（提示改用更精确的昵称），
 # 这是**正确行为**；但探针用固定昵称时第二次运行就会 409 —— 工具必须可反复跑。
+# 注册时**必须设密码**：`_verify_password()` 现在会拒绝用密码登录"从未设过密码"
+# 的账号（此前遇到空 passwordHash 直接放行，等于**任意密码都能登进去**，
+# 已按界面路径实测复现）。下面第六节的"昵称登录"随之要带上这个密码。
+PWD = "probe-pw-123456"
 st, r = call("POST", "/api/v1/auth/register",
-             {"nickname": nick("小测甲"), "phone": p1, "grade": "大二"})
+             {"nickname": nick("小测甲"), "phone": p1, "grade": "大二", "password": PWD})
 check("注册成功返回 201", st == 201, "HTTP %s" % st)
 tok1 = r.get("token")
 u1 = (r.get("user") or {}).get("userId")
@@ -158,9 +162,12 @@ names1 = [k.get("name") for k in (r.get("knowledgeBases") or [])]
 check("甲能看到自己的知识库", "甲的库" in names1, "甲看到: %s" % names1)
 
 print()
-print("六、昵称免密登录")
-st, r = call("POST", "/api/v1/auth/login", {"nickname": nick1})
-check("昵称免密登录可用（用刚注册的昵称）", st in (200, 201), "HTTP %s" % st)
+print("六、昵称登录")
+# 标题从"昵称**免密**登录"改掉了：账号设过密码后必须校验密码（见上方注册处的说明）。
+st, r = call("POST", "/api/v1/auth/login", {"nickname": nick1, "password": PWD})
+check("昵称+密码登录可用（用刚注册的昵称）", st in (200, 201), "HTTP %s" % st)
+st, r = call("POST", "/api/v1/auth/login", {"nickname": nick1, "password": "wrong-pw-000"})
+check("昵称+错误密码被拒（401）", st == 401, "HTTP %s %s" % (st, r.get("errorCode")))
 st, r = call("POST", "/api/v1/auth/login", {"nickname": nick("绝不存在的昵称")})
 check("未注册昵称返回 404", st == 404, "HTTP %s %s" % (st, r.get("errorCode")))
 

@@ -3,7 +3,7 @@ import { common } from '@kit.AbilityKit';
 import { AgentApiClient } from '../api/AgentApiClient';
 import { ApiDefaults } from '../api/ApiDefaults';
 import { AuthClient } from '../api/AuthClient';
-import { AuthUser } from '../api/AuthModels';
+import { AuthUser, ChangePasswordResult } from '../api/AuthModels';
 import { AuthResult } from '../api/AuthResult';
 import { AuthStore } from '../api/AuthStore';
 import { ClientCache } from '../cache/ClientCache';
@@ -52,6 +52,12 @@ struct Account {
   @State showDeleteConfirm: boolean = false;
   @State showSwitchConfirm: boolean = false;
   @State proactiveEnabled: boolean = ProactiveSettingsStore.isEnabled();
+  // ---- 修改密码（见页面下方「修改密码」区）----
+  @State pwdOld: string = '';
+  @State pwdNew: string = '';
+  @State pwdMsg: string = '';
+  @State pwdOk: boolean = false;
+  @State pwdBusy: boolean = false;
 
   aboutToAppear(): void {
     this.refresh();
@@ -124,8 +130,33 @@ struct Account {
     this.messageIsError = !saved;
   }
 
+  /**
+   * 提交改密码。
+   *
+   * 结果文案**由 `AuthClient.changePassword` 如实给出**（区分"已修改"/"已设置"/
+   * 各种失败原因），这里只负责展示，不自己编一句"修改成功"。
+   */
+  private async doChangePassword(): Promise<void> {
+    if (this.pwdBusy) {
+      return;
+    }
+    this.pwdBusy = true;
+    this.pwdMsg = '';
+    const result: ChangePasswordResult = await AuthClient.changePassword(this.pwdOld, this.pwdNew);
+    this.pwdBusy = false;
+    this.pwdOk = result.ok;
+    this.pwdMsg = result.message;
+    if (result.ok) {
+      // 成功才清空输入框（失败时保留用户已填内容，便于改完重试）。
+      this.pwdOld = '';
+      this.pwdNew = '';
+    }
+  }
+
   private static sourceText(source: string): string {
-    if (source === 'local') return '本机账号（昵称注册）';
+    // `local` 现在覆盖**所有本机主动登录**（昵称/手机号 + 密码、注册），
+    // 原文案写死"（昵称注册）"会与手机号登录的场景对不上。
+    if (source === 'local') return '本机账号 · 本次登录';
     if (source === 'restored') return '已恢复的登录态';
     if (source === 'fixture') return '离线 Fixture 演示';
     return '体验身份（演示数据）';
@@ -408,6 +439,38 @@ struct Account {
           .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(14)
           .border({ width: 1, color: '#E2E8F0' })
 
+          // ---------- 修改密码 ----------
+          //
+          // 这个入口所在页面以前叫「账号与密码管理」，却**没有任何密码管理能力**
+          // （实测反馈：「APP 目前没有修改密码的入口，需要增加一个用户自己修改密码的功能」）。
+          // 验证码建出来的账号本来是无密码的，所以这里同时承担「首次设置密码」。
+          if (this.signedIn) {
+            Column({ space: 10 }) {
+              Text('修改密码').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#1F2937').width('100%')
+              Text('账号已设过密码时需填写原密码；从未设过密码的账号可直接设置新密码。')
+                .fontSize(11).fontColor('#98A2B3').width('100%')
+              TextInput({ placeholder: '原密码（从未设过可留空）', text: this.pwdOld })
+                .type(InputType.Password).height(44).fontSize(14).enabled(!this.pwdBusy)
+                .onChange((value: string) => { this.pwdOld = value; })
+              TextInput({ placeholder: '新密码（至少 6 位）', text: this.pwdNew })
+                .type(InputType.Password).height(44).fontSize(14).enabled(!this.pwdBusy)
+                .onChange((value: string) => { this.pwdNew = value; })
+              Button(this.pwdBusy ? '提交中…' : '确认修改')
+                .width('100%').height(44).fontSize(14).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+                .backgroundColor(this.pwdBusy ? '#93C5FD' : '#3B82F6').borderRadius(12)
+                .enabled(!this.pwdBusy)
+                .onClick(() => { this.doChangePassword(); })
+              // 结果如实展示：成功/失败都用服务端或客户端给出的**真实原因**，
+              // 不自己编一句"修改成功"。
+              if (this.pwdMsg.length > 0) {
+                Text(this.pwdMsg).fontSize(12).lineHeight(18).width('100%')
+                  .fontColor(this.pwdOk ? '#1E6B3A' : '#EF4444')
+              }
+            }
+            .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(14)
+            .border({ width: 1, color: '#E2E8F0' })
+          }
+
           // ---------- 退出登录 ----------
           if (this.signedIn) {
             Button(this.busy ? '处理中…' : '退出登录')
@@ -434,7 +497,11 @@ struct Account {
           Column({ space: 8 }) {
             Text('隐私说明').fontSize(15).fontWeight(FontWeight.Bold)
               .fontColor('#1F2937').width('100%')
-            Text('· 不收集手机号、身份证等敏感信息；账号只有一个昵称。')
+            // ⚠️ 原文案是「不收集手机号、身份证等敏感信息；账号只有一个昵称」——
+            // 与实现**相反**：注册强制手机号、后端也存完整号码，并且实现了
+            // 手机验证码与密码登录。合规声明与实现不一致比功能缺失更减分，
+            // 这里改成如实描述。
+            Text('· 手机号用于登录与账号识别（对外只展示脱敏形式）；密码仅保存加盐哈希，不存明文。')
               .fontSize(12).fontColor('#667085').lineHeight(19).width('100%')
             Text('· 位置仅用于映射学习情境（如"在图书馆"），不上传坐标。')
               .fontSize(12).fontColor('#667085').lineHeight(19).width('100%')

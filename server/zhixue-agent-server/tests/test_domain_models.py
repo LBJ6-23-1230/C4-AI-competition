@@ -137,6 +137,33 @@ def test_learning_plan_rejects_non_positive_version():
         LearningPlan("plan-001", 0, [], 1)
 
 
+def test_learning_plan_to_dict_carries_owner():
+    """`to_dict()` 必须带上归属。
+
+    计划重排是**整条覆盖**写回（`exercises.py` / `workflows.py` 都 save 同一条 key），
+    只要 `to_dict()` 不带 `userId`，记录就会丢掉归属；而读侧 `plans.py` 用的是
+    `plan.get("userId", "demo-user")` —— 键缺失时默认值生效，真实账号随即
+    `GET /plans/current` → 404。这条把写侧的口径钉住。
+    """
+    owned = LearningPlan("plan-u-1", 1, [{"taskId": "t"}], 1, "r", "u-1")
+
+    assert owned.to_dict()["userId"] == "u-1"
+    assert LearningPlan.from_dict(owned.to_dict()).user_id == "u-1"
+    # 往返后仍然一致
+    assert LearningPlan.from_dict(owned.to_dict()).to_dict() == owned.to_dict()
+
+
+def test_learning_plan_without_owner_omits_the_key():
+    """未设置归属时**不写该键**，而不是写空串。
+
+    读侧的默认值口径依赖"键缺失"（`.get("userId", "demo-user")`）；
+    写成 `""` 会让默认值失效，反而把演示身份也弄失配。
+    """
+    anonymous = LearningPlan("plan-demo-001", 1, [], 1, "r")
+
+    assert "userId" not in anonymous.to_dict()
+
+
 def test_domain_history_and_trace_round_trip_contract_fields():
     timestamp = datetime(2026, 9, 3, tzinfo=timezone.utc)
     evidence = Evidence("ev-001", "assessment", "result-001", "binary-tree", "accuracy", 0.67, timestamp, 0.9)

@@ -118,10 +118,22 @@ def normalize_password(raw: Any, *, required: bool = True) -> str:
 
 
 def _verify_password(user: dict[str, Any], raw: Any) -> None:
-    """Verify password accounts while keeping legacy passwordless records usable."""
+    """校验密码；**从未设过密码的账号不能用密码登录**。
+
+    ⚠️ 原实现遇到空 `passwordHash` 直接 `return`（本意是"兼容历史免密账号"），
+    但登录接口在**任何**密码下都会走到这里并放行 —— 于是验证码注册出来的账号
+    （`verify_verification_code` → `register_user` 在验证码链路里收不到 password，
+    存的是空串）**用任意密码（含空串、乱码）都能登进去**，密码形同虚设。
+    已按界面路径实测复现：验证码建号 → 密码登录输入 `zzzzzz` → 200。
+
+    这些账号本来就该走验证码登录，所以这里如实拒绝并给出路，而不是静默放行。
+    """
     stored = user.get("passwordHash")
     if not isinstance(stored, str) or not stored:
-        return
+        raise AuthError(
+            "UNAUTHORIZED",
+            "该账号还没有设置密码，请改用「验证码登录」（或注册时设置密码）。",
+            401)
     password = normalize_password(raw)
     if not check_password_hash(stored, password):
         raise AuthError("UNAUTHORIZED", "账号或密码错误", 401)
@@ -206,8 +218,17 @@ def _verification_provider_configured() -> bool:
 
 
 def _verification_production_mode() -> bool:
-    return (os.getenv("ZHIXUE_ENV") or "development").strip().lower() in {
-        "prod", "production"}
+    """是否"生产模式"（决定验证码是否回显给客户端）。
+
+    ⚠️ 默认值必须是**生产**。原来写成 `or "development"`，意味着"忘了设
+    `ZHIXUE_ENV`"的部署会**静默进入开发模式**：验证码直接回显在响应里
+    （`devCode`），配合"验证码路径不校验密码"，等于知道手机号就能登入他人账号。
+
+    要开发模式请**显式**设 `ZHIXUE_ENV=development` —— 项目自带的 `.env`
+    就是这么为演示打开的，所以演示链路完全不受影响。
+    """
+    return (os.getenv("ZHIXUE_ENV") or "production").strip().lower() not in {
+        "dev", "development"}
 
 
 def _empty_verification_code(record: dict[str, Any]) -> None:
@@ -388,6 +409,39 @@ def login_by_phone(repository: Repository, phone: Any,
     repository.save(USERS, user_id, user)
     return {"user": _public_user(user), "token": session["token"],
             "expiresAt": session["expiresAt"]}
+
+
+def change_password(repository: Repository, user_id: Any,
+                    old_password: Any, new_password: Any) -> dict[str, Any]:
+    """修改 / 首次设置密码。**必须已登录**（由 API 层用 Bearer token 解析出 user_id）。
+
+    两种情形，语义不同但都只认"登录态"这一层凭据：
+    * 账号**已设过密码** → 必须验证旧密码，错了返回 401（不能凭 token 直接改掉别人的密码）；
+    * 账号**从未设过密码**（验证码建号）→ 这是"首次设置"，无需旧密码 ——
+      因为此刻能调用的前提就是持有有效会话。
+
+    ⚠️ 为什么要有这个接口：「我的 → 账号与密码管理」这个入口一直存在，
+    但**没有任何密码管理能力**（实测反馈：「APP 目前没有修改密码的入口，
+    需要增加一个用户自己修改密码的功能」）。而且验证码建出来的账号是无密码的，
+    没有这个接口就永远补不上密码。
+
+    本接口**不吊销其它会话**：改密码后当前设备继续可用，换密码不影响正在用的人。
+    """
+    user = repository.get(USERS, user_id) if isinstance(user_id, str) and user_id else None
+    if user is None or user.get("status") != "active":
+        raise AuthError("UNAUTHORIZED", "登录已失效，请重新登录", 401)
+
+    stored = user.get("passwordHash")
+    had_password = isinstance(stored, str) and bool(stored)
+    if had_password:
+        # 旧密码必须对；`normalize_password` 会把长度/类型问题也如实报出来。
+        if not check_password_hash(stored, normalize_password(old_password)):
+            raise AuthError("UNAUTHORIZED", "原密码不正确", 401)
+
+    clean_new = normalize_password(new_password)
+    user["passwordHash"] = generate_password_hash(clean_new)
+    repository.save(USERS, user["userId"], user)
+    return {"status": "ok", "hasPassword": True, "wasFirstTime": not had_password}
 
 
 def send_verification_code(repository: Repository, phone: Any,
@@ -784,10 +838,9 @@ def provision_starter_profile(repository: Repository, user_id: str, nickname: st
           "status": "pending", "priority": "high"}],
         1,
         "新账号起始计划：从二叉树后序遍历开始",
+        user_id,
     )
-    plan_data = plan.to_dict()
-    plan_data["userId"] = user_id
-    repository.save("plans", plan.plan_id, plan_data)
+    repository.save("plans", plan.plan_id, plan.to_dict())
 
 
 # --------------------------------------------------------------------------- 供中间件使用

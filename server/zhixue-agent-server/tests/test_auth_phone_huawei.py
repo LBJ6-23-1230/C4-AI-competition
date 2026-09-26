@@ -18,6 +18,13 @@ def _phone() -> str:
     return f"1360000{_SEQ['n']:04d}"
 
 
+#: 测试账号统一用的密码 —— 见 `test_auth_login.py` 同名常量的说明：
+#: `_verify_password()` 现在会**拒绝**用密码登录"从未设过密码"的账号
+#: （此前会静默放行，等于任意密码都能登进去），所以这些"登回同一账号"的
+#: 用例需要账号确实有密码。断言意图不变。
+_TEST_PASSWORD = "test-pw-123456"
+
+
 # --------------------------------------------------------------------- 手机号注册
 def test_register_requires_phone(tmp_path):
     client = create_app(tmp_path / "req-phone.json").test_client()
@@ -43,11 +50,13 @@ def test_register_accepts_common_phone_formats(tmp_path):
     formatted = f"+86 {phone[:3]}-{phone[3:7]}-{phone[7:]}"
 
     created = client.post("/api/v1/auth/register",
-                          json={"nickname": "格式", "phone": formatted}, headers=H)
+                          json={"nickname": "格式", "phone": formatted,
+                                "password": _TEST_PASSWORD}, headers=H)
     assert created.status_code == 201
 
     # 用干净格式应能登回
-    logged = client.post("/api/v1/auth/login", json={"phone": phone}, headers=H)
+    logged = client.post("/api/v1/auth/login",
+                         json={"phone": phone, "password": _TEST_PASSWORD}, headers=H)
     assert logged.status_code == 200
     assert logged.get_json()["user"]["userId"] == created.get_json()["user"]["userId"]
 
@@ -87,10 +96,12 @@ def test_login_by_phone_returns_same_account(tmp_path):
     client = create_app(tmp_path / "login-phone.json").test_client()
     phone = _phone()
     created = client.post("/api/v1/auth/register",
-                          json={"nickname": "手机登录", "phone": phone},
+                          json={"nickname": "手机登录", "phone": phone,
+                                "password": _TEST_PASSWORD},
                           headers=H).get_json()
 
-    logged = client.post("/api/v1/auth/login", json={"phone": phone}, headers=H)
+    logged = client.post("/api/v1/auth/login",
+                         json={"phone": phone, "password": _TEST_PASSWORD}, headers=H)
 
     assert logged.status_code == 200
     assert logged.get_json()["user"]["userId"] == created["user"]["userId"]
@@ -110,9 +121,11 @@ def test_login_or_register_prefers_phone_over_nickname(tmp_path):
     phone = _phone()
 
     first = client.post("/api/v1/auth/login-or-register",
-                        json={"nickname": "原名", "phone": phone}, headers=H).get_json()
+                        json={"nickname": "原名", "phone": phone,
+                              "password": _TEST_PASSWORD}, headers=H).get_json()
     renamed = client.post("/api/v1/auth/login-or-register",
-                          json={"nickname": "改了个名", "phone": phone}, headers=H).get_json()
+                          json={"nickname": "改了个名", "phone": phone,
+                                "password": _TEST_PASSWORD}, headers=H).get_json()
 
     assert renamed["created"] is False
     assert renamed["user"]["userId"] == first["user"]["userId"]

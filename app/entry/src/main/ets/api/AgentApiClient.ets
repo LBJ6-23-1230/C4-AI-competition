@@ -2,7 +2,7 @@ import { http } from '@kit.NetworkKit';
 import { API_CONTRACT_VERSION, DemoResetResponse, PartnerMatchRequest, PartnerMatchResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeDocument, KnowledgeDocumentUploadRequest, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiFailure, ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { ApiDefaults } from './ApiDefaults';
-import { AuthHuaweiLoginRequest, AuthLoginOrRegisterRequest, AuthLoginOrRegisterResponse, AuthLoginRequest, AuthRegisterRequest, AuthSendCodeRequest, AuthSendCodeResponse, AuthSessionResponse, AuthStatusResponse, AuthUserResponse, AuthVerifyCodeRequest } from './AuthModels';
+import { AuthChangePasswordRequest, AuthChangePasswordResponse, AuthHuaweiLoginRequest, AuthLoginOrRegisterRequest, AuthLoginOrRegisterResponse, AuthLoginRequest, AuthRegisterRequest, AuthSendCodeRequest, AuthSendCodeResponse, AuthSessionResponse, AuthStatusResponse, AuthUserResponse, AuthVerifyCodeRequest } from './AuthModels';
 import { AuthStore } from './AuthStore';
 import { FixtureApiTransport } from './FixtureApiTransport';
 import { ApiResponseValidator } from './ApiResponseValidator';
@@ -48,8 +48,15 @@ export class AgentApiClient {
   }
 
   static async runWorkflow(sessionId: string, request?: WorkflowRunRequest): Promise<ApiResult<WorkflowRunResponse>> {
+    // ⚠️ 必须放宽读超时：这条接口在服务端**逐轮调大模型**推进工作流
+    // （`workflows.py` 给 `runtime/loop` 挂了 `QwenAdapter.safe_decide` 作为决策器），
+    // 实测首次推进耗时 **11.55 秒**，而默认读超时只有 8 秒 —— 表现为
+    // "后端日志 200、前端报连接超时"（同类问题在聊天与出题接口上已经踩过两次，
+    // 见 `ApiDefaults.LLM_BOUND_READ_TIMEOUT_MS` 的注释）。
+    // `connectTimeout` 仍用配置值：连不上要快速失败，不能陪着一起等。
     return AgentApiClient.request<WorkflowRunResponse>(http.RequestMethod.POST,
-      `/api/v1/workflows/${encodeURIComponent(sessionId)}/run`, request);
+      `/api/v1/workflows/${encodeURIComponent(sessionId)}/run`, request,
+      ApiDefaults.LLM_BOUND_READ_TIMEOUT_MS);
   }
 
   static async getProfile(userId: string): Promise<ApiResult<ProfileResponse>> {
@@ -210,6 +217,11 @@ export class AgentApiClient {
 
   static async authMe(): Promise<ApiResult<AuthUserResponse>> {
     return AgentApiClient.request<AuthUserResponse>(http.RequestMethod.GET, '/api/v1/auth/me');
+  }
+
+  static async authChangePassword(request: AuthChangePasswordRequest): Promise<ApiResult<AuthChangePasswordResponse>> {
+    return AgentApiClient.request<AuthChangePasswordResponse>(http.RequestMethod.POST,
+      '/api/v1/auth/change-password', request);
   }
 
   static async authLogout(): Promise<ApiResult<AuthStatusResponse>> {

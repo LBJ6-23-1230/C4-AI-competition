@@ -41,7 +41,6 @@ struct KnowledgeBasePage {
 
   // 新建知识库表单
   @State newCourseName: string = '';
-  @State newName: string = '';
   @State isCreating: boolean = false;
 
   // 上传
@@ -120,14 +119,15 @@ struct KnowledgeBasePage {
     if (this.isCreating) {
       return;
     }
-    if (this.newCourseName.trim().length === 0 || this.newName.trim().length === 0) {
-      this.showMessage('请填写课程名与知识库名称。', true);
+    if (this.newCourseName.trim().length === 0) {
+      this.showMessage('请填写课程名称。', true);
       return;
     }
+    const courseName: string = this.newCourseName.trim();
     this.isCreating = true;
     const result = await AgentApiClient.createKnowledgeBase({
-      courseName: this.newCourseName.trim(),
-      name: this.newName.trim(),
+      courseName: courseName,
+      name: `${courseName}知识库`,
       userId: this.currentUserId()
     });
     if (!this.isActive) {
@@ -140,7 +140,6 @@ struct KnowledgeBasePage {
     }
     this.selectedKbId = result.data.kbId;
     this.newCourseName = '';
-    this.newName = '';
     this.showMessage(`已创建知识库「${result.data.name}」。`, false);
     await this.loadKnowledgeBases();
   }
@@ -378,17 +377,17 @@ struct KnowledgeBasePage {
         .width('100%')
 
       if (this.knowledgeBases.length === 0 && !this.isLoading) {
-        Text('还没有知识库。按课程建一个，例如「数据结构期末复习库」。')
+        Text('还没有课程资料库。创建一门课程后，把这门课的讲义、题库和笔记都放在其中。')
           .fontSize(13).fontColor('#64748B').width('100%')
       }
 
       ForEach(this.knowledgeBases, (kb: KnowledgeBase) => {
         Row({ space: 10 }) {
           Column({ space: 3 }) {
-            Text(kb.name).fontSize(14).fontWeight(FontWeight.Bold)
+            Text(kb.courseName).fontSize(14).fontWeight(FontWeight.Bold)
               .fontColor(kb.kbId === this.selectedKbId ? '#2563EB' : '#0F172A')
               .width('100%')
-            Text(`${kb.courseName} · ${kb.documentCount ?? 0} 份文档 · ${kb.chunkCount ?? 0} 个片段`)
+            Text(`${kb.documentCount ?? 0} 份课程文档 · ${kb.chunkCount ?? 0} 个片段`)
               .fontSize(12).fontColor('#64748B').width('100%')
           }.layoutWeight(1).alignItems(HorizontalAlign.Start)
 
@@ -409,9 +408,9 @@ struct KnowledgeBasePage {
       Column({ space: 8 }) {
         TextInput({ placeholder: '课程名，如「数据结构」', text: this.newCourseName })
           .height(44).fontSize(14).onChange((value: string) => { this.newCourseName = value; })
-        TextInput({ placeholder: '知识库名称，如「数据结构期末复习库」', text: this.newName })
-          .height(44).fontSize(14).onChange((value: string) => { this.newName = value; })
-        Button(this.isCreating ? '创建中…' : '新建知识库')
+        Text('每门课程只建一个资料库，后续文档都归入该课程。')
+          .fontSize(12).fontColor('#64748B').width('100%')
+        Button(this.isCreating ? '创建中…' : '新建课程资料库')
           .width('100%').height(44).fontSize(14).fontColor('#FFFFFF')
           .backgroundColor('#2563EB').borderRadius(10)
           .enabled(!this.isCreating)

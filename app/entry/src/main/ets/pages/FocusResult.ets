@@ -1,6 +1,6 @@
 import router from '@ohos.router';
 import { appState } from '../data/AppState';
-import { AgentFeedback, FocusSelfAssessment, FocusSession, FocusTask } from '../models/AgentModels';
+import { AgentFeedback, FocusSelfAssessment, FocusSession, FocusTask, PlanTaskStatus } from '../models/AgentModels';
 import { LocalAgentService } from '../services/LocalAgentService';
 import { AIFloatButton } from '../components/AIFloatButton';
 import { ChatNavigation } from '../services/ChatNavigation';
@@ -64,18 +64,30 @@ struct FocusResult {
       return;
     }
     const session: FocusSession = this.currentSession();
+    // 重复 taskId（同一条专注被结算两次，例如快速连点"保存这次记录"）。
+    //
+    // ⚠️ 这里**不能提前 return** —— 那样会留下两个尾巴：
+    //   ① `focusResultDraft` 不被清掉，下次进结算页还会看到上一条的旧数据；
+    //   ② 计划不回写，可页面照样显示"已保存"，用户以为进度更新了（假成功）。
+    // 正确做法：照常走完"清理 + 回写"，只在文案上如实说明这是重复提交。
     const inserted: boolean = appState.saveFocusSession(session);
-    if (!inserted) {
-      this.resultSession = session;
-      this.saved = true;
-      return;
-    }
+    const duplicate: boolean = !inserted;
     const fixtureMode: boolean = this.isFixture();
+    // ① 把完成状态记到**用户看得见的那份计划**的 taskId 上（联机=后端契约计划、
+    //    离线=Fixture 契约计划，两者 id 同源）。这一步与"有没有本地计划"无关 ——
+    //    否则"先专注、后打开计划页"的顺序会把完成状态丢掉。
+    //    此前的缺陷：只按本地计划的 `agent-*` id 匹配，而入口带下来的是契约 id
+    //    `task-postorder`，两边永不相等 → 完成度恒 0%、复盘恒说"还没有完成任务"。
+    const planTaskStatus: PlanTaskStatus =
+      session.selfAssessment === 'completed' ? 'completed' :
+        (session.selfAssessment === 'partial' ? 'partial' : 'deferred');
+    const matchedPlan: boolean = appState.markPlanTaskStatus(
+      session.planTaskId ?? session.taskId, planTaskStatus);
+
+    // ② 本地生成的那份计划（离线兜底）仍按自己的 id 更新一次，两条路互不影响。
     const currentPlan = appState.weeklyPlan ?? (fixtureMode ? LocalAgentService.generateWeeklyPlan(
       appState.courses, appState.homeworkDDLs, appState.currentUser
     ) : null);
-    // 后端尚无专注结果写回接口，但联机计划已在本地加载。
-    // 两种模式都应立即更新当前计划，否则首页完成度会一直是 0%。
     if (currentPlan !== null) {
       appState.setWeeklyPlan(LocalAgentService.adjustPlanAfterFocus(currentPlan, session));
     }
@@ -86,11 +98,17 @@ struct FocusResult {
         appState.latestWrongAnalysis
       );
     }
+    // 文案必须与**实际结果**一致：没关联到计划任务时不能报"进度已更新"
+    // （原来只要 `currentPlan !== null` 就说"已更新"，即使一个任务都没匹配上 ——
+    //  这正是文档里记的"假成功"）。
+    const head: string = duplicate ? '（这条专注记录此前已保存过，本次未重复计入。）' : '';
     appState.completeChatTask(
-      fixtureMode ?
-        (this.assessment === 'completed' ? '本次专注已完成，离线计划已同步更新。' : '本次专注结果已保存，离线计划已调整。') :
-        (currentPlan !== null ? '本次专注结果已保存，当前计划进度已更新。' : '本次专注结果已保存；当前暂无可更新的计划。'),
-      fixtureMode ? '查看离线模式更新后的安排。' : '查看更新后的当前计划。',
+      head + (matchedPlan ?
+        (fixtureMode
+          ? (this.assessment === 'completed' ? '本次专注已完成，离线计划已同步更新。' : '本次专注结果已保存，离线计划已调整。')
+          : '本次专注结果已保存，当前计划进度已更新。') :
+        '本次专注结果已保存；本次任务未关联到当前计划，计划进度不变。'),
+      matchedPlan ? (fixtureMode ? '查看离线模式更新后的安排。' : '查看更新后的当前计划。') : '查看当前计划。',
       '查看更新计划',
       'pages/StudyPlan'
     );

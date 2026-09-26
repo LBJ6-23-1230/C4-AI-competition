@@ -505,9 +505,62 @@ def test_update_profile_handler_returns_updates_for_frontend(tmp_path):
     assert isinstance(updates, dict), "updates 没有被返回给调用方"
     assert updates.get("user"), "updates.user 丢失"
     assert updates.get("course"), "updates.course 丢失（前端无法应用课程改动）"
-    # 课程类改动后端接不住，回复里必须**如实说明**，不能默默假装成功了
-    assert "App 本地维护" in reply, \
-        f"回复没有如实说明课程改动由前端维护：{reply!r}"
+    # 课程类改动后端接不住，回复里必须**如实说明去向**，不能默默假装成功了。
+    #
+    # ⚠️ 这条断言随文案更新（保证不变，措辞变了）：原文案是内部口吻的
+    #   "（课程与任务由 App 本地维护，已随本次结果一并下发，请以 App 内显示为准。）"，
+    #   实测反馈明确要求「有的东西不要写给用户直接看」，已改写成
+    #   "课程与任务已同步到 App，请以 App 内显示为准。"
+    assert "App" in reply and "显示为准" in reply, \
+        f"回复没有如实说明课程改动的去向：{reply!r}"
+
+
+def test_mastery_self_report_is_verified_not_trusted():
+    """★ 回归：用户说"我掌握了 X"**不能直接采信**，要拿真实掌握度对一遍。
+
+    实测反馈（原话）：「不能用户说自己掌握了你就直接更新画像，要你自己去看他的
+    掌握程度，真的掌握了再进行更新，如果没有掌握就再次给用户提醒，练习相关题目」。
+
+    这里连带钉住"模糊匹配"这一环：用户口语说「二叉树遍历」，档案里写的是
+    「二叉树后序遍历」—— 两个名字互不包含，只有共同前缀能认出来（第一版实现
+    就是因为只做精确匹配而**整条闸没生效**）。
+    """
+    from app.agent import chat_llm
+
+    original = chat_llm._call_llm
+    try:
+        # 模型照旧宣称"已更新" —— 闸门必须把它压掉
+        chat_llm._call_llm = lambda *a, **k: (
+            '{"intent":"update_profile",'
+            '"reply":"已经帮你更新知识掌握情况，二叉树遍历已添加到你的优势知识点中～",'
+            '"updates":{}}'
+        )
+        data = {"users": {"mastery": [
+            {"knowledgePointName": "二叉树后序遍历", "masteryScore": 61}]}}
+        reply, _ = chat_llm._handle_update_profile("我掌握了二叉树遍历", data, "u-1")
+    finally:
+        chat_llm._call_llm = original
+
+    assert "已添加到你的优势知识点" not in reply, \
+        f"没校验就把用户自述当成事实了：{reply!r}"
+    assert "61" in reply, f"没有说明真实掌握度：{reply!r}"
+
+
+def test_mastery_claim_for_untracked_point_is_not_accepted():
+    """画像里查不到的"我掌握了 X"同样不能认 —— 没有证据。"""
+    from app.agent import chat_llm
+
+    original = chat_llm._call_llm
+    try:
+        chat_llm._call_llm = lambda *a, **k: '{"intent":"update_profile","reply":"好的","updates":{}}'
+        data = {"users": {"mastery": [
+            {"knowledgePointName": "二叉树后序遍历", "masteryScore": 61}]}}
+        reply, _ = chat_llm._handle_update_profile("我掌握了哈希表", data, "u-1")
+    finally:
+        chat_llm._call_llm = original
+
+    assert "还没有这个知识点的练习记录" in reply, \
+        f"对没有记录的知识点也不该采信：{reply!r}"
 
 
 

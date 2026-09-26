@@ -12,7 +12,7 @@
 **一个压缩包**：
 
 ```
-知学Mate+暗影骑士王们.zip     2.56 MB / 308 条目
+知学Mate+暗影骑士王们.zip     2.86 MB / 341 条目
 ```
 
 包里已含：
@@ -59,7 +59,7 @@
 ├── app/ server/ contracts/ integration/ tools/   ← 源码（直接可读）
 ├── hap/知学Mate-signed.hap        ← 签名 HAP 的可读副本
 ├── 项目文档/                        ← 28 份（含审计报告、分布式报告等）
-└── 实证材料/                        ← 40 份（联调汇总、界面截图、大屏证据）
+└── 实证材料/                        ← 46 份（联调汇总、界面截图、大屏证据）
 ```
 
 > **为什么 `03-演示文件与源代码/` 与根目录的 `app/ server/ ...` 内容重复？**
@@ -137,7 +137,7 @@ python run.py
 ### 一键自检（答辩前 30 秒）
 
 ```bash
-python integration/run_liantiao5.py            # 契约 + 单测 + 95 项 HTTP + 归档
+python integration/run_liantiao5.py            # 契约 + 单测 + 98 项 HTTP + 归档
 # 本地 V2 工作区：python 03-演示文件与源代码/integration/run_liantiao5.py
 ```
 
@@ -157,11 +157,11 @@ python integration/run_liantiao5.py            # 契约 + 单测 + 95 项 HTTP +
 
 | 项目 | 结果 |
 |---|---|
-| 后端单元测试 | ✅ **333 passed** |
+| 后端单元测试 | ✅ **342 passed** |
 | 全量接口联调 | ✅ **98 / 98（100%）** |
-| 契约一致性 | ✅ 真源与镜像 **逐字节一致**（109,269 B，同 sha256） |
+| 契约一致性 | ✅ 真源与镜像 **逐字节一致**（111,253 B，同 sha256） |
 | 契约声明与实现 | ✅ 21 项逐条实跑核对通过 |
-| 前端 ArkTS 编译 | ✅ **全量重编 0 编译错误**，产物 2.25 MB |
+| 前端 ArkTS 编译 | ✅ **全量重编 0 编译错误**，产物 2.48 MB |
 | 签名 HAP | ✅ `verify codesign success` / `verify-app success`，release Profile 有效至 2029-09-21 |
 | HAP 安装运行 | ✅ 模拟器实测 `install bundle successfully` → 正常进入应用 |
 | 演示基线 | ✅ **零漂移**（见 §三） |

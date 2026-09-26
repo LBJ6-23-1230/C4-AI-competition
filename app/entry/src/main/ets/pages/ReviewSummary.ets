@@ -6,8 +6,17 @@ import { AIFloatButton } from '../components/AIFloatButton';
 @Entry
 @Component
 struct ReviewSummary {
+  /**
+   * 「已完成」任务。
+   *
+   * ⚠️ 必须走 `appState.getCompletedPlanTasks()` 而不是自己过滤 `weeklyPlan`：
+   * 后者是 `LocalAgentService` 本地生成的计划（id 形如 `agent-数据结构-0`），
+   * 而专注入口带下来的是**接口那份计划**的 taskId（形如 `task-postorder`），
+   * 两套 id 不通 —— 原来这样写会让复盘永远显示"还没有完成任务"（实测复现）。
+   * `getCompletedPlanTasks()` 与 `getPlanProgress()` 同源，保证两个数字永远对得上。
+   */
   private completedTasks(): LearningPlanTask[] {
-    return appState.weeklyPlan?.tasks.filter((t: LearningPlanTask) => t.status === 'completed') ?? [];
+    return appState.getCompletedPlanTasks();
   }
 
   private pendingTasks(): LearningPlanTask[] {

@@ -191,6 +191,82 @@ def test_new_account_mastery_grows_through_real_submission(client):
     assert response.get_json()["needReplan"] is True
 
 
+def test_account_plan_stays_reachable_after_replan(client):
+    """★ 回归：真实账号做完练习后，自己的「当前计划」必须**仍然读得到**。
+
+    缺陷形态（已实测复现，见交付版）：`LearningPlan.to_dict()` 不返回 `userId`，
+    而计划重排是**整条覆盖**写回 —— 记录里的 `userId` 键因此被抹掉；读侧
+    `plan.get("userId", "demo-user")` 的默认值一生效，账号就被当成演示身份，
+    `GET /api/v1/plans/current` 直接 404，「今日学习建议」与「Agent 学习计划」
+    两页同时报"暂时无法读取"，**用户无法自行恢复**。
+
+    为什么此前没被拦住：`test_new_account_mastery_grows_through_real_submission`
+    做到"提交"就收尾了，**从没在读计划这一步收口**。这条把最后一步补上。
+    """
+    registered = _register(client)
+    user_id = registered["user"]["userId"]
+    headers = _auth_header(registered["token"])
+
+    # 重排前：读得到（这一步一直是绿的，所以缺陷从这里往后才暴露）
+    assert client.get("/api/v1/plans/current", headers=headers).status_code == 200
+
+    submit = client.post("/api/v1/exercises/set-demo-binary-tree-001/submit",
+                         json={"idempotencyKey": "plan-reach-1", "answers": DEMO_ANSWERS},
+                         headers=headers)
+    assert submit.status_code == 200
+    assert submit.get_json()["needReplan"] is True  # 确认真的触发了重排
+
+    # 重排后：必须仍然读得到，且还是**自己**那条计划
+    after = client.get("/api/v1/plans/current", headers=headers)
+    assert after.status_code == 200, after.get_json()
+    assert after.get_json()["planId"] == f"plan-{user_id}"
+    assert after.get_json()["version"] == 2
+
+
+def test_replanned_plan_record_keeps_owner(client, tmp_path):
+    """落盘记录本身要带归属 —— 光靠读侧兜底不够，写侧必须写对。"""
+    database = tmp_path / "plan-owner.json"
+    app = create_app(database)
+    inner = app.test_client()
+    registered = _register(inner)
+    user_id = registered["user"]["userId"]
+
+    inner.post("/api/v1/exercises/set-demo-binary-tree-001/submit",
+               json={"idempotencyKey": "plan-owner-1", "answers": DEMO_ANSWERS},
+               headers=_auth_header(registered["token"]))
+
+    import json as _json
+    stored = _json.loads(database.read_text(encoding="utf-8"))
+    record = stored["plans"][f"plan-{user_id}"]
+    assert record.get("userId") == user_id
+
+
+def test_replan_is_recorded_in_the_trace(tmp_path):
+    """★ 回归：计划被重排了，trace 里就必须有 planner 事件。
+
+    缺陷形态（已实测）：提交后 trace 里只有 `assessment/grade_exercise` 一条 ——
+    "计划 V1→V2、时长 [30,30]→[45,15]"这件事在**决策轨迹里完全看不到**，
+    而 trace 正是本项目"可复核的 Agent 决策链"这个卖点的落点。
+    """
+    client = create_app(tmp_path / "trace-planner.json").test_client()
+    registered = _register(client)
+    headers = _auth_header(registered["token"])
+
+    submit = client.post("/api/v1/exercises/set-demo-binary-tree-001/submit",
+                         json={"idempotencyKey": "trace-planner-1", "answers": DEMO_ANSWERS},
+                         headers=headers).get_json()
+    assert submit["needReplan"] is True, "本用例前提是本次提交触发了重排"
+
+    # 必须带 token：trace 端点是**按归属校验**的（不带凭据会按 demo-user 解析 → 404）。
+    trace = client.get(f"/api/v1/traces/{submit['traceId']}", headers=headers).get_json()
+    agents = [event["agent"] for event in trace["events"]]
+
+    assert "assessment" in agents, agents
+    assert "planner" in agents, f"计划重排了，但 trace 里没有 planner 事件：{agents}"
+    planner = next(event for event in trace["events"] if event["agent"] == "planner")
+    assert "replan_learning_path" in planner["toolCalls"], planner
+
+
 # --------------------------------------------------------------------------- 演示主链护栏
 def test_demo_baseline_is_unaffected_by_auth_feature(client):
     """★ 最重要的一条：不带 token 时演示基线必须逐项不变。"""

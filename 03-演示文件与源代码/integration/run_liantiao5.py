@@ -31,7 +31,14 @@ WORKSPACE_TMP = ROOT / ".pytest-tmp"
 
 
 def log(msg):
-    print(msg, flush=True)
+    try:
+        print(msg, flush=True)
+    except UnicodeEncodeError:
+        # Windows 终端仍可能使用 GBK；联调失败分支含 ⚠️ 等字符时不能让
+        # “报告错误”本身崩溃并吞掉汇总文件。
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+        safe = str(msg).encode(encoding, errors="replace").decode(encoding, errors="replace")
+        print(safe, flush=True)
 
 
 def port_free(port):
@@ -317,7 +324,8 @@ def main():
         log(f"  workflow tools      : {baseline.get('workflowTools')}")
 
     summary_path = EVIDENCE_DIR / f"run_summary_{stamp}.json"
-    summary_path.write_text(json.dumps(evidence, ensure_ascii=False, indent=2), encoding="utf-8")
+    summary_path.write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + "\n",
+                            encoding="utf-8", newline="\n")
 
     log("")
     log("=" * 78)

@@ -3,7 +3,7 @@ import { AgentApiClient } from './AgentApiClient';
 import { ApiFailure, ApiResult } from './ApiResult';
 import { AuthResult } from './AuthResult';
 import { AuthStore } from './AuthStore';
-import { AuthUser, NICKNAME_MAX_LENGTH, NICKNAME_MIN_LENGTH, StoredSession, VERIFICATION_CODE_MESSAGES, AuthVerifyCodeRequest } from './AuthModels';
+import { AuthUser, ChangePasswordResult, NICKNAME_MAX_LENGTH, NICKNAME_MIN_LENGTH, StoredSession, VERIFICATION_CODE_MESSAGES, AuthChangePasswordRequest, AuthVerifyCodeRequest } from './AuthModels';
 import { HuaweiAccountService, HuaweiAuthOutcome } from '../services/HuaweiAccountService';
 
 /**
@@ -213,7 +213,11 @@ export class AuthClient {
     return {
       ok: true,
       user: result.data.user,
-      source: 'restored',
+      // ⚠️ 这里是**用户主动登录**（手机号 / 昵称 + 密码），来源必须是 `local`。
+      // 原实现沿用了 `restored`，而 `restored` 的语义是"冷启动时用本地 token
+      // 恢复登录态"（只有 `restore()` 该用它）。后果：「我的 → 账号与密码管理」
+      // 把刚主动登录的账号标成「已恢复的登录态」，文案与事实相反。
+      source: 'local',
       message: `欢迎回来，${result.data.user.nickname}。`
     };
   }
@@ -385,7 +389,11 @@ export class AuthClient {
     return {
       ok: true,
       user: result.data.user,
-      source: 'restored',
+      // ⚠️ 这里是**用户主动登录**（手机号 / 昵称 + 密码），来源必须是 `local`。
+      // 原实现沿用了 `restored`，而 `restored` 的语义是"冷启动时用本地 token
+      // 恢复登录态"（只有 `restore()` 该用它）。后果：「我的 → 账号与密码管理」
+      // 把刚主动登录的账号标成「已恢复的登录态」，文案与事实相反。
+      source: 'local',
       message: `欢迎回来，${result.data.user.nickname}。`
     };
   }
@@ -452,6 +460,45 @@ export class AuthClient {
       message: offlineLike
         ? '当前处于离线状态，正在使用本地保存的登录信息。'
         : `服务端校验返回 HTTP ${statusCode}，已按本地保存的登录信息继续。`
+    };
+  }
+
+  /**
+   * 修改 / 首次设置密码。
+   *
+   * 「我的 → 账号与密码管理」这个入口一直存在，但此前**没有任何密码管理能力**；
+   * 而且验证码建出来的账号是无密码的，没有这个接口就永远补不上密码。
+   */
+  static async changePassword(oldPassword: string, newPassword: string): Promise<ChangePasswordResult> {
+    if (!AuthStore.isSignedIn()) {
+      return { ok: false, message: '请先登录后再修改密码。' };
+    }
+    // 离线 Fixture 联系不上服务端，改不了服务器上的密码 —— 如实拒绝，不假装成功。
+    if (AgentApiClient.getConfig().useFixture) {
+      return { ok: false,
+        message: '当前是「离线 Fixture」模式，修改密码需要联机。'
+          + '请先到「我的 → 接口环境」切回联机模式。' };
+    }
+    // 先行校验（与后端同口径），省一次必然失败的往返。
+    if (newPassword.length < 6) {
+      return { ok: false, message: '新密码至少 6 位。' };
+    }
+    if (newPassword.length > 72) {
+      return { ok: false, message: '新密码不能超过 72 位。' };
+    }
+    const request: AuthChangePasswordRequest = { newPassword: newPassword };
+    if (oldPassword.length > 0) {
+      request.oldPassword = oldPassword;
+    }
+    const result = await AgentApiClient.authChangePassword(request);
+    if (!result.ok) {
+      return { ok: false, message: AuthClient.describe(result) };
+    }
+    return {
+      ok: true,
+      message: result.data.wasFirstTime
+        ? '密码已设置。下次可以用手机号（或昵称）+ 密码登录。'
+        : '密码已修改。'
     };
   }
 

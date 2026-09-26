@@ -79,13 +79,13 @@ GET /api/v1/exercises/set-demo-binary-tree-001
 
 ---
 
-## 三、题集其实有 30 题 / 6 个知识点（筛选是通的）
+## 三、题集其实有 35 题 / 6 个知识点（筛选是通的）
 
-题库：`server/zhixue-agent-server/data/question_bank.json`，**30 题**：
+题库：`server/zhixue-agent-server/data/question_bank.json`，**35 题**：
 
 | 知识点 | 题数 |
 |---|---|
-| `binary-tree-postorder` 二叉树后序遍历 | 3 |
+| `binary-tree-postorder` 二叉树后序遍历 | 8 |
 | `binary-tree-search` 二叉搜索树 | 5 |
 | `binary-tree-traversal` 二叉树遍历基础 | 5 |
 | `graph-algorithm` 图算法 | 5 |

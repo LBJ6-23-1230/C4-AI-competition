@@ -112,6 +112,10 @@ struct ExercisePractice {
       await this.viewModel.load(DemoSnapshot.EXERCISE_SET_ID, forceRefresh, {
         knowledgePointId: this.practiceKnowledgePoint,
         count: DemoSnapshot.EXERCISE_COUNT,
+        // “再练一组”必须排除当前屏幕上的题。此前 forceRefresh 只绕过前端缓存，
+        // 后端仍从题库第 1 题开始取，因此每次都会拿回完全相同的三题。
+        excludeExerciseIds: forceRefresh
+          ? this.exercises.map((item: Exercise): string => item.exerciseId) : [],
         // 知识点是从别的页面带进来的（错题诊断那条路径）→ 允许题库覆盖不到时
         // 由服务端现场出题；用演示默认知识点时**不带这个参数**，演示基线不受影响。
         generate: this.practiceFromRoute

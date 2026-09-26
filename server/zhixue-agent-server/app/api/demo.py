@@ -34,7 +34,6 @@ def ensure_demo_data() -> None:
 	profile, plan, trace = _demo_state()
 	_repository.save("profiles", profile.user_id, profile.to_dict())
 	plan_data = plan.to_dict()
-	plan_data["userId"] = profile.user_id
 	_repository.save("plans", plan.plan_id, plan_data)
 	_repository.save("traces", trace["traceId"], trace)
 
@@ -171,10 +170,12 @@ def _demo_state() -> tuple[LearnerProfile, LearningPlan, dict[str, object]]:
 		  "status": "pending", "priority": "medium"}],
 		1,
 		"巩固二叉树后序遍历",
+		# 归属由领域模型携带，`to_dict()` 会把它写回记录。
+		# 原先是"手工往 plan_data 里补 userId 再 from_dict 读回来"，而 from_dict
+		# 当时并不读这个键 —— 绕一圈又把归属丢了，全靠调用方各自再补一次才没出事
+		# （exercises.py 正是漏补的那一个，导致真实账号练习后读计划 404）。
+		profile.user_id,
 	)
-	plan_data = plan.to_dict()
-	plan_data["userId"] = profile.user_id
-	plan = LearningPlan.from_dict(plan_data)
 	return profile, plan, {"traceId": "trace-demo-reset-001", "events": []}
 
 
@@ -205,7 +206,6 @@ def reset_demo():
 	_purge_demo_owned(profile.user_id)
 	_repository.save("profiles", profile.user_id, profile.to_dict())
 	plan_data = plan.to_dict()
-	plan_data["userId"] = profile.user_id
 	_repository.save("plans", plan.plan_id, plan_data)
 	_repository.save("traces", trace["traceId"], trace)
 	return jsonify({"status": "reset", "userId": profile.user_id, "profile": profile.to_dict(),

@@ -60,9 +60,17 @@ struct StudyPlan {
     router.back();
   }
 
-  private taskStatusLabel(status: string): string {
-    if (status === 'completed') return '已完成';
-    if (status === 'in_progress') return '进行中';
+  /**
+   * 任务状态文案。
+   *
+   * ⚠️ 必须问 `appState`：接口**不会**回写 `task.status`（后端没有这个接口），
+   * 完成状态只存在本地（专注结算时写入）。只按 `task.status` 渲染的话，
+   * 用户做完专注回到计划页，任务卡仍然写着「待执行」—— 与「我的」里的
+   * 任务完成度互相打架（实测反馈：「为什么无法读取更新后的学习计划」）。
+   */
+  private taskStatusLabel(task: PlanTask): string {
+    if (appState.isTaskCompleted(task.taskId, task.status)) return '已完成';
+    if (task.status === 'in_progress') return '进行中';
     return '待执行';
   }
 
@@ -74,14 +82,15 @@ struct StudyPlan {
           Text(task.knowledgePointName).fontSize(17).fontWeight(FontWeight.Bold).fontColor('#1F2937').maxLines(2)
           Text(`${task.durationMinutes} 分钟专项练习`).fontSize(12).fontColor('#667085')
         }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        Text(this.taskStatusLabel(task.status)).fontSize(11).fontWeight(FontWeight.Medium)
+        Text(this.taskStatusLabel(task)).fontSize(11).fontWeight(FontWeight.Medium)
           .fontColor('#2563EB').backgroundColor('#EFF6FF').borderRadius(10).padding({ left: 8, right: 8, top: 4, bottom: 4 })
       }.width('100%')
       if (task.priority !== undefined) {
         Text(task.priority === 'high' ? 'Agent 优先处理' : `优先级：${task.priority}`)
           .fontSize(12).fontColor('#475467').width('100%')
       }
-      if (task.status !== 'completed') {
+      // 已完成的任务不再给「开始任务」—— 判据与上面那行文案**同源**（都走 appState）。
+      if (!appState.isTaskCompleted(task.taskId, task.status)) {
         Button('开始任务').width('100%').height(42).fontSize(13).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
           .backgroundColor('#2563EB').borderRadius(12).onClick(() => this.startTask(task))
       }

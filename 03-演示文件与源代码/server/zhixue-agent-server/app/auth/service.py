@@ -3,9 +3,7 @@
 
 设计取舍（与 `docs/02-登录界面设计与用户数据库方案.md` 一致）
 --------------------------------------------------------------
-1. **不做密码体系**。本项目没有任何需要密码保护的东西（无支付、无隐私资产），
-   自建密码存储（bcrypt / argon2 + 加盐）是纯负担与合规风险。
-   方案：注册只取昵称 + 年级 → 服务端下发 `userId`（UUID）与 `token`（随机串）。
+1. 本地账号可设置密码；只保存 Werkzeug 生成的加盐哈希，明文不落库、不回传。
 2. **`demo-user` 是保留的游客身份**。未登录 / 「一键体验」/ 离线 Fixture 全部使用它，
    因此**演示主链的数值与行为完全不受登录功能影响**（`demo/reset` 依然只作用于 demo-user）。
 3. **不记录手机号明文**。`auth_subject` 只存第三方（如 AGC）返回的 uid，
@@ -24,6 +22,7 @@ import threading
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.repositories.repository import Repository
 
@@ -52,6 +51,8 @@ _ALLOWED_GRADES = ("大一", "大二", "大三", "大四", "大五", "研一", "
 
 _NICKNAME_MIN = 1
 _NICKNAME_MAX = 16
+_PASSWORD_MIN = 6
+_PASSWORD_MAX = 72
 
 #: 注册时是否强制要求手机号。
 #:
@@ -101,6 +102,41 @@ def normalize_nickname(raw: Any) -> str:
     if any(ch in nickname for ch in ("\n", "\r", "\t")):
         raise AuthError("VALIDATION_ERROR", "昵称不能包含换行或制表符", 400)
     return nickname
+
+
+def normalize_password(raw: Any, *, required: bool = True) -> str:
+    """Validate a password before hashing or verification; plaintext is never persisted."""
+    if raw is None and not required:
+        return ""
+    if not isinstance(raw, str):
+        raise AuthError("VALIDATION_ERROR", "密码必须是字符串", 400)
+    if len(raw) < _PASSWORD_MIN:
+        raise AuthError("VALIDATION_ERROR", f"密码至少 {_PASSWORD_MIN} 位", 400)
+    if len(raw) > _PASSWORD_MAX:
+        raise AuthError("VALIDATION_ERROR", f"密码不能超过 {_PASSWORD_MAX} 位", 400)
+    return raw
+
+
+def _verify_password(user: dict[str, Any], raw: Any) -> None:
+    """校验密码；**从未设过密码的账号不能用密码登录**。
+
+    ⚠️ 原实现遇到空 `passwordHash` 直接 `return`（本意是"兼容历史免密账号"），
+    但登录接口在**任何**密码下都会走到这里并放行 —— 于是验证码注册出来的账号
+    （`verify_verification_code` → `register_user` 在验证码链路里收不到 password，
+    存的是空串）**用任意密码（含空串、乱码）都能登进去**，密码形同虚设。
+    已按界面路径实测复现：验证码建号 → 密码登录输入 `zzzzzz` → 200。
+
+    这些账号本来就该走验证码登录，所以这里如实拒绝并给出路，而不是静默放行。
+    """
+    stored = user.get("passwordHash")
+    if not isinstance(stored, str) or not stored:
+        raise AuthError(
+            "UNAUTHORIZED",
+            "该账号还没有设置密码，请改用「验证码登录」（或注册时设置密码）。",
+            401)
+    password = normalize_password(raw)
+    if not check_password_hash(stored, password):
+        raise AuthError("UNAUTHORIZED", "账号或密码错误", 401)
 
 
 def normalize_grade(raw: Any) -> str:
@@ -182,8 +218,17 @@ def _verification_provider_configured() -> bool:
 
 
 def _verification_production_mode() -> bool:
-    return (os.getenv("ZHIXUE_ENV") or "development").strip().lower() in {
-        "prod", "production"}
+    """是否"生产模式"（决定验证码是否回显给客户端）。
+
+    ⚠️ 默认值必须是**生产**。原来写成 `or "development"`，意味着"忘了设
+    `ZHIXUE_ENV`"的部署会**静默进入开发模式**：验证码直接回显在响应里
+    （`devCode`），配合"验证码路径不校验密码"，等于知道手机号就能登入他人账号。
+
+    要开发模式请**显式**设 `ZHIXUE_ENV=development` —— 项目自带的 `.env`
+    就是这么为演示打开的，所以演示链路完全不受影响。
+    """
+    return (os.getenv("ZHIXUE_ENV") or "production").strip().lower() not in {
+        "dev", "development"}
 
 
 def _empty_verification_code(record: dict[str, Any]) -> None:
@@ -299,16 +344,9 @@ def find_users_by_nickname(repository: Repository, nickname: Any) -> list[dict[s
     return matches
 
 
-def login_by_nickname(repository: Repository, nickname: Any) -> dict[str, Any]:
-    """按昵称登录（免密）。
-
-    ⚠️ **安全边界必须说清楚**：昵称不是秘密，所以这**不是**一个安全的认证方式，
-    只适合"演示 / 单机使用"的场景。它解决的是"同一个昵称不该产生重复账号"
-    这个可用性缺陷，而不是提供真实身份校验。
-
-    真实身份校验请走 `docs/11` 里的手机号验证码方案
-    （或接入华为 AGC 认证服务）。
-    """
+def login_by_nickname(repository: Repository, nickname: Any,
+                      password: Any = None) -> dict[str, Any]:
+    """按昵称登录；新账号若设置了密码则必须校验，旧账号保持兼容。"""
     matches = find_users_by_nickname(repository, nickname)
     if not matches:
         raise AuthError("NOT_FOUND", "该昵称还没有账号，请先注册", 404)
@@ -318,6 +356,7 @@ def login_by_nickname(repository: Repository, nickname: Any) -> dict[str, Any]:
                         "请改用更精确的昵称或使用手机号登录", 409)
 
     user = matches[0]
+    _verify_password(user, password)
     user_id = user["userId"]
     session = create_session(repository, user_id)
     user["lastLoginAt"] = _iso(_now())
@@ -348,7 +387,8 @@ def find_user_by_phone(repository: Repository, phone: Any) -> dict[str, Any] | N
     return None
 
 
-def login_by_phone(repository: Repository, phone: Any) -> dict[str, Any]:
+def login_by_phone(repository: Repository, phone: Any,
+                   password: Any = None, *, verify_secret: bool = True) -> dict[str, Any]:
     """手机号登录（**免验证码版本**）。
 
     ⚠️ 这不是完整的手机号登录：真实场景必须先验证短信验证码，
@@ -361,6 +401,8 @@ def login_by_phone(repository: Repository, phone: Any) -> dict[str, Any]:
     user = find_user_by_phone(repository, phone)
     if user is None:
         raise AuthError("NOT_FOUND", "该手机号还没有账号，请先注册", 404)
+    if verify_secret:
+        _verify_password(user, password)
     user_id = user["userId"]
     session = create_session(repository, user_id)
     user["lastLoginAt"] = _iso(_now())
@@ -547,7 +589,7 @@ def verify_verification_code(repository: Repository, phone: Any, code: Any,
         repository.save(VERIFICATION_CODES, clean_phone, record)
 
         if existing is not None:
-            result = login_by_phone(repository, clean_phone)
+            result = login_by_phone(repository, clean_phone, verify_secret=False)
             return {**result, "created": False}
 
         result = register_user(repository, clean_nickname, clean_grade, clean_phone)
@@ -557,8 +599,8 @@ def verify_verification_code(repository: Repository, phone: Any, code: Any,
 
 
 def register_user(repository: Repository, nickname: Any, grade: Any = None,
-                  phone: Any = None) -> dict[str, Any]:
-    """创建账号：昵称 + 年级 + 手机号 → userId + token。不需要密码。
+                  phone: Any = None, password: Any = None) -> dict[str, Any]:
+    """创建账号：昵称 + 年级 + 手机号 + 可选密码 → userId + token。
 
     **手机号唯一**：同一个手机号重复注册会返回 409 `CONFLICT`，
     而不是悄悄建第二个账号 —— 这正是手机号作为身份标识的价值。
@@ -570,6 +612,7 @@ def register_user(repository: Repository, nickname: Any, grade: Any = None,
     clean_nickname = normalize_nickname(nickname)
     clean_grade = normalize_grade(grade)
     clean_phone = normalize_phone(phone, required=_PHONE_REQUIRED)
+    clean_password = normalize_password(password, required=False)
 
     if clean_phone:
         existing = find_user_by_phone(repository, clean_phone)
@@ -595,6 +638,7 @@ def register_user(repository: Repository, nickname: Any, grade: Any = None,
         "status": "active",
         "createdAt": timestamp,
         "lastLoginAt": timestamp,
+        "passwordHash": generate_password_hash(clean_password) if clean_password else "",
     }
     repository.save(USERS, user_id, user)
     session = create_session(repository, user_id)
@@ -761,10 +805,9 @@ def provision_starter_profile(repository: Repository, user_id: str, nickname: st
           "status": "pending", "priority": "high"}],
         1,
         "新账号起始计划：从二叉树后序遍历开始",
+        user_id,
     )
-    plan_data = plan.to_dict()
-    plan_data["userId"] = user_id
-    repository.save("plans", plan.plan_id, plan_data)
+    repository.save("plans", plan.plan_id, plan.to_dict())
 
 
 # --------------------------------------------------------------------------- 供中间件使用

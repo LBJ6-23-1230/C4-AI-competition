@@ -154,7 +154,8 @@ export class AuthClient {
    * 现在由服务端判定：昵称已存在就登录、不存在才建号，响应里的 `created`
    * 用于区分文案。
    */
-  static async loginOrRegister(nickname: string, grade: string, phone?: string): Promise<AuthResult> {
+  static async loginOrRegister(nickname: string, grade: string, phone?: string,
+    password?: string): Promise<AuthResult> {
     if (AgentApiClient.getConfig().useFixture) {
       return AuthClient.offlineUnavailable();
     }
@@ -166,7 +167,8 @@ export class AuthClient {
     const result = await AgentApiClient.authLoginOrRegister({
       nickname: nickname.trim(),
       grade: grade.length > 0 ? grade : undefined,
-      phone: phone !== undefined && phone.length > 0 ? phone : undefined
+      phone: phone !== undefined && phone.length > 0 ? phone : undefined,
+      password: password !== undefined && password.length > 0 ? password : undefined
     });
     if (!result.ok) {
       return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
@@ -192,7 +194,7 @@ export class AuthClient {
    * 只适合演示与单机环境。产品路径应当用
    * `sendVerificationCode()` + `verifyCode()` 两个方法（见下）。
    */
-  static async loginByPhone(phone: string): Promise<AuthResult> {
+  static async loginByPhone(phone: string, password?: string): Promise<AuthResult> {
     if (AgentApiClient.getConfig().useFixture) {
       return AuthClient.offlineUnavailable();
     }
@@ -200,7 +202,10 @@ export class AuthClient {
     if (trimmed.length === 0) {
       return { ok: false, user: null, source: 'local', message: '请输入手机号。' };
     }
-    const result = await AgentApiClient.authLogin({ phone: trimmed });
+    const result = await AgentApiClient.authLogin({
+      phone: trimmed,
+      password: password !== undefined && password.length > 0 ? password : undefined
+    });
     if (!result.ok) {
       return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
     }
@@ -208,7 +213,11 @@ export class AuthClient {
     return {
       ok: true,
       user: result.data.user,
-      source: 'restored',
+      // ⚠️ 这里是**用户主动登录**（手机号 / 昵称 + 密码），来源必须是 `local`。
+      // 原实现沿用了 `restored`，而 `restored` 的语义是"冷启动时用本地 token
+      // 恢复登录态"（只有 `restore()` 该用它）。后果：「我的 → 账号与密码管理」
+      // 把刚主动登录的账号标成「已恢复的登录态」，文案与事实相反。
+      source: 'local',
       message: `欢迎回来，${result.data.user.nickname}。`
     };
   }
@@ -359,7 +368,7 @@ export class AuthClient {
    * ⚠️ 昵称不是秘密，因此这不是安全的认证方式，仅适用于演示/单机场景。
    * 真实身份校验请见 `docs/11-用户登录体系方案.md` 的手机号验证码方案。
    */
-  static async loginByNickname(nickname: string): Promise<AuthResult> {
+  static async loginByNickname(nickname: string, password?: string): Promise<AuthResult> {
     if (AgentApiClient.getConfig().useFixture) {
       return AuthClient.offlineUnavailable();
     }
@@ -368,7 +377,10 @@ export class AuthClient {
       return { ok: false, user: null, source: 'local', message: invalid };
     }
 
-    const result = await AgentApiClient.authLogin({ nickname: nickname.trim() });
+    const result = await AgentApiClient.authLogin({
+      nickname: nickname.trim(),
+      password: password !== undefined && password.length > 0 ? password : undefined
+    });
     if (!result.ok) {
       return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
     }
@@ -377,7 +389,11 @@ export class AuthClient {
     return {
       ok: true,
       user: result.data.user,
-      source: 'restored',
+      // ⚠️ 这里是**用户主动登录**（手机号 / 昵称 + 密码），来源必须是 `local`。
+      // 原实现沿用了 `restored`，而 `restored` 的语义是"冷启动时用本地 token
+      // 恢复登录态"（只有 `restore()` 该用它）。后果：「我的 → 账号与密码管理」
+      // 把刚主动登录的账号标成「已恢复的登录态」，文案与事实相反。
+      source: 'local',
       message: `欢迎回来，${result.data.user.nickname}。`
     };
   }

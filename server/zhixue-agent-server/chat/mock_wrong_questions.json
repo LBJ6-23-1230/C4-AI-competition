@@ -1,7 +1,7 @@
 [
   {
     "questionId": "q001",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": "img001",
       "myAnswer": "A",
@@ -30,7 +30,7 @@
   },
   {
     "questionId": "u001_7d8f9a0b-1c2d-3e4f-5g6h-7i8j9k0l1m2n",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": "B",
@@ -69,7 +69,7 @@
   },
   {
     "questionId": "u001_7e8f9a0b-1c2d-3e4f-5g6h-7i8j9k0l1m2n",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": "B",
@@ -108,7 +108,7 @@
   },
   {
     "questionId": "u001_20260722164206",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -138,7 +138,7 @@
   },
   {
     "questionId": "u001_20260722173255",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -168,7 +168,7 @@
   },
   {
     "questionId": "u001_20260920193231",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -211,7 +211,7 @@
   },
   {
     "questionId": "u001_20260920193317",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -254,7 +254,7 @@
   },
   {
     "questionId": "u001_20260920193349",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -297,7 +297,7 @@
   },
   {
     "questionId": "u001_20260920193426",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -340,7 +340,7 @@
   },
   {
     "questionId": "u001_20260920193500",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -358,7 +358,7 @@
   },
   {
     "questionId": "u001_20260920193603",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -401,7 +401,7 @@
   },
   {
     "questionId": "u001_20260920193632",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -444,7 +444,7 @@
   },
   {
     "questionId": "u001_20260920193702",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -487,7 +487,7 @@
   },
   {
     "questionId": "u001_20260920193734",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -530,7 +530,7 @@
   },
   {
     "questionId": "u001_20260920193805",
-    "userId": "u001",
+    "userId": "demo-user",
     "input": {
       "image": null,
       "myAnswer": null,
@@ -570,278 +570,5 @@
       ]
     },
     "createdAt": "2026-09-20T19:38:10.968025"
-  },
-  {
-    "questionId": "u001_5e3f8a2b-7c9d-4e1a-8f2c-3d4e5f6a7b8c",
-    "userId": "u001",
-    "input": {
-      "image": "已上传",
-      "myAnswer": null,
-      "correctAnswer": null
-    },
-    "AIAnalysis": {
-      "course": "数据结构",
-      "knowledge": [
-        {
-          "name": "二叉树遍历",
-          "confidence": 0.85
-        },
-        {
-          "name": "递归理解",
-          "confidence": 0.75
-        }
-      ],
-      "wrongType": "知识盲区",
-      "reason": "用户未提供具体答案和题目内容，但从其学习画像推断，该题可能与二叉树遍历或递归相关，属于当前薄弱知识点范畴，且用户尚未掌握解题思路。",
-      "Tag": [
-        "二叉树遍历薄弱",
-        "递归理解薄弱"
-      ],
-      "suggestion": [
-        {
-          "studyTag": "二叉树遍历",
-          "task": "复习三种遍历方式（前序、中序、后序）的定义和实现方法，手动画出一棵二叉树并写出三种遍历序列。"
-        },
-        {
-          "studyTag": "递归理解",
-          "task": "重看递归函数的基本结构（基线条件+递归调用），尝试用递归解决斐波那契数列问题，并画出调用栈过程。"
-        }
-      ]
-    },
-    "createdAt": "2026-09-24T17:25:09.292674"
-  },
-  {
-    "questionId": "u001_5e3f8a2c-7d9b-4e1c-b2f4-9a7b3c8d1e2f",
-    "userId": "u001",
-    "input": {
-      "image": null,
-      "myAnswer": null,
-      "correctAnswer": null
-    },
-    "AIAnalysis": {
-      "course": "数据结构",
-      "knowledge": [
-        {
-          "name": "二叉树遍历",
-          "confidence": 0.85
-        },
-        {
-          "name": "递归理解",
-          "confidence": 0.75
-        }
-      ],
-      "wrongType": "知识盲区",
-      "reason": "用户未提供具体错题内容，仅表示有错题，结合其学习画像，推测可能涉及二叉树遍历或递归相关知识点的掌握不牢。",
-      "Tag": [
-        "二叉树遍历薄弱",
-        "递归理解不足"
-      ],
-      "suggestion": [
-        {
-          "studyTag": "二叉树遍历",
-          "task": "复习三种遍历顺序（前序、中序、后序）的定义与实现，手动画图练习3道典型题目。"
-        },
-        {
-          "studyTag": "递归理解",
-          "task": "重看递归函数调用过程，通过画递归调用栈的方式理解递归执行逻辑，完成2道递归题目的推导。"
-        }
-      ]
-    },
-    "createdAt": "2026-09-24T17:27:50.650626"
-  },
-  {
-    "questionId": "u001_64c7e3a5-8f9b-4d2a-9c1e-2d4f5e6f7g8h",
-    "userId": "u001",
-    "input": {
-      "image": null,
-      "myAnswer": null,
-      "correctAnswer": null
-    },
-    "AIAnalysis": {
-      "course": "数据结构",
-      "knowledge": [
-        {
-          "name": "二叉树遍历",
-          "confidence": 0.85
-        },
-        {
-          "name": "递归理解",
-          "confidence": 0.75
-        }
-      ],
-      "wrongType": "知识盲区",
-      "reason": "用户未提供具体题目内容和答案，仅表示‘这道题为什么错了’，无法判断错误类型。结合用户学习画像，其在二叉树遍历和递归理解方面存在薄弱点，可能是导致错题的主要原因。",
-      "Tag": [
-        "二叉树遍历薄弱",
-        "递归理解不足"
-      ],
-      "suggestion": [
-        {
-          "studyTag": "二叉树遍历",
-          "task": "复习前序、中序、后序遍历的定义与实现方式，手动画出3棵不同结构的二叉树并写出三种遍历序列。"
-        },
-        {
-          "studyTag": "递归理解",
-          "task": "重新推导一个简单的递归函数（如阶乘）的执行过程，画出调用栈图，理解递归的终止条件与返回逻辑。"
-        }
-      ]
-    },
-    "createdAt": "2026-09-24T17:28:02.150541"
-  },
-  {
-    "questionId": "u001_5e3a2c8f-1d4b-4a9f-bc7e-9d2e1f6b3c4d",
-    "userId": "u001",
-    "input": {
-      "image": null,
-      "myAnswer": null,
-      "correctAnswer": null
-    },
-    "AIAnalysis": {
-      "course": "数据结构",
-      "knowledge": [
-        {
-          "name": "二叉树遍历",
-          "confidence": 0.85
-        },
-        {
-          "name": "递归理解",
-          "confidence": 0.8
-        }
-      ],
-      "wrongType": "知识盲区",
-      "reason": "用户表示‘有道错题不会做’，但未提供具体题目内容或答案，无法判断错误原因。结合用户学习画像，其在二叉树遍历和递归理解方面存在明显薄弱点，可能是导致解题困难的主要原因。",
-      "Tag": [
-        "二叉树遍历薄弱",
-        "递归理解薄弱"
-      ],
-      "suggestion": [
-        {
-          "studyTag": "二叉树遍历",
-          "task": "回顾教材中前序、中序、后序遍历的定义与实现方式，手动画出3棵不同结构的二叉树并写出三种遍历序列。"
-        },
-        {
-          "studyTag": "递归理解",
-          "task": "选择一个经典递归问题（如斐波那契数列），用纸笔逐步模拟递归调用过程，直到理解递归栈的执行逻辑。"
-        }
-      ]
-    },
-    "createdAt": "2026-09-24T17:28:13.015359"
-  },
-  {
-    "questionId": "u001_5e3a2f8c-4d1b-4e9f-8c2a-7b3c1d4e5f6g",
-    "userId": "u001",
-    "input": {
-      "image": null,
-      "myAnswer": null,
-      "correctAnswer": null
-    },
-    "AIAnalysis": {
-      "course": "数据结构",
-      "knowledge": [
-        {
-          "name": "二叉树遍历",
-          "confidence": 0.95
-        },
-        {
-          "name": "递归理解",
-          "confidence": 0.9
-        }
-      ],
-      "wrongType": "知识盲区",
-      "reason": "用户多次提及错题但未提供具体题目内容，无法判断错误细节。结合其学习记录，推测其错误可能源于对二叉树遍历顺序或递归逻辑理解不清，属于典型的知识薄弱导致的解题障碍。",
-      "Tag": [
-        "二叉树遍历薄弱",
-        "递归理解薄弱"
-      ],
-      "suggestion": [
-        {
-          "studyTag": "二叉树遍历",
-          "task": "复习前序、中序、后序遍历的定义与访问顺序，手动画出3棵不同结构的二叉树并写出三种遍历序列。"
-        },
-        {
-          "studyTag": "递归理解",
-          "task": "重做一道经典递归题（如斐波那契数列），写出递归调用栈过程，明确终止条件和返回逻辑。"
-        }
-      ]
-    },
-    "createdAt": "2026-09-24T17:34:51.824654"
-  },
-  {
-    "questionId": "u001_6b8e4f2a-1c7d-4e9f-8a5b-2d3c4e5f6a7b",
-    "userId": "u001",
-    "input": {
-      "image": null,
-      "myAnswer": null,
-      "correctAnswer": null
-    },
-    "AIAnalysis": {
-      "course": "数据结构",
-      "knowledge": [
-        {
-          "name": "二叉树遍历",
-          "confidence": 0.95
-        },
-        {
-          "name": "递归理解",
-          "confidence": 0.85
-        }
-      ],
-      "wrongType": "概念混淆",
-      "reason": "用户未提供具体答案与题目内容，但结合其学习画像，可推断错误源于对二叉树遍历方式（如前序、中序、后序）与递归实现之间的逻辑关系理解不清，易将不同遍历顺序混淆。",
-      "Tag": [
-        "二叉树遍历薄弱",
-        "递归理解不牢"
-      ],
-      "suggestion": [
-        {
-          "studyTag": "二叉树遍历",
-          "task": "手绘一棵二叉树，分别写出前序、中序、后序遍历序列，并标注每次递归调用的入口与返回点，对比差异。"
-        },
-        {
-          "studyTag": "递归理解",
-          "task": "重做教材中关于二叉树遍历的递归代码，逐行打印函数调用栈，观察执行流程。"
-        }
-      ]
-    },
-    "createdAt": "2026-09-24T17:35:30.103217"
-  },
-  {
-    "questionId": "u001_UUID",
-    "userId": "u001",
-    "input": {
-      "image": null,
-      "myAnswer": null,
-      "correctAnswer": null
-    },
-    "AIAnalysis": {
-      "course": "数据结构",
-      "knowledge": [
-        {
-          "name": "二叉树遍历",
-          "confidence": 0.85
-        },
-        {
-          "name": "递归理解",
-          "confidence": 0.75
-        }
-      ],
-      "wrongType": "其他",
-      "reason": "用户未提供具体题目内容、答案及正确答案，无法判断错误类型。但从其学习画像看，当前最可能涉及的知识点为‘二叉树遍历’和‘递归理解’，这两个是其已知的薄弱环节。",
-      "Tag": [
-        "二叉树遍历薄弱",
-        "递归理解薄弱"
-      ],
-      "suggestion": [
-        {
-          "studyTag": "二叉树遍历",
-          "task": "复习前序、中序、后序遍历的定义与访问顺序，手动画出3棵不同结构的二叉树并写出三种遍历序列。"
-        },
-        {
-          "studyTag": "递归理解",
-          "task": "重做一道经典的递归问题（如斐波那契数列），写出递归调用栈过程，理解终止条件与递推关系。"
-        }
-      ]
-    },
-    "createdAt": "2026-09-25T21:52:36.120782"
   }
 ]

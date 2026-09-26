@@ -293,6 +293,20 @@ def test_duplicate_knowledge_base_name_is_conflict(tmp_path):
     assert response.get_json()["errorCode"] == "CONFLICT"
 
 
+def test_one_course_has_one_knowledge_base(tmp_path):
+    client = create_app(tmp_path / "kb-course-unique.json").test_client()
+    first = client.post("/api/v1/knowledge-bases", json={
+        "courseName": "数据结构", "name": "期中资料",
+    }, headers=H)
+    assert first.status_code == 201
+
+    duplicate_course = client.post("/api/v1/knowledge-bases", json={
+        "courseName": " 数据结构 ", "name": "期末资料",
+    }, headers=H)
+    assert duplicate_course.status_code == 409
+    assert duplicate_course.get_json()["details"]["kbId"] == first.get_json()["kbId"]
+
+
 def test_upload_rejects_path_traversal_in_file_name(tmp_path):
     """文件名必须是最后一段，防止路径穿越。"""
     client = create_app(tmp_path / "kb-traversal.json").test_client()

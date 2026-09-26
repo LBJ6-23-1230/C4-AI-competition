@@ -17,6 +17,14 @@ import { ImageEncoder } from '../utils/ImageEncoder';
 struct WrongQuestion {
   @State hasPhoto: boolean = false;
   @State selectedImageUri: string = '';
+  //: 当前这张图是不是「内置示例错题」。
+  //:
+  //: 内置图来自**应用资源**（`$r('app.media.sample_wrong')`），没有可供 `Image()`
+  //: 使用的文件 URI —— 原实现把 `selectedImageUri` 留成空串，于是预览区
+  //: 既不满足 `startsWith('mock_')`、`Image('')` 又是空图，**页面上根本没有题目照片**
+  //: （实测反馈：「点击这个用内置示例错题体验根本没有题目照片」）。
+  //: 现在用这个标记显式区分「内置示例 / 模拟图 / 相册图」三种来源。
+  @State isSampleImage: boolean = false;
   @State selectedImageName: string = '';
   @State isAnalyzing: boolean = false;
   @State analysisResult: WrongAnalysisResult | null = null;
@@ -67,6 +75,7 @@ struct WrongQuestion {
       if (result.photoUris.length > 0) {
         const uri: string = result.photoUris[0];
         this.selectedImageUri = uri;
+        this.isSampleImage = false;
         this.selectedImageName = `photo_${Date.now()}.jpg`;
         this.hasPhoto = true;
         appState.addWrongQuestionImage(uri, this.selectedImageName);
@@ -98,6 +107,7 @@ struct WrongQuestion {
   private useMockImage(): void {
     const mockUri: string = `mock_${Date.now()}.jpg`;
     this.selectedImageUri = mockUri;
+    this.isSampleImage = false;
     this.selectedImageName = '模拟错题图片.jpg';
     this.hasPhoto = true;
     appState.addWrongQuestionImage(mockUri, this.selectedImageName);
@@ -198,6 +208,8 @@ struct WrongQuestion {
       return;
     }
     this.selectedImageUri = '';
+    // 内置示例没有文件 URI，靠这个标记让预览区改用资源图（否则页面上是空的）。
+    this.isSampleImage = true;
     this.selectedImageName = '内置示例错题.png';
     this.hasPhoto = true;
     appState.addWrongQuestionImage('', this.selectedImageName);
@@ -421,6 +433,7 @@ Text('✅ 分析完成')
           this.showAnalysis = false;
           this.analysisResult = null;
           this.selectedImageUri = '';
+          this.isSampleImage = false;
           this.selectedImageName = '';
           this.reviewAdded = false;
           this.analysisRequestVersion++;
@@ -499,7 +512,13 @@ Text('✅ 分析完成')
                     }.alignItems(HorizontalAlign.Start).layoutWeight(1)
                   }.width('100%')
 
-                  if (this.selectedImageUri.startsWith('mock_')) {
+                  if (this.isSampleImage) {
+                    // 内置示例错题：图片在应用资源里，必须用 `$r` 引用 ——
+                    // 直接 `Image('')` 会渲染成空白（这正是原先"没有题目照片"的原因）。
+                    Image($r('app.media.sample_wrong'))
+                      .width('100%').height(160).objectFit(ImageFit.Contain)
+                      .backgroundColor('#EFF6FF').borderRadius(12)
+                  } else if (this.selectedImageUri.startsWith('mock_')) {
                     Column({ space: 6 }) {
                       Text('📝').fontSize(48)
                       Text('模拟错题图片').fontSize(13).fontColor('#667085')

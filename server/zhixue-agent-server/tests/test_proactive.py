@@ -29,7 +29,32 @@ def test_proactive_recommends_focus_for_urgent_gap():
     assert "reason" in result and "factors" in result
     assert "exam_within_7d" in result["contextTags"]
     assert "exam_within_7d_low_mastery" in result["contextTags"]
-    assert result["cardData"]["knowledgePointId"] == "binary-tree-postorder"
+    # ⚠️ 这条断言在修复后**故意改了**：
+    # 原实现把 knowledgePointId 写死成 "binary-tree-postorder"、任务名写死成
+    # "二叉树后序遍历" —— 于是刚诊断出"哈希表"的用户，首页卡片仍指向二叉树。
+    # 现在改由调用方按画像传入（见 `app/api/proactive.py::_weakest_knowledge`）；
+    # 本用例没传任何知识点 → **不再凭空编一个**。
+    assert result["cardData"]["knowledgePointId"] == ""
+    assert result["cardData"]["taskName"] == "当前薄弱知识点"
+
+
+def test_card_data_uses_caller_supplied_knowledge_point():
+    """调用方给了真实薄弱点就必须用它 —— 这是这条字段存在的意义。"""
+    result = proactive_decision(
+        {
+            "userId": "u-1",
+            "context": {
+                "foreground": False,
+                "masteryScore": 30,
+                "daysLeft": 5,
+                "taskName": "哈希表",
+                "knowledgePointId": "hash-table",
+            },
+        }
+    )
+
+    assert result["cardData"]["taskName"] == "哈希表"
+    assert result["cardData"]["knowledgePointId"] == "hash-table"
 
 
 def test_proactive_avoids_notification_while_focus_session_active():

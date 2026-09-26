@@ -169,6 +169,10 @@ export class ApiResponseValidator {
     if (method === 'POST' && route === '/api/v1/auth/verify-code') {
       return ApiResponseValidator.isAuthSession(data);
     }
+    if (method === 'POST' && route === '/api/v1/auth/change-password') {
+      // 该接口只回 {status, hasPassword, wasFirstTime}，按最小必要字段校验即可。
+      return ApiResponseValidator.hasString(data, 'status');
+    }
     if (method === 'POST' && route === '/api/v1/auth/logout') {
       return ApiResponseValidator.hasString(data, 'status');
     }

@@ -44,6 +44,24 @@ export class ApiDisplayFormatter {
     return value;
   }
 
+  /**
+   * 工作流的 `nextAction` / agent 名 → 用户看得懂的话。
+   *
+   * ⚠️ 这个字段**有时是中文句子**（如"提交答案后继续评估"），有时却是后端的
+   * **内部步骤名**（实测卡片上出现过「下一步：diagnose」）。
+   * 内部英文标识不该直接给用户看（实测反馈：「有的东西不要写给用户直接看」）。
+   * 认不出来的原样返回，不编造。
+   */
+  static nextAction(value: string): string {
+    if (value === 'diagnose' || value === 'diagnosis') return '做一次学情诊断';
+    if (value === 'plan' || value === 'planner') return '生成学习计划';
+    if (value === 'exercise') return '做练习题';
+    if (value === 'assess' || value === 'assessment') return '评估练习结果';
+    if (value === 'secretary') return '整理本次学习记录';
+    if (value === 'finish' || value === 'completed') return '本次会话已完成';
+    return value;
+  }
+
   static metric(value: string): string {
     if (value === 'perKnowledgeAccuracy') return '知识点正确率';
     return value;

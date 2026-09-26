@@ -30,6 +30,18 @@ def isolate_external_llm(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def pin_verification_env(monkeypatch):
+	"""把验证码模式**显式**钉成 development，测试才不依赖开发机的环境变量。
+
+	为什么必须钉：`_verification_production_mode()` 的默认值已经是**生产**
+	（生产模式下验证码不回显给客户端，这是安全默认值）。而大量测试要读
+	`devCode` 才能走完验证码链路 —— 若沿用"环境里恰好设了 development"的巧合，
+	换台机器（或 CI）就会整批失败。这里显式声明测试要的是开发模式。
+	"""
+	monkeypatch.setenv("ZHIXUE_ENV", "development")
+
+
+@pytest.fixture(autouse=True)
 def isolate_repository_backend(monkeypatch):
 	"""测试一律走默认的 JSON 后端，不受外部 `ZHIXUE_DB` 影响。
 
