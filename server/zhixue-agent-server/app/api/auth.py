@@ -3,7 +3,7 @@
 
 契约（与 `contracts/openapi.json` 的 Auth* 定义一致）
 ----------------------------------------------------
-POST   /api/v1/auth/register   {nickname, phone, password?} → {user, token, expiresAt}
+POST   /api/v1/auth/register   {nickname, phone, password?, seedDemoData?} → {user, token, expiresAt, demoDataSeeded}
 POST   /api/v1/auth/login      {phone|nickname, password}   → {user, token, expiresAt}
 POST   /api/v1/auth/change-password {oldPassword?, newPassword} (Bearer) → {status, hasPassword, wasFirstTime}
 POST   /api/v1/auth/logout     (Bearer)                → {status: "ok"}
@@ -12,6 +12,11 @@ DELETE /api/v1/auth/account    (Bearer)                → {status: "deactivated
 
 本地账号支持密码登录，服务端只保存 Werkzeug 生成的加盐哈希；验证码与华为
 账号入口继续保留。登录成功后签发会话 token，客户端只持久化 token。
+
+`seedDemoData` 是**可选**字段（建号类接口：register / login-or-register /
+verify-code / login-with-huawei），默认 false = 新账号只建空画像、
+不写入写死的知识点与计划；详见 `_seed_demo_data()` 与
+`app/auth/service.py::provision_starter_profile`。
 """
 
 from __future__ import annotations
@@ -60,6 +65,21 @@ def _current_token() -> str:
     return service.parse_bearer(request.headers.get("Authorization"))
 
 
+def _seed_demo_data(data: dict) -> bool:
+    """读取可选的 `seedDemoData`：本次注册**要不要**顺便写入演示数据。
+
+    默认 `False`（不载入）—— 与 `service.provision_starter_profile` 的默认值一致：
+    新账号默认只建空画像，不回写写死的二叉树知识点与起始计划。
+    用户实测反馈："创建一个新账号最好不直接给出已经写死的数据……否则会给用户
+    一种虚假的感觉"。想快速看完整闭环的用户可以在注册页显式勾选。
+
+    ⚠️ 只认真正的布尔 `True`：写成 `data.get("seedDemoData")` 会让
+    `{"seedDemoData": "false"}`（字符串）被 Python 的真值判断当成"要载入"，
+    与调用方的字面意思相反 —— 这类"看起来关着其实开着"的开关是最难查的。
+    """
+    return data.get("seedDemoData") is True
+
+
 def _require_user():
     """返回 (user, token) 或 (None, error_response)。"""
     if _repository is None:
@@ -75,7 +95,11 @@ def _require_user():
 
 @auth_api.post("/api/v1/auth/register")
 def register():
-    """注册：昵称 + 年级 + **手机号** → userId + token，并预置一份空画像。"""
+    """注册：昵称 + 年级 + **手机号** → userId + token，并预置一份空画像。
+
+    可选请求体字段 `seedDemoData`（布尔，默认 false）：是否顺便写入演示数据
+    （二叉树知识点 + 起始计划）。响应里的 `demoDataSeeded` 如实回填本次结果。
+    """
     if _repository is None:
         return _error("INTERNAL_ERROR", "auth repository is not configured", 500)
     data = _body()
@@ -86,9 +110,10 @@ def register():
     except service.AuthError as error:
         return _error(error.error_code, error.message, error.status)
 
-    service.provision_starter_profile(
-        _repository, result["user"]["userId"], result["user"]["nickname"])
-    return jsonify(result), 201
+    seeded = service.provision_starter_profile(
+        _repository, result["user"]["userId"], result["user"]["nickname"],
+        with_demo_data=_seed_demo_data(data))
+    return jsonify({**result, "demoDataSeeded": seeded}), 201
 
 
 @auth_api.post("/api/v1/auth/login")
@@ -156,14 +181,18 @@ def send_code():
 
 @auth_api.post("/api/v1/auth/verify-code")
 def verify_code():
-    """校验验证码并自动登录或注册；成功后验证码立即失效。"""
+    """校验验证码并自动登录或注册；成功后验证码立即失效。
+
+    可选请求体字段 `seedDemoData`：只在**本次真的建了新号**时起作用。
+    """
     if _repository is None:
         return _error("INTERNAL_ERROR", "auth repository is not configured", 500)
     data = _body()
     try:
         result = service.verify_verification_code(
             _repository, data.get("phone"), data.get("code"),
-            data.get("nickname"), data.get("grade"))
+            data.get("nickname"), data.get("grade"),
+            with_demo_data=_seed_demo_data(data))
     except service.AuthError as error:
         return _auth_error(error)
     return jsonify(result), (201 if result.get("created") else 200)
@@ -216,9 +245,10 @@ def login_or_register():
                                        data.get("grade"), phone, data.get("password"))
     except service.AuthError as error:
         return _error(error.error_code, error.message, error.status)
-    service.provision_starter_profile(
-        _repository, result["user"]["userId"], result["user"]["nickname"])
-    return jsonify({**result, "created": True}), 201
+    seeded = service.provision_starter_profile(
+        _repository, result["user"]["userId"], result["user"]["nickname"],
+        with_demo_data=_seed_demo_data(data))
+    return jsonify({**result, "created": True, "demoDataSeeded": seeded}), 201
 
 
 @auth_api.post("/api/v1/auth/login-with-huawei")
@@ -231,6 +261,8 @@ def login_with_huawei():
     ⚠️ **本接口不校验 OpenID 真伪**（那需要服务端调华为接口验签）。
     当前版本定位"演示可用、生产需补验签"，见 `docs/13`。
     生产环境必须补上验签，否则伪造 openId 即可登入他人账号。
+
+    可选请求体字段 `seedDemoData`：只在**本次真的建了新号**时起作用。
     """
     if _repository is None:
         return _error("INTERNAL_ERROR", "auth repository is not configured", 500)
@@ -243,9 +275,10 @@ def login_with_huawei():
         return _error(error.error_code, error.message, error.status)
 
     if result.get("created"):
-        service.provision_starter_profile(
-            _repository, result["user"]["userId"], result["user"]["nickname"])
-        return jsonify(result), 201
+        seeded = service.provision_starter_profile(
+            _repository, result["user"]["userId"], result["user"]["nickname"],
+            with_demo_data=_seed_demo_data(data))
+        return jsonify({**result, "demoDataSeeded": seeded}), 201
     return jsonify(result)
 
 

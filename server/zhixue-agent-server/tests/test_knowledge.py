@@ -8,6 +8,7 @@
 import base64
 
 from app import create_app
+from app.agent import knowledge
 
 H = {"X-API-Contract-Version": "api-contract-v0.3"}
 
@@ -270,6 +271,63 @@ def test_delete_document_clears_chunks(tmp_path):
     hits = client.post(f"/api/v1/knowledge-bases/{kb_id}/search",
                        json={"query": "遍历"}, headers=H).get_json()["hits"]
     assert hits == [], "删除文档后不应还能检索到切片"
+
+
+# --------------------------------------------------------------------- 文档详情（正文）
+def test_document_detail_returns_chunk_text_in_order(tmp_path):
+    """详情接口必须回**正文**，且按原文顺序。
+
+    对应一个真实用户反馈："上传了讲义，只看得到大模型给出的大致属性
+    （字数 / 片段数 / 知识点），看不了具体内容"。根因是详情原先只回
+    `documents` 记录、不回 `chunks` —— 正文只存在于后者。
+    顺序错了同样致命：用户看到的讲义会是乱的。
+    """
+    client = create_app(tmp_path / "kb-detail.json").test_client()
+    kb_id = _make_kb(client)
+    document_id = _upload(client, kb_id).get_json()["documentId"]
+
+    body = client.get(f"/api/v1/documents/{document_id}", headers=H).get_json()
+
+    assert body["chunkTotal"] == len(body["chunks"]) == 3
+    assert body["chunksTruncated"] is False
+    # 序号从 1 连续递增，且与原文顺序一致（前序 → 后序 → 递归理解）
+    assert [chunk["index"] for chunk in body["chunks"]] == [1, 2, 3]
+    assert "前序遍历的顺序" in body["chunks"][0]["text"]
+    assert "后序遍历的顺序" in body["chunks"][1]["text"]
+    assert "递归理解" in body["chunks"][2]["text"]
+    # 标题路径（引用来源）必须跟着正文一起回，否则界面上无法标注"出自哪一节"
+    assert "后序遍历" in body["chunks"][1]["headingPath"]
+
+
+def test_document_detail_marks_truncation_honestly(tmp_path):
+    """切片很多时**限量返回但如实标注**，绝不静默截断。
+
+    静默截断会让用户以为"这份讲义只有 50 段"，是欺骗性展示；
+    所以 `chunkTotal` 必须是真实总数、`chunksTruncated` 必须为真。
+    """
+    client = create_app(tmp_path / "kb-detail-trunc.json").test_client()
+    kb_id = _make_kb(client)
+    sections = "\n".join(f"## 第{i}节 小节{i}\n\n这是第 {i} 段正文内容。\n" for i in range(1, 61))
+    document_id = _upload(client, kb_id, file_name="大讲义.md",
+                          text=sections).get_json()["documentId"]
+
+    body = client.get(f"/api/v1/documents/{document_id}", headers=H).get_json()
+
+    assert body["chunkTotal"] == 60
+    assert body["chunksTruncated"] is True
+    assert len(body["chunks"]) == knowledge.MAX_CHUNKS_PER_RESPONSE
+
+
+def test_document_detail_is_isolated_per_user(tmp_path):
+    """正文是最敏感的部分，必须按用户隔离 —— 猜不到 documentId 不等于读得到。"""
+    client = create_app(tmp_path / "kb-detail-iso.json").test_client()
+    kb_id = _make_kb(client)
+    document_id = _upload(client, kb_id).get_json()["documentId"]
+
+    assert client.get(f"/api/v1/documents/{document_id}",
+                      headers=H).status_code == 200
+    assert client.get(f"/api/v1/documents/{document_id}?userId=other-user",
+                      headers=H).status_code == 404
 
 
 def test_delete_knowledge_base(tmp_path):

@@ -40,10 +40,20 @@ def _phone() -> str:
     return f"1380000{_PHONE_SEQ['n']:04d}"
 
 
-def _register(client, nickname="小明", grade="大二", phone=None):
+def _register(client, nickname="小明", grade="大二", phone=None, seed_demo_data=True):
+    """注册一个测试账号。
+
+    ⚠️ `seed_demo_data` 默认 **True**：本文件多数用例测的是"带着起始计划的新账号"
+    这条链路（计划可读性、重排后仍可读、trace 里要有 planner 事件），
+    必须先有起始计划才成立 —— 所以这里**显式**要求写入演示数据。
+
+    接口本身的默认值已经反过来变成 `False`（不写死知识点与计划），
+    见 `test_register_defaults_to_empty_profile` / `test_register_can_opt_into_demo_data`。
+    """
     response = client.post("/api/v1/auth/register",
                            json={"nickname": nickname, "grade": grade,
-                                 "phone": phone or _phone()})
+                                 "phone": phone or _phone(),
+                                 "seedDemoData": seed_demo_data})
     assert response.status_code == 201
     return response.get_json()
 
@@ -158,8 +168,68 @@ def test_delete_account_deactivates_and_blocks_relogin(client):
 
 
 # --------------------------------------------------------------------------- 新账号画像
+def test_register_defaults_to_empty_profile(client):
+    """★ 默认（不传 seedDemoData）：新账号只建**空画像**，不写死知识点与计划。
+
+    用户实测反馈：「创建一个新账号最好不直接给出已经写死的数据，比如二叉树……
+    否则会给用户一种虚假的感觉，用户登录应该做到的事自己上传然后进行一系列的
+    智能体操作。」所以默认路径下：
+
+      · `mastery` 为空（而不是凭空一条「二叉树后序遍历」）
+      · `freeTimeSlots` 为空（不写死 20:00-22:00 这种作息）
+      · 不预置计划 —— 计划由用户自己的智能体工作流生成
+        （`POST /api/v1/workflows` 见到"没有计划"会先跑 planner 步骤）
+      · 但画像本身必须存在，否则 `/profile/{userId}` 立刻 404
+
+    同时锁住交付要求里的那条：**没有计划时 `/plans/current` 只许 404，不许 500**。
+    """
+    registered = _register(client, seed_demo_data=False)
+    user_id = registered["user"]["userId"]
+
+    assert registered["demoDataSeeded"] is False
+    profile = client.get(f"/api/v1/profile/{user_id}").get_json()
+    assert profile["profileVersion"] == 1
+    assert profile["mastery"] == [], "默认路径不能写死任何知识点"
+    assert profile["profile"]["freeTimeSlots"] == [], "默认路径不能写死作息时间"
+
+    # 没有计划是**如实**的（用户还没做过任何事），但绝不能是服务端错误
+    plan = client.get("/api/v1/plans/current",
+                      headers=_auth_header(registered["token"]))
+    assert plan.status_code == 404, plan.get_json()
+    assert plan.get_json()["errorCode"] == "NOT_FOUND"
+
+
+def test_register_can_opt_into_demo_data(client):
+    """显式 `seedDemoData: true` → 保持原行为（示例知识点 + 起始计划），便于快速体验。"""
+    registered = _register(client, seed_demo_data=True)
+    user_id = registered["user"]["userId"]
+
+    assert registered["demoDataSeeded"] is True
+    profile = client.get(f"/api/v1/profile/{user_id}").get_json()
+    assert profile["mastery"][0]["knowledgePointId"] == "binary-tree-postorder"
+    assert profile["mastery"][0]["masteryScore"] == 0
+
+    plan = client.get("/api/v1/plans/current",
+                      headers=_auth_header(registered["token"])).get_json()
+    assert plan["planId"] == f"plan-{user_id}"
+    assert plan["tasks"][0]["knowledgePointId"] == "binary-tree-postorder"
+
+
+def test_register_treats_non_boolean_seed_flag_as_off(client):
+    """`"seedDemoData": "true"`（字符串）必须当作**没勾选**。
+
+    开关"看起来关着其实开着"是最难查的一类缺陷：Python 里 `"false"` 也是真值，
+    所以读这个字段必须显式比较 `is True`，不能直接丢进 if。
+    """
+    registered = _register(client, seed_demo_data="true")
+    user_id = registered["user"]["userId"]
+
+    assert registered["demoDataSeeded"] is False
+    assert client.get(f"/api/v1/profile/{user_id}").get_json()["mastery"] == []
+
+
 def test_new_account_gets_usable_starter_profile(client):
-    """新账号必须立刻能读到画像与计划，否则登录后首页会报 404。"""
+    """显式载入演示数据时，新账号必须立刻能读到画像与计划，否则登录后首页会报 404。"""
     registered = _register(client)
     user_id = registered["user"]["userId"]
 

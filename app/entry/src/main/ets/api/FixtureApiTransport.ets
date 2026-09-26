@@ -1,5 +1,5 @@
 import { util } from '@kit.ArkTS';
-import { DecisionFactor, DemoResetResponse, Evidence, Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeChunkHit, KnowledgeDocument, KnowledgeDocumentListResponse, KnowledgeDocumentUploadRequest, KnowledgeMastery, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
+import { DecisionFactor, DemoResetResponse, Evidence, Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeChunkHit, KnowledgeDocument, KnowledgeDocumentChunk, KnowledgeDocumentDetail, KnowledgeDocumentListResponse, KnowledgeDocumentUploadRequest, KnowledgeMastery, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { ApiDefaults } from './ApiDefaults';
 import { FixtureDemoStateStore } from './FixtureDemoStateStore';
@@ -28,6 +28,13 @@ export class FixtureApiTransport {
   private static fixtureDocs: KnowledgeDocument[] = [];
   private static fixtureChunks: FixtureChunk[] = [];
   private static fixtureSeq: number = 0;
+
+  /**
+   * 文档详情单次回传的切片上限 —— 与后端 `app/agent/knowledge.py` 的
+   * `MAX_CHUNKS_PER_RESPONSE` **必须同值**：否则离线与在线两种模式的
+   * "是否截断"标注会对不上，同一份讲义在两种模式下显示不同，演示自相矛盾。
+   */
+  private static readonly MAX_CHUNKS_PER_RESPONSE: number = 50;
 
   /**
    * 去掉查询串再匹配路由。
@@ -106,6 +113,10 @@ export class FixtureApiTransport {
     if (method === 'DELETE' && route.indexOf('/api/v1/knowledge-bases/') === 0) {
       const kbId: string = FixtureApiTransport.segment(route, 4);
       return FixtureApiTransport.kbDelete(kbId) as ApiResult<T>;
+    }
+    if (method === 'GET' && route.indexOf('/api/v1/documents/') === 0) {
+      const documentId: string = FixtureApiTransport.segment(route, 3);
+      return FixtureApiTransport.kbDocumentDetail(documentId) as ApiResult<T>;
     }
     if (method === 'DELETE' && route.indexOf('/api/v1/documents/') === 0) {
       const documentId: string = FixtureApiTransport.segment(route, 3);
@@ -427,6 +438,51 @@ export class FixtureApiTransport {
     FixtureApiTransport.fixtureDocs = FixtureApiTransport.fixtureDocs.filter((doc: KnowledgeDocument) => doc.kbId !== kbId);
     FixtureApiTransport.fixtureChunks = FixtureApiTransport.fixtureChunks.filter((chunk: FixtureChunk) => chunk.kbId !== kbId);
     return apiSuccess<KnowledgeBase>(kb, 'fixture');
+  }
+
+  /**
+   * 文档详情（含正文）——`GET /api/v1/documents/{documentId}`。
+   *
+   * 离线切片本来就留在内存（`fixtureChunks`），这里**如实回传**，不编造正文；
+   * 截断上限与后端 `knowledge.MAX_CHUNKS_PER_RESPONSE` 保持一致，
+   * 超过同样标注 `chunksTruncated=true` —— 离线演示也不能静默截断。
+   */
+  private static kbDocumentDetail(documentId: string): ApiResult<KnowledgeDocumentDetail> {
+    let target: KnowledgeDocument | null = null;
+    for (let i: number = 0; i < FixtureApiTransport.fixtureDocs.length; i++) {
+      if (FixtureApiTransport.fixtureDocs[i].documentId === documentId) {
+        target = FixtureApiTransport.fixtureDocs[i];
+      }
+    }
+    if (target === null) {
+      return apiFailure('NOT_FOUND', '文档不存在。', false, 'fixture');
+    }
+    const all: KnowledgeDocumentChunk[] = [];
+    for (let i: number = 0; i < FixtureApiTransport.fixtureChunks.length; i++) {
+      const chunk: FixtureChunk = FixtureApiTransport.fixtureChunks[i];
+      if (chunk.documentId === documentId) {
+        all.push({
+          chunkId: chunk.chunkId,
+          index: all.length + 1,
+          headingPath: chunk.headingPath,
+          text: chunk.text,
+          knowledgePoints: chunk.headingPath.length > 0 ? [chunk.headingPath] : []
+        });
+      }
+    }
+    const total: number = all.length;
+    const returned: KnowledgeDocumentChunk[] = total > FixtureApiTransport.MAX_CHUNKS_PER_RESPONSE
+      ? all.slice(0, FixtureApiTransport.MAX_CHUNKS_PER_RESPONSE) : all;
+    const detail: KnowledgeDocumentDetail = {
+      documentId: target.documentId, kbId: target.kbId, userId: target.userId,
+      fileName: target.fileName, mimeType: target.mimeType, sizeBytes: target.sizeBytes,
+      status: target.status, statusMessage: target.statusMessage,
+      charCount: target.charCount, chunkCount: target.chunkCount,
+      knowledgePoints: target.knowledgePoints, errorPointCandidates: target.errorPointCandidates,
+      uploadedAt: target.uploadedAt, parsedAt: target.parsedAt,
+      chunks: returned, chunkTotal: total, chunksTruncated: total > returned.length
+    };
+    return apiSuccess<KnowledgeDocumentDetail>(detail, 'fixture');
   }
 
   private static kbDocumentDelete(documentId: string): ApiResult<KnowledgeDocument> {

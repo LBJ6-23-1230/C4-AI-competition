@@ -563,11 +563,24 @@ export class FileParserService {
     // 走到这里的一定是 `resolveDate` 规范化过的 `YYYY-MM-DD`，直接按本地时区算。
     const parts: string[] = dateStr.split('-');
     if (parts.length !== 3) return 30;
-    const target: number = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime();
+    const year: number = Number(parts[0]);
+    const month: number = Number(parts[1]);
+    const day: number = Number(parts[2]);
+    const target: number = new Date(year, month - 1, day).getTime();
     if (Number.isNaN(target)) return 30;
-    const now: number = new Date().getTime();
-    const diff: number = target - now;
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    // ⚠️ 按**自然日**相减，不能用 `Math.ceil(毫秒差 / 一天)`。
+    //
+    // 原写法与"当天几点导入"有关：`dueDate` 解析出来是当天 00:00，而 `now` 是当前时刻，
+    // 于是同一条"明天到期"的作业，22:00 导入毫秒差是 1.08 天 → ceil 得 2；
+    // 00:30 导入是 1.02 天 → ceil 也得 2；而 00:00 导入才是 1 —— 同一条作业、
+    // 同一个日期，导入时间不同结果就差一天。下游 `daysLeft <= 7` 的"紧急"判定
+    // 随之飘移，表现为「同一条作业有时算紧急、有时不算」。
+    // 两个日期都取各自当天 00:00 再相减，结果就与时分秒无关了。
+    const today: Date = new Date();
+    const todayStart: number = new Date(
+      today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const targetStart: number = new Date(year, month - 1, day).getTime();
+    return Math.max(0, Math.round((targetStart - todayStart) / (1000 * 60 * 60 * 24)));
   }
 
   /**

@@ -225,9 +225,26 @@ def get_exercise_set(set_id: str):
 		# 覆盖面从 6 个知识点扩到**任意**知识点。
 		# 判定依据是 `knowledge_point_id is None`（解析不出 = 题库里没有），
 		# 而不是"select 返回空" —— 后者在无过滤时会返回题库前 N 题，永远不为空。
-		if raw_point and knowledge_point_id is None and generate_requested:
+		generation_attempted = bool(raw_point and knowledge_point_id is None and generate_requested)
+		if generation_attempted:
 			exercises = _generate_and_store(raw_point, count)
 		if not exercises:
+			if generation_attempted:
+				# ⚠️ 已经为这个知识点尝试过现场出题、但一道都没拿到时，**绝不能回落**到
+				# `select_exercises(_EXERCISE_BANK, None, ...)`：不带知识点过滤的它
+				# 返回的是**题库前 N 题**（正是二叉树那几道），等于把**另一个知识点**
+				# 的题冒充成本次请求的题 —— 前端拿不到任何异常信号，用户看到的是
+				# "换了个知识点，题却没变"。实测反馈的
+				# 「第三次加载十几秒后依旧是第二次的题目和做题结果」就出在这条静默替换上
+				# （模型出题失败 / 校验不过 → 被悄悄换成默认题）。
+				# 如实返回空列表 + 明确标记，让前端提示"出题失败，请重试"，
+				# 而不是给一份答非所问的题。
+				return jsonify({
+					"setId": set_id,
+					"exercises": [],
+					"generationFailed": True,
+					"message": "针对该知识点现场出题失败，请重试。",
+				})
 			exercises = select_exercises(_EXERCISE_BANK, knowledge_point_id, difficulty, count, excluded_ids)
 	return jsonify({"setId": set_id, "exercises": exercises})
 
@@ -286,7 +303,17 @@ def submit_exercises(set_id: str):
 						  for a in answers if isinstance(a, dict)}
 		covered_points.discard("")
 		lead_point = sorted(covered_points)[0] if covered_points else "binary-tree-postorder"
-		old_mastery = 42
+		# 画像里**没有这个知识点**时起点分取 0（"还没有记录"是事实）。
+		#
+		# ⚠️ 原先这里是写死的 `old_mastery = 42` —— 而 42 是 demo-user 的演示基线值。
+		# 后果：一个"从零开始"的新账号（注册时不载入演示数据，画像 mastery 为空）
+		# 做完第一次练习，响应与**画像 history** 里都会出现一条凭空的
+		# "掌握度 42 → 58"，正是用户反馈的那种"虚假的感觉"
+		# （「创建一个新账号最好不直接给出已经写死的数据」）。
+		# demo-user 的主链不受影响：它画像里本来就有 binary-tree-postorder=42，
+		# 循环会读到真实值（实测见 tests/test_domain_models.py 的
+		# masteryUpdate == {binary-tree-postorder, 42, 58} 断言）。
+		old_mastery = 0
 		for mastery in profile_model.mastery:
 			if mastery.knowledge_point_id == lead_point:
 				old_mastery = mastery.mastery_score

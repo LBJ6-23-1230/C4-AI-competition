@@ -723,7 +723,7 @@
     "/api/v1/auth/register": {
       "post": {
         "summary": "注册账号（昵称 + 年级，无需密码）",
-        "description": "注册即下发 userId 与 token，并为新账号预置一份空画像与起始计划。演示身份 demo-user 无需注册。",
+        "description": "注册即下发 userId 与 token，并为新账号预置一份**空画像**（mastery 为空）。是否额外写入演示数据由请求体 `seedDemoData` 决定，默认 false；响应里的 `demoDataSeeded` 如实回填本次结果。演示身份 demo-user 无需注册。",
         "operationId": "authRegister",
         "requestBody": {
           "required": true,
@@ -3210,6 +3210,12 @@
             "minLength": 6,
             "maxLength": 72,
             "description": "可选。设置后该账号可用密码登录；服务端只保存 Werkzeug 生成的加盐哈希，明文不落库也不回传。未设置（例如走验证码建号）时，该账号的密码登录会被如实拒绝并提示改用验证码登录 —— 不会接受任意密码。"
+          },
+          "seedDemoData": {
+            "type": "boolean",
+            "nullable": true,
+            "default": false,
+            "description": "可选，建号时是否顺便写入演示数据（示例知识点「二叉树后序遍历」+ 30 分钟起始计划）。**默认 false**：新账号只建一份空画像（mastery 为空、不预置计划），画像与计划由用户自己的练习与智能体工作流产生 —— 避免把写死的数据当成用户自己的学习记录。省去该字段即等于 false；仅接受布尔 true（字符串 \"true\" 不生效）。"
           }
         }
       },
@@ -3300,6 +3306,11 @@
           "expiresAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "demoDataSeeded": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "仅**建号类**接口（register / login-or-register / verify-code / login-with-huawei）返回：本次是否真的写入了演示数据。true 才代表给这个新账号预置了示例知识点与起始计划；省略或 false 表示只建了空画像（登录已有账号的响应不带该字段）。"
           }
         }
       },
@@ -3839,6 +3850,12 @@
           "grade": {
             "type": "string",
             "nullable": true
+          },
+          "seedDemoData": {
+            "type": "boolean",
+            "nullable": true,
+            "default": false,
+            "description": "可选，仅在**首次用该华为账号自动建号**时生效：是否顺便写入演示数据。默认 false（只建空画像）。见 AuthRegisterRequest.seedDemoData。"
           }
         }
       },
@@ -3910,6 +3927,12 @@
             "type": "string",
             "nullable": true,
             "description": "仅首次自动注册时使用"
+          },
+          "seedDemoData": {
+            "type": "boolean",
+            "nullable": true,
+            "default": false,
+            "description": "可选，仅在**首次自动注册**时生效：是否顺便写入演示数据。默认 false（只建空画像）。见 AuthRegisterRequest.seedDemoData。"
           }
         }
       },

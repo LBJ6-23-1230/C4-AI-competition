@@ -77,6 +77,18 @@ export class AppState {
   public authSource: AuthSource = 'guest';
   /** 当前展示用的昵称（游客态为演示昵称）。 */
   public authNickname: string = ApiDefaults.DEMO_USER_NAME;
+  /**
+   * 登录 / 注册成功后要在首屏如实告知用户的一句话（没有则为空串）。
+   *
+   * 为什么需要它：注册页让用户选「载入演示数据」或「从零开始」，而登录成功是
+   * `router.replaceUrl` 直接跳走的 —— 那句说明在登录页上根本来不及被看到。
+   * 于是落到对话页由欢迎区呈现，否则用户永远不知道系统"知道"他什么、
+   * 更不知道画像里是空是满（用户实测反馈：「会让用户有一种虚假的感觉」）。
+   *
+   * 文案由 `AuthClient` 按**服务端事实**生成（见 `AuthClient.registerMessage`），
+   * 这里只负责传递，不在这里拼文案。
+   */
+  public loginNotice: string = '';
 
   /* ========== 对话持久化 ========== */
   public chatMessages: string = '';  // JSON 序列化的消息列表
@@ -141,8 +153,11 @@ export class AppState {
    *
    * `user` 允许为 null（防御式）：调用方若因异常拿到空用户，这里直接退化为体验身份，
    * 而不是把 null 写进 `currentUser` 引发后续一连串空指针。
+   *
+   * `notice` 可选：本次登录 / 注册要说给用户听的一句话（见 `loginNotice`）。
+   * 不传即清空 —— 冷启动恢复登录态时不该再重复弹上次注册的说明。
    */
-  public applyLogin(user: AuthUser | null, source: AuthSource): void {
+  public applyLogin(user: AuthUser | null, source: AuthSource, notice: string = ''): void {
     if (user === null) {
       this.applyLogout();
       return;
@@ -179,6 +194,9 @@ export class AppState {
     if (identityChanged) {
       this.resetAccountScopedState();
     }
+    // ⚠️ 必须放在 `resetAccountScopedState()` **之后**：那里面会把 loginNotice 清空
+    // （它也是账号维度的状态，不能串给下一个登录的人）。
+    this.loginNotice = notice;
   }
 
   /**
@@ -365,6 +383,22 @@ export class AppState {
 
   public getUrgentDDLs(): HomeworkDDL[] {
     return this.homeworkDDLs.filter((ddl: HomeworkDDL) => ddl.daysLeft <= 7);
+  }
+
+  /**
+   * **全部**待处理作业（= 导入进来的每一条，不做天数过滤）。
+   *
+   * 为什么要与 `getUrgentDDLs()` 分开：两者含义不同，此前却被混用了 ——
+   * 「我的」与账号页那块「待处理作业」统计用的是 `getUrgentDDLs().length`
+   * （只数 7 天内到期的）。于是用户导入 4 条、其中 1 条在 8 天以后，
+   * 界面只显示 3 条。实测反馈：「待处理作业明明上传了4个…这里只显示3个，
+   * 始终少一个，数字对不上」—— 不是算错，是**标签与口径不一致**。
+   *
+   * 现在的分工：文案说「待处理作业」用本方法（全量）；
+   * 文案说「紧急 / 临近」才用 `getUrgentDDLs()`（7 天内）。
+   */
+  public getPendingDDLs(): HomeworkDDL[] {
+    return this.homeworkDDLs;
   }
 
   public getDDLsByCourse(courseName: string): HomeworkDDL[] {
@@ -834,6 +868,9 @@ export class AppState {
     this.chatMessages = '';
     this.hasActiveChat = false;
     this.pendingChatPrompt = '';
+    // 登录提示语同理：它描述的是"上一个身份注册时发生了什么"，
+    // 换身份后继续显示等于对新用户说别人的事。
+    this.loginNotice = '';
     this.focusSessions = [];
     this.activeFocusTask = null;
     this.clearFocusResultDraft();

@@ -252,12 +252,17 @@ def upload_document(kb_id: str):
 
     if _repository:
         _repository.save(DOCS, document_id, record)
-        for chunk in parsed["chunks"]:
+        for index, chunk in enumerate(parsed["chunks"], 1):
             _repository.save(CHUNKS, chunk["chunkId"], {
                 "chunkId": chunk["chunkId"], "documentId": document_id, "kbId": kb_id,
                 "userId": user_id, "text": chunk["text"],
                 "headingPath": chunk["headingPath"],
                 "knowledgePoints": chunk["knowledgePoints"],
+                # 切片序号**显式落库**：`chunkId` 的摘要里虽然也含序号，
+                # 但摘要是单向的、取不回来，此前"按顺序读正文"只能依赖
+                # 仓库的写入顺序（隐式约定）。详情接口要按原文顺序回传正文，
+                # 所以把序号存成字段，让顺序可复核、不依赖存储实现。
+                "index": index,
             })
         # 刷新知识库汇总（文档数 / 切片数 / 知识点并集）
         all_docs = [d for d in _list(DOCS, user_id) if d.get("kbId") == kb_id]
@@ -280,6 +285,17 @@ def upload_document(kb_id: str):
 
 @knowledge_api.get("/api/v1/documents/<document_id>")
 def get_document(document_id: str):
+    """文档详情：文档记录 + **切片正文**。
+
+    为什么要带正文：用户反馈"上传讲义后只看得到大模型给出的大致属性（文件名、
+    字数、片段数、知识点），看不到具体内容"。根因是本接口原先只回 `documents`
+    集合里的记录，而正文只存在于 `chunks` 集合 —— 前端没有任何途径读到它。
+    检索测试之所以"看起来正常"，是因为它走 `/search`、那条路本来就会回正文。
+
+    归属校验沿用 `_get_owned` / `_list(..., user_id)`，不新写一套：
+    `documentId` 是全局唯一的（见 `upload_document` 的摘要算法），但"猜不到 id"
+    不等于"读不到"，切片仍按 `userId` 过滤后才回传，避免越权读到他人讲义正文。
+    """
     user_id, error = _resolve_user_id({"userId": request.args.get("userId")})
     if error is not None:
         return error
@@ -287,7 +303,37 @@ def get_document(document_id: str):
     if record is None:
         return jsonify({"errorCode": "NOT_FOUND", "message": "文档不存在",
                         "details": {"documentId": document_id}}), 404
-    return jsonify(record)
+
+    chunks = [chunk for chunk in _list(CHUNKS, user_id)
+              if chunk.get("documentId") == document_id]
+    # 正文必须按**原文顺序**回传，否则用户看到的讲义是乱的。
+    # 优先按上传时落库的 `index`；本次改动之前上传的老切片没有该字段，
+    # 此时键为 0，`list.sort` 稳定排序会保留它们原有的相对顺序 ——
+    # 而 `JsonRepository.list()` 是 `dict.values()`，天然保持写入顺序，
+    # 所以老文档的正文顺序同样正确（无需数据迁移）。
+    chunks.sort(key=lambda item: item["index"] if isinstance(item.get("index"), int) else 0)
+
+    total = len(chunks)
+    returned = chunks[:knowledge.MAX_CHUNKS_PER_RESPONSE]
+    return jsonify({
+        **record,
+        # 切片总数取自 chunks 集合的**实测值**，不直接用 record["chunkCount"]：
+        # 后者是解析当时的快照，若两边不一致，界面应当看到事实而不是旧快照。
+        "chunkTotal": total,
+        # 截断必须如实标注（不静默截断）：前端据此显示"仅显示前 N 段"，
+        # 而不是让用户误以为文档只有这么多内容。
+        "chunksTruncated": total > len(returned),
+        # `index` 取**排序后的位置**，而不是库里那个字段：本次改动之前上传的
+        # 老切片没有该字段（读出来是 0），直接用会让界面出现"第 0 段、第 0 段…"。
+        # 位置本身就是"正文第几段"，是接口能自证的事实。
+        "chunks": [{
+            "chunkId": chunk.get("chunkId", ""),
+            "index": position,
+            "headingPath": chunk.get("headingPath", ""),
+            "text": chunk.get("text", ""),
+            "knowledgePoints": chunk.get("knowledgePoints", []),
+        } for position, chunk in enumerate(returned, 1)],
+    })
 
 
 @knowledge_api.delete("/api/v1/documents/<document_id>")

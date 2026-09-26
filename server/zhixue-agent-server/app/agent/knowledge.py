@@ -32,6 +32,16 @@ MAX_DOCUMENTS_PER_KB = 50                 # 单库文档数上限
 MAX_CHUNK_CHARS = 800                     # 单片最大字符数
 CHUNK_OVERLAP_CHARS = 80                  # 相邻片重叠，避免答案被切断
 MAX_CHUNKS_PER_DOC = 400                  # 防止超大文件把仓库撑爆
+# 文档详情**单次回传**的切片条数上限。
+#
+# 为什么需要它：详情接口现在要把切片正文一并回传（用户要看"具体内容"），
+# 而 `MAX_CHUNKS_PER_DOC` 允许单文档 400 片、单片 800 字 —— 全量回传
+# 单次响应能到几百 KB，手机端解析 JSON 会明显卡顿。
+# 但**不能静默截断**：只回前 N 片、却让界面看起来"文档就这么多内容"
+# 是欺骗性展示。因此接口同时回传 `chunkTotal` 与 `chunksTruncated`，
+# 由前端如实标注"仅显示前 N 段"。
+MAX_CHUNKS_PER_RESPONSE = 50
+
 MAX_KB_NAME_CHARS = 60
 MAX_QUERY_CHARS = 200
 

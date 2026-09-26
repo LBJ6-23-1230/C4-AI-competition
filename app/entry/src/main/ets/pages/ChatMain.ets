@@ -36,7 +36,12 @@ const INTENT_CHIPS: IntentChip[] = [
   { intent: 'analyze_weakness', label: '学情画像', prompt: '帮我看看我的薄弱知识点' },
   { intent: 'match_partner', label: '学习搭子', prompt: '帮我匹配一个学习搭子' },
   { intent: 'query_tasks', label: '今日任务', prompt: '今天有哪些任务要交？' },
-  { intent: 'update_profile', label: '学习画像', prompt: '我掌握了二叉树遍历，帮我更新画像' },
+  // ⚠️ 标签必须体现"改"这个动作，不能只叫「学习画像」。
+  // 实测反馈：「学习画像和学情画像有什么区别？点开之后跳转的界面是一样的」
+  // —— 两个 chip 一个叫「学情画像」一个叫「学习画像」，名字几乎同义、
+  // 又都落到同一个页面，用户无法分辨。它们的**动作**其实是不同的：
+  // 学情画像 = **看**掌握度；这一个 = **改**画像（说出你掌握了什么，系统再去核对）。
+  { intent: 'update_profile', label: '更新学习画像', prompt: '我要更新学习画像：我的学习目标或掌握情况有变化' },
 ];
 
 @Entry
@@ -56,6 +61,14 @@ struct ChatMain {
   @State workflowMessage: string = '';
   @State isListening: boolean = false;
   @State voiceMessage: string = '';
+  /**
+   * 注册 / 建号成功后要如实告知用户的那句话（没有则为空串）。
+   *
+   * 登录页跳转是 `router.replaceUrl`，注册结果说明留在那边没人看得到；
+   * 所以由 `appState.loginNotice` 带过来，落在首屏欢迎区 ——
+   * 用户得知道自己这次建号到底"带了什么数据进来"。
+   */
+  @State welcomeNotice: string = '';
   private messageScroller: Scroller = new Scroller();
   private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
   private workflowRequestVersion: number = 0;
@@ -64,6 +77,10 @@ struct ChatMain {
 
   aboutToAppear(): void {
     this.isPageActive = true;
+    // 与 `pendingChatPrompt` 同一套取值方式：直接读 appState 的当前值。
+    // **取完不清空** —— 用户在几个标签页之间来回切时，这句说明应当还在。
+    // 它只在换身份（登录 / 退出）时由 `AppState.resetAccountScopedState()` 清掉。
+    this.welcomeNotice = appState.loginNotice;
     // 恢复之前的对话；**没有历史时保持为空**，由 WelcomeBlock 呈现"纯对话界面"。
     //
     // ⚠️ 修正来源：原实现在无历史时种入一条 WELCOME_MESSAGE 气泡，
@@ -348,6 +365,15 @@ struct ChatMain {
    *
    * 参考设计的首屏是「大号问候 + 一句话说明产品做什么 + 输入框」，
    * 这套结构比一上来就弹一排功能按钮更清楚：先让人知道**能对它说什么**。
+   *
+   * ⚠️ 第二段文案**刻意只说能力、不断言已知**。
+   *
+   * 原文案是「我**已经读取**你的课程、考试倒计时与错题记录」——
+   * 而事实是：课程 / DDL 必须由用户自己导入（见 `appState.courses` 的默认值注释
+   * 「演示课程只能由显式'恢复演示数据'动作加载」），错题也要用户自己上传或做过练习才有。
+   * 于是刚注册的账号一进门就被系统告知"我读过你的记录了"，
+   * 正是用户反馈的「会给用户一种虚假的感觉」。
+   * 改成"可以读取你上传的…"既保住了"能对它说什么"的引导作用，又不撒谎。
    */
   @Builder
   private WelcomeBlock() {
@@ -360,7 +386,16 @@ struct ChatMain {
       Text('从今天最该做的一件事开始。')
         .fontSize(26).fontWeight(FontWeight.Bold).fontColor('#0F172A').width('100%')
       Divider().color('#CBD5E1').width(160).margin({ top: 6, bottom: 2 })
-      Text('我已经读取你的课程、考试倒计时与错题记录。你可以直接说想做什么，')
+      // 注册 / 建号结果说明：由后端事实生成（见 AuthClient.registerMessage），
+      // 在登录页上来不及展示，落到这里才算"用户真的被告知了"。
+      if (this.welcomeNotice.length > 0) {
+        Text(this.welcomeNotice)
+          .fontSize(12).lineHeight(19).width('100%')
+          .fontColor('#334155')
+          .padding(12).backgroundColor('#EFF6FF').borderRadius(10)
+          .border({ width: 1, color: '#BFDBFE' })
+      }
+      Text('我可以读取你上传的课程、考试倒计时与错题记录。你可以直接说想做什么，')
         .fontSize(13).fontColor('#64748B').lineHeight(20).width('100%')
       Text('也可以点下面的能力，或去「智能体」页看看我全部会做的事。')
         .fontSize(13).fontColor('#64748B').lineHeight(20).width('100%')

@@ -25,8 +25,18 @@ def _phone() -> str:
 
 
 def _register(client, nickname: str) -> dict:
+    """注册一个测试账号（**显式载入演示数据**）。
+
+    本文件的用例测的是"登录后读到的是**自己**的数据、且不串号"，
+    需要每个账号都有自己的起始计划与画像（`plan-<userId>`）才成立，
+    所以这里显式 `seedDemoData: true`。
+
+    接口默认值已经改为 `False`（新账号默认空画像、不预置计划），
+    见 `tests/test_auth.py::test_register_defaults_to_empty_profile`。
+    """
     body = client.post("/api/v1/auth/register",
-                       json={"nickname": nickname, "phone": _phone()},
+                       json={"nickname": nickname, "phone": _phone(),
+                             "seedDemoData": True},
                        headers=H).get_json()
     return {"userId": body["user"]["userId"], "token": body["token"],
             "headers": dict(H, Authorization=f"Bearer {body['token']}")}
@@ -117,10 +127,19 @@ def test_cannot_impersonate_via_request_body(tmp_path):
 
     assert result["userId"] == alice["userId"], "不能借自己的 token 写别人的数据"
 
-    # demo-user 的掌握度不能被污染
+    # demo-user 的掌握度不能被污染。
+    #
+    # ⚠️ 期望值是一份**完整清单**，不要图省事改成 `42 in scores` ——
+    # 只有列全，"多出 / 少掉某个知识点"这类污染才仍然会被抓到。
+    #
+    # 2026-09-26：演示基线由 **1 个知识点扩到 5 个**。原因是知识画像页的雷达图
+    # 要求至少 3 个维度才成形（前端 `StudyTags.ets` 的 `mastery.length >= 3`），
+    # 只有二叉树一条时永远画不出来 —— 用户反馈「之前初赛版本在学情画像内
+    # 有雷达图的，现在始终没有触发」的根因就在这里。新增的 4 个知识点分数
+    # **都高于 42**，所以「最薄弱 = 二叉树后序遍历」与 42→58 的演示主线不变。
     demo = client.get("/api/v1/profile/demo-user", headers=H).get_json()
     scores = [m["masteryScore"] for m in demo.get("mastery", [])]
-    assert scores == [42], f"demo-user 被污染了：{scores}"
+    assert scores == [42, 55, 63, 68, 74], f"demo-user 被污染了：{scores}"
 
 
 def test_cannot_impersonate_via_workflow(tmp_path):
@@ -150,7 +169,9 @@ def test_guest_still_gets_demo_user(tmp_path):
     profile = client.get("/api/v1/profile/demo-user", headers=H).get_json()
     plan = client.get("/api/v1/plans/current", headers=H).get_json()
 
-    assert [m["masteryScore"] for m in profile["mastery"]] == [42]
+    # 与 `test_cannot_impersonate_via_request_body` 里那份清单同源：
+    # 演示基线自 2026-09-26 起是 5 个知识点（雷达图至少要 3 个维度才成形）。
+    assert [m["masteryScore"] for m in profile["mastery"]] == [42, 55, 63, 68, 74]
     assert profile["profileVersion"] == 1
     assert plan["version"] == 1
     assert [t["durationMinutes"] for t in plan["tasks"]] == [30, 30]

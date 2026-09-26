@@ -547,8 +547,13 @@ def send_verification_code(repository: Repository, phone: Any,
 
 def verify_verification_code(repository: Repository, phone: Any, code: Any,
                              nickname: Any = None, grade: Any = None,
-                             *, now: datetime | None = None) -> dict[str, Any]:
-    """校验验证码；通过后自动登录已有账号，或注册新账号。"""
+                             *, now: datetime | None = None,
+                             with_demo_data: bool = False) -> dict[str, Any]:
+    """校验验证码；通过后自动登录已有账号，或注册新账号。
+
+    `with_demo_data` 只在**本次真的建了新号**时起作用（见
+    `provision_starter_profile`）；对已有账号的登录没有影响。
+    """
     clean_phone = normalize_phone(phone)
     if not isinstance(code, str) or not re.fullmatch(r"\d{6}", code.strip()):
         raise AuthError("VALIDATION_ERROR", "验证码必须是 6 位数字", 400)
@@ -626,9 +631,10 @@ def verify_verification_code(repository: Repository, phone: Any, code: Any,
             return {**result, "created": False}
 
         result = register_user(repository, clean_nickname, clean_grade, clean_phone)
-        provision_starter_profile(
-            repository, result["user"]["userId"], result["user"]["nickname"])
-        return {**result, "created": True}
+        seeded = provision_starter_profile(
+            repository, result["user"]["userId"], result["user"]["nickname"],
+            with_demo_data=with_demo_data)
+        return {**result, "created": True, "demoDataSeeded": seeded}
 
 
 def register_user(repository: Repository, nickname: Any, grade: Any = None,
@@ -802,22 +808,56 @@ def deactivate_user(repository: Repository, user_id: str) -> bool:
 
 
 # --------------------------------------------------------------------------- 新用户画像预置
-def provision_starter_profile(repository: Repository, user_id: str, nickname: str) -> None:
-    """给新账号预置一份空画像与起始计划。
+def provision_starter_profile(repository: Repository, user_id: str, nickname: str,
+                              with_demo_data: bool = False) -> bool:
+    """给新账号预置画像；**是否连演示数据一起写入由调用方决定**。
 
-    为什么需要：`/api/v1/profile/{userId}` 在画像不存在时返回 404（契约如此），
+    为什么需要预置：`/api/v1/profile/{userId}` 在画像不存在时返回 404（契约如此），
     而新账号没有任何学习证据。若不预置，登录后首页会立刻报「画像不存在」。
-    这里给一份 mastery=0 的空壳，让「学习 → 判分 → 掌握度提升」的完整叙事
+    这里给一份空壳，让「学习 → 判分 → 掌握度提升」的完整叙事
     对真实账号同样成立——**这正是登录功能的价值所在**。
 
-    注意：**只有新注册的真实账号**会走这里；`demo-user` 的演示基线
-    （mastery=42 / Plan V1 [30,30]）由 `app/api/demo.py` 单独维护，两者互不干扰。
+    `with_demo_data` 的默认值是 `False`，这是刻意的
+    ------------------------------------------------
+    原实现对**每个**新账号都写死「二叉树后序遍历 + 30 分钟计划」，用户实测反馈：
+    「创建一个新账号最好不直接给出已经写死的数据……否则会给用户一种虚假的感觉，
+    用户登录应该做到的事自己上传然后进行一系列的智能体操作。」
+
+    所以现在：
+
+    * `with_demo_data=False`（默认）→ 只建**空画像**（`mastery=[]`、`freeTimeSlots=[]`），
+      **不建任何计划**。画像与计划都由用户自己的练习/工作流产生
+      （`POST /api/v1/workflows` 在"没有计划"时会先跑 planner 步骤，见
+      `app/api/workflows.py::_next_step`，所以从零开始的账号依然走得通完整闭环）。
+    * `with_demo_data=True` → 保持原行为（写死二叉树知识点 + 起始计划），
+      给"我就想快速看看完整闭环"的用户用。
+
+    为什么空画像也要建：不建的话前端首页会立刻 404；建了空壳则
+    `mastery=[]` 是**如实**的（"还不知道你会什么"），不是编出来的数字。
+
+    关于 `goal`：`LearnerProfile` 的领域约束要求 `goal` 非空
+    （`app/domain/profile.py::__post_init__` 会抛 `ValueError`），
+    所以这里仍然填 `{昵称}的学习目标`。它与 mastery / plan 的区别是：它只是一个
+    **用用户自己的昵称拼出来的标题**，没有对"用户会什么、该学什么"做任何断言，
+    因此不会造成上面那种"虚假感"；`freeTimeSlots` / `mastery` 才是会对下游
+    （画像页、对话上下文、计划）产生断言的数据，所以从零开始时不写死。
+
+    返回：**本次是否真的写入了演示数据**。调用方据此在响应里回 `demoDataSeeded`，
+    让前端能如实告诉用户这次到底载没载演示数据（已存在的画像不会被覆盖，返回 False）。
+
+    注意：`demo-user` 的演示基线（mastery=42 / Plan V1 [30,30]）由
+    `app/api/demo.py` 单独维护，本函数与它互不干扰。
     """
     if repository.get("profiles", user_id) is not None:
-        return
+        return False
 
     from app.domain.plan import LearningPlan
     from app.domain.profile import KnowledgeMastery, LearnerProfile
+
+    if not with_demo_data:
+        profile = LearnerProfile(user_id, f"{nickname}的学习目标", None, [], 1, [])
+        repository.save("profiles", user_id, profile.to_dict())
+        return False
 
     timestamp = _now()
     profile = LearnerProfile(
@@ -841,6 +881,7 @@ def provision_starter_profile(repository: Repository, user_id: str, nickname: st
         user_id,
     )
     repository.save("plans", plan.plan_id, plan.to_dict())
+    return True
 
 
 # --------------------------------------------------------------------------- 供中间件使用

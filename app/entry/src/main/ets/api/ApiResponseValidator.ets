@@ -89,6 +89,30 @@ export class ApiResponseValidator {
         ApiResponseValidator.hasArray(data, 'candidates') &&
         ApiResponseValidator.hasBoolean(data, 'realModeUnavailable');
     }
+    // ---- 学习搭子邀请：真正跨账号的「发起 → 收到 → 接受 / 不接受 / 无视」----
+    //
+    // ⚠️ 与下面知识库那组分支同理：凡是 `AgentApiClient` 会发出的 (method, path)，
+    // 这里必须有分支，否则**合法响应也会落到末尾的 `return false`** 被判
+    // INVALID_RESPONSE —— 用户看到的是"邀请发不出去 / 收件箱打不开"，
+    // 而后端日志里明明是一条 200。这正是
+    // `tools/check_frontend_validator_coverage.py` 守的那条不变量。
+    if (method === 'POST' && route === '/api/v1/agent/partner-invitations') {
+      return ApiResponseValidator.isRecordField(data, 'invitation');
+    }
+    if (method === 'GET' && route === '/api/v1/agent/partner-invitations') {
+      return ApiResponseValidator.hasString(data, 'box') &&
+        ApiResponseValidator.hasString(data, 'userId') &&
+        ApiResponseValidator.hasArray(data, 'invitations') &&
+        ApiResponseValidator.hasNumber(data, 'pendingCount');
+    }
+    if (method === 'POST' && route.indexOf('/api/v1/agent/partner-invitations/') === 0) {
+      // accept / decline / dismiss 三条都回 `{ invitation: {...} }`。
+      return ApiResponseValidator.isRecordField(data, 'invitation');
+    }
+    if (method === 'GET' && route === '/api/v1/agent/partner-contacts') {
+      return ApiResponseValidator.hasString(data, 'userId') &&
+        ApiResponseValidator.hasArray(data, 'contacts');
+    }
     if (method === 'POST' && route === '/api/v1/agent/proactive') {
       return ApiResponseValidator.hasBoolean(data, 'shouldNotify') &&
         ApiResponseValidator.hasString(data, 'channel') &&
@@ -127,6 +151,23 @@ export class ApiResponseValidator {
       return ApiResponseValidator.hasString(data, 'documentId') &&
         ApiResponseValidator.hasString(data, 'status') &&
         ApiResponseValidator.hasString(data, 'fileName');
+    }
+    // 文档详情（GET /api/v1/documents/{documentId}）。
+    //
+    // ⚠️ 这条分支必须存在，否则 `AgentApiClient.getKnowledgeDocument()` 发出的
+    // 请求即便返回完全合法的响应，也会落到末尾的 `return false` 被判
+    // INVALID_RESPONSE —— 表现为"点开文档就报『数据结构与 api-contract-v0.3
+    // 不一致』"，即"看不了正文"。这正是 `tools/check_frontend_validator_coverage.py`
+    // 守的那条不变量：**凡是 request() 会发出的 (method, path)，这里必须有分支**。
+    //
+    // 校验到 `chunks` / `chunkTotal` / `chunksTruncated` 一层：它们是"正文是否
+    // 完整"的诚实标注，缺了就没法如实展示，因此与 documentId / fileName 一样按必需项校验。
+    if (method === 'GET' && route.indexOf('/api/v1/documents/') === 0) {
+      return ApiResponseValidator.hasString(data, 'documentId') &&
+        ApiResponseValidator.hasString(data, 'fileName') &&
+        ApiResponseValidator.hasArray(data, 'chunks') &&
+        ApiResponseValidator.hasNumber(data, 'chunkTotal') &&
+        ApiResponseValidator.hasBoolean(data, 'chunksTruncated');
     }
     if (method === 'DELETE' && route.indexOf('/api/v1/documents/') === 0) {
       return ApiResponseValidator.hasString(data, 'status');

@@ -11,7 +11,14 @@ from app.api.exercises import exercises_api
 from app.api.experiments import experiments_api
 from app.api.knowledge import configure_knowledge_repository, knowledge_api
 from app.api.plans import plans_api
-from app.api.partner_match import partner_match_api
+from app.api.partner_match import (
+    configure_partner_match_repository,
+    partner_match_api,
+)
+from app.api.partner_invite import (
+    configure_partner_invite_repository,
+    partner_invite_api,
+)
 from app.api.profile import profile_api
 from app.api.proactive import proactive_api
 from app.api.traces import traces_api
@@ -84,6 +91,31 @@ def _build_repository(path: Path):
     return JsonRepository(path)
 
 
+def _report_repository_state(path: Path, repository) -> None:
+    """启动时把「账号库在哪个文件、里面有多少账号」打到控制台。
+
+    为什么需要：`data/repository.json` 是**运行期状态** —— 它既在 `.gitignore` 里
+    （第 23 行），也在交付打包的排除表里（`tools/build_submission_zip.py` 的
+    `EXCLUDE_NAMES`）。也就是说：**换一份新检出的工程、或重新解压一次交付包，
+    之前注册的账号就是不在的**，只能重新注册。
+
+    这本身是有意为之（免得几十个联调测试账号被打进交付物），但现场完全看不出线索 ——
+    实测反馈「把 DevEco Studio 和模拟器全部关掉再打开项目就要重新注册了」，
+    排查时只能靠猜。把路径与账号数直接打在启动输出里，这种情况一眼可判：
+    账号数是 0 就说明换库了；账号数不为 0 而 App 仍要重新登录，那就是
+    模拟器侧的 preferences 被冷启动清掉了，方向完全不同。
+    """
+    try:
+        users = repository.ids("users")
+        sessions = repository.ids("sessions")
+    except Exception as error:  # noqa: BLE001 - 诊断信息绝不影响启动
+        print(f"  [数据] 无法读取账号库统计: {error}")
+        return
+    print(f"  [数据] 账号库   : {path}")
+    print(f"  [数据] 已存账号 : {len(users)} 个 · 会话 {len(sessions)} 个"
+          + ("   ← 空库：之前注册的账号不在这个文件里" if not users else ""))
+
+
 def create_app(repository_path: str | Path | None = None) -> Flask:
     app = Flask(__name__)
     _origins = _cors_origins()
@@ -101,6 +133,8 @@ def create_app(repository_path: str | Path | None = None) -> Flask:
     path = Path(repository_path) if repository_path else Path(__file__).resolve().parents[1] / "data" / "repository.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     repository = _build_repository(path)
+    if not os.getenv("ZHIXUE_QUIET"):
+        _report_repository_state(path, repository)
     configure_demo_repository(repository)
     ensure_demo_data()
     configure_workflows_repository(repository)
@@ -109,12 +143,19 @@ def create_app(repository_path: str | Path | None = None) -> Flask:
     # 对话层的画像落盘钩子：让"更新档案"意图真的写进 profiles
     # （此前 chat 层没有仓储，导致"已帮你更新信息"是无据可依的假成功）。
     configure_chat_repository(repository)
+    # 搭子邀请：真正跨账号的"发起 → 收到 → 接受 / 不接受 / 无视"。
+    # 原先后端没有任何邀请实体，前端那个按钮只写本机内存（见 partner_invite.py 的模块文档）。
+    configure_partner_invite_repository(repository)
+    # 匹配接口需要读 `users` / `profiles` 才能把**真实账号**并进候选人列表 ——
+    # 不注入的话候选人只剩 mock 的小红/小刚，两个真实用户永远匹配不到彼此。
+    configure_partner_match_repository(repository)
     app.register_blueprint(demo_api)
     app.register_blueprint(auth_api)
     app.register_blueprint(chat_api)
     app.register_blueprint(profile_api)
     app.register_blueprint(plans_api)
     app.register_blueprint(partner_match_api)
+    app.register_blueprint(partner_invite_api)
     app.register_blueprint(exercises_api)
     app.register_blueprint(experiments_api)
     app.register_blueprint(traces_api)

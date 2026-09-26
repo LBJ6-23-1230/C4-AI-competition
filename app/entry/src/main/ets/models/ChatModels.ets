@@ -2,7 +2,13 @@ export type ChatRole = 'user' | 'agent';
 export type ChatStatus = 'sending' | 'done' | 'error';
 export type ChatIntent = 'query_tasks' | 'analyze_weakness' | 'get_suggestion'
   | 'match_partner' | 'analyze_wrong' | 'update_profile' | 'free_chat' | 'unknown';
-export type ChatCardType = 'suggestion' | 'weakness' | 'partner' | 'tasks' | 'wrong';
+// `profile` 与 `weakness` 是**两个**类型，虽然它们都落到 `pages/StudyTags`：
+//   · `weakness` = 「学情画像」——**看**掌握度与薄弱点；
+//   · `profile`  = 「更新学习画像」——**改**画像之后回看结果。
+// 原先二者共用 `weakness`，导致卡片标题/按钮文案被 `getActionLabel` 按同一个
+// 类型映射成完全一样的字，用户实测反馈「学习画像和学情画像…点开之后跳转的界面
+// 是一样的」，从卡片上根本分不出刚才是看还是改。类型分开才能各说各的话。
+export type ChatCardType = 'suggestion' | 'weakness' | 'profile' | 'partner' | 'tasks' | 'wrong';
 
 export interface ChatCard {
   type: ChatCardType;

@@ -36,6 +36,26 @@ export interface AuthRegisterRequest {
    * 到运行时才以 400 暴露 —— `AuthClient.register()` 就曾因此成为休眠炸弹。
    */
   phone: string;
+  /**
+   * 建号时是否顺便写入**演示数据**（二叉树等示例知识点 + 起始计划）。
+   * 见 `AuthSeedDemoDataField`。省略 = false = 只建空画像。
+   */
+  seedDemoData?: boolean;
+}
+
+/**
+ * 建号类接口的公共可选字段：**要不要载入演示数据**。
+ *
+ * 后端默认 `false` —— 新账号只建空画像（`mastery=[]`、无计划），
+ * 由用户自己的练习 / 工作流把画像和计划建起来；这正是用户反馈要的
+ * 「不要把已经写死的数据直接给新账号，否则会有虚假的感觉」。
+ * 想快速看完整闭环的用户由注册页的勾选框显式打开。
+ *
+ * 声明成可选（而不是必填）是有意的：老版本客户端不会带这个字段，
+ * 省略即等于"不载入"，行为与后端默认值一致。
+ */
+export interface AuthSeedDemoDataField {
+  seedDemoData?: boolean;
 }
 
 /**
@@ -45,7 +65,7 @@ export interface AuthRegisterRequest {
  * 服务端**不校验 OpenID 的真伪**（那需要调用华为的服务端接口验签），
  * 因此这条链路在当前版本是"演示可用、生产需补验签"，见 `docs/13`。
  */
-export interface AuthHuaweiLoginRequest {
+export interface AuthHuaweiLoginRequest extends AuthSeedDemoDataField {
   openId: string;
   unionId?: string;
   nickname?: string;
@@ -104,7 +124,7 @@ export interface AuthSendCodeResponse {
  *
  * `nickname` / `grade` **仅在首次自动注册时**使用；手机号已存在时被忽略。
  */
-export interface AuthVerifyCodeRequest {
+export interface AuthVerifyCodeRequest extends AuthSeedDemoDataField {
   phone: string;
   /** 6 位数字验证码，一次性使用。 */
   code: string;
@@ -130,7 +150,7 @@ export const VERIFICATION_CODE_MESSAGES: Record<string, string> = {
  * 这是登录页主按钮应当调用的接口：昵称已存在就登录、不存在才建号，
  * 从而避免"用同一个昵称再点一次又建一个新账号"（此前实测会得到两个 userId）。
  */
-export interface AuthLoginOrRegisterRequest {
+export interface AuthLoginOrRegisterRequest extends AuthSeedDemoDataField {
   nickname: string;
   password?: string;
   grade?: string;
@@ -146,6 +166,15 @@ export interface AuthSessionResponse {
   user: AuthUser;
   token: string;
   expiresAt: string;
+  /**
+   * **本次建号是否真的写入了演示数据**（仅建号类接口返回，登录响应没有这个键）。
+   *
+   * 为什么要有这个字段：注册页给了"载入演示数据 / 从零开始"的勾选框，
+   * 界面必须按**服务端的事实**说话 —— 勾了但账号已存在（本次只是登录）、
+   * 或画像早就建好了，都不该提示"已载入演示数据"。
+   * 省略时一律按 false 处理，不要默认成 true。
+   */
+  demoDataSeeded?: boolean;
 }
 
 export interface AuthUserResponse {

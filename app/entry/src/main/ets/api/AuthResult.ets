@@ -36,4 +36,19 @@ export interface AuthResult {
    * 这是后端专门设计的诚实标注字段，前端必须如实呈现。
    */
   smsDelivered?: boolean;
+  /**
+   * 本次是否**新建了账号**（仅建号类接口会填：register / login-or-register /
+   * verify-code / login-with-huawei）。登录已有账号时为 false。
+   *
+   * 用途：登录页据此决定要不要把 `message` 当作"注册结果说明"展示给用户 ——
+   * "欢迎回来"这类登录寒暄不该占一个提示位。
+   */
+  createdAccount?: boolean;
+  /**
+   * 本次建号是否**真的写入了演示数据**（服务端 `demoDataSeeded` 原样透传）。
+   *
+   * ⚠️ 只有 `true` 才代表"这次给你载入了二叉树等示例数据"。省略 / false 一律
+   * 按"没有演示数据"呈现 —— 界面绝不能凭用户的勾选状态去猜服务端做了什么。
+   */
+  demoDataSeeded?: boolean;
 }

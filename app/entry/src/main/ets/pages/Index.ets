@@ -951,7 +951,9 @@ struct Index {
               Row({ space: 10 }) {
                 this.StatCard(`${appState.getFocusSummary().streakDays}`, '连续学习天数')
                 this.StatCard(`${Math.round(appState.getFocusSummary().completionRate)}%`, '专注完成率')
-                this.StatCard(`${appState.getUrgentDDLs().length}`, '待处理作业')
+                // 同 Account 页：这里是**全部**待处理作业。用只数 7 天内的
+                // getUrgentDDLs() 会让"导入 N 条却显示 N-1 条"（实测反馈的数字对不上）。
+                this.StatCard(`${appState.getPendingDDLs().length}`, '待处理作业')
               }.width('100%')
 
               this.PanelRow('◰', '学习复盘', '汇总任务、知识点与下一步建议', 'pages/ReviewSummary')

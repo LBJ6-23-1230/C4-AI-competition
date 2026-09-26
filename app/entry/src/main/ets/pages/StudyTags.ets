@@ -260,6 +260,13 @@ struct StudyTags {
                   .border({ width: 1, color: '#FDE68A' }).borderRadius(12)
               }
 
+              // 实测反馈：「学习画像和学情画像有什么区别？点开之后跳转的界面是一样的」。
+              // 它们确实是**同一页** —— 数据只有一份，差别只在"看"还是"改"。
+              // 与其让用户猜，不如在页面上直接讲清楚。
+              Text('本页同时是「学情画像」与「学习画像」：前者在对话里用来查看掌握度；'
+                + '后者在你更新学习档案（目标 / 掌握情况）之后回到这里核对结果。两者读的是同一份数据。')
+                .fontSize(11).fontColor('#98A2B3').lineHeight(17).width('100%')
+
               Column({ space: 8 }) {
                 Text('当前学习目标').fontSize(13).fontColor('#64748B')
                 Text(this.goal.length > 0 ? this.goal : '尚未建立学习目标')
@@ -287,7 +294,14 @@ struct StudyTags {
                 } else {
                   Column({ space: 10 }) {
                     Text('当前掌握度').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#111827')
-                    Text('当前只有少量知识点，使用进度卡展示会比雷达图更清晰。')
+                    // 雷达图**不是没触发，而是维度不够**：至少要三个轴才成形，
+                    // 两个点连起来只是一条线。实测反馈「之前初赛版本在学情画像内有
+                    // 雷达图的，现在始终没有触发」—— 根因在这里（以及演示画像里
+                    // 原先只预置了 1 个知识点，见 server 的 `app/api/demo.py`）。
+                    // 与其让用户以为坏了，不如说清触发条件与达成路径。
+                    Text(`雷达图需要至少 3 个知识点才成形（当前 ${this.mastery.length} 个），`
+                      + '所以先用进度卡展示。做几轮其他知识点的专项练习、掌握度积累到 3 个以上后，'
+                      + '这里会自动切换成雷达图。')
                       .fontSize(13).fontColor('#6B7280')
                     ForEach(this.mastery, (item: KnowledgeMastery) => {
                       Column({ space: 8 }) {

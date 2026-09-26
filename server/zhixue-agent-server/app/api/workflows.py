@@ -170,7 +170,23 @@ def _workflow_state(workflow: dict) -> dict:
 	state["goal"] = workflow["goal"]
 	if profile is not None:
 		state["profile"] = profile
-		state["oldMastery"] = profile.get("mastery", [{}])[0].get("masteryScore", 42)
+		# ⚠️ 取画像**第一条**掌握度作为本次的起点分。必须显式判空：
+		#
+		# 原实现是 `profile.get("mastery", [{}])[0].get("masteryScore", 42)` ——
+		# `get` 的默认值只在**键缺失**时生效，而"从零开始"的新账号（见
+		# `app/auth/service.py::provision_starter_profile`）画像里 `mastery` 是
+		# **存在的空列表** → `[][0]` 抛 IndexError → 整条工作流 500。
+		# 实测：注册时不载入演示数据的账号，创建/推进工作流直接 500。
+		#
+		# 空画像时的起点分取 0（"还没有任何掌握度记录"是事实），
+		# 不沿用 42 —— 42 是 demo-user 的演示基线值，写进真实账号的
+		# 判分起点会凭空造出一条"42 → xx"的掌握度历史。
+		# demo-user 不受影响：它画像里第一条就是 binary-tree-postorder=42。
+		mastery_rows = profile.get("mastery")
+		first_row = (mastery_rows[0] if isinstance(mastery_rows, list) and mastery_rows
+			else None)
+		state["oldMastery"] = (first_row.get("masteryScore", 42)
+			if isinstance(first_row, dict) else 0)
 	if plan is not None:
 		state["plan"] = plan
 	state.setdefault("knowledgePoints", [{"knowledgePointId": "binary-tree-postorder",

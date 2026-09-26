@@ -51,6 +51,37 @@ export interface KnowledgeDocument {
 }
 
 /**
+ * 文档详情里的一个原文切片。
+ *
+ * 与 `KnowledgeChunkHit` 的区别：那个是**检索命中**（带 score、按相关度排序），
+ * 这个是**原文顺序**的正文（带 index），用于"查看文件具体内容"。
+ */
+export interface KnowledgeDocumentChunk {
+  chunkId: string;
+  /** 原文顺序序号（从 1 开始，即"正文第几段"，由后端按顺序编好）。 */
+  index: number;
+  /** 引用来源（如「第3章 树与二叉树 > 3.2.3 后序遍历」）；无标题层级时为空串。 */
+  headingPath?: string;
+  text: string;
+  knowledgePoints?: string[];
+}
+
+/**
+ * 文档详情响应：`KnowledgeDocument` + 切片正文。
+ *
+ * `chunkTotal` / `chunksTruncated` 是后端**诚实标注**的字段：
+ * 切片很多时只回传前 N 片（`MAX_CHUNKS_PER_RESPONSE`），是否被截断由后端说明，
+ * 前端照实显示"仅显示前 N 段"，**不要自己用 chunks.length 去推断**。
+ * 这三个字段为必需项，`ApiResponseValidator` 会一并校验。
+ */
+export interface KnowledgeDocumentDetail extends KnowledgeDocument {
+  chunks: KnowledgeDocumentChunk[];
+  /** 该文档实际拥有的切片总数（来自 chunks 集合，不是解析时的快照）。 */
+  chunkTotal: number;
+  chunksTruncated: boolean;
+}
+
+/**
  * 检索命中的原文片段。
  * `headingPath` 是引用标注的关键 —— 有它才能显示「第3章 > 3.2.3 后序遍历」，
  * 而不只是「某个文件里」。
@@ -417,6 +448,15 @@ export interface PartnerCandidateProfile {
   learningGoal?: PartnerCandidateGoal;
   time?: PartnerCandidateTime;
   knowledge?: PartnerCandidateKnowledge;
+  /**
+   * 候选人来自哪里 —— 后端 `app/api/partner_match.py` 追加的字段：
+   *   · 'account' = **真实注册账号**（对方登录后能看到邀请并回复）
+   *   · 缺省/其它 = `mock_candidates.json` 里的**演示同学**（没有账号，不会回复）
+   *
+   * 前端据此在发邀请前后如实说明，不能让用户以为小红（演示同学）会回消息。
+   * 可选字段：后端在 candidates 由调用方传入时不会带它，缺省按"演示同学"处理更保守。
+   */
+  accountKind?: string;
 }
 
 export interface PartnerCandidateBasicInfo {
@@ -462,4 +502,55 @@ export interface PartnerMatchRequest {
   userId?: string;
   user?: PartnerCandidateProfile;
   candidates?: PartnerCandidateProfile[];
+}
+
+/*
+ * 学习搭子邀请（后端 `app/api/partner_invite.py`）。
+ *
+ * `targetKind` 是后端如实标注的证件：
+ *   · 'account' = 对方是**真实注册账号**，登录后能在收件箱看到并回复；
+ *   · 'demo'    = 对方是 `mock_candidates.json` 里的**演示同学**（小红/小刚），
+ *                 没有账号、不会真的回复。
+ * 前端必须据此如实说明，不能让用户以为邀请已经送达了一个真人。
+ */
+export interface PartnerInvitation {
+  invitationId: string;
+  fromUserId: string;
+  fromName: string;
+  toUserId: string;
+  toName: string;
+  message: string;
+  /** pending / accepted / declined / dismissed */
+  status: string;
+  targetKind: string;
+  createdAt: string;
+  respondedAt: string;
+}
+
+export interface PartnerInvitationCreateRequest {
+  toUserId: string;
+  message?: string;
+}
+
+export interface PartnerInvitationListResponse {
+  box: string;
+  userId: string;
+  invitations: PartnerInvitation[];
+  pendingCount: number;
+}
+
+export interface PartnerInvitationResponse {
+  invitation: PartnerInvitation;
+}
+
+/** 接受邀请之后真正"联系起来"的那份名单（后端双向各存一条）。 */
+export interface PartnerContact {
+  partnerUserId: string;
+  partnerName: string;
+  pairedAt: string;
+}
+
+export interface PartnerContactListResponse {
+  userId: string;
+  contacts: PartnerContact[];
 }
