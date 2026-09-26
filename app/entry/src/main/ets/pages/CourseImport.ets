@@ -22,6 +22,21 @@ struct CourseImport {
   @State refreshKey: number = 0;
   @State courseList: CourseInfo[] = appState.courses;
   @State ddlList: HomeworkDDL[] = appState.homeworkDDLs;
+  /**
+   * 「N 项紧急」徽章的数字（7 天内到期的条数）。
+   *
+   * ⚠️ 必须缓存成 `@State`，**不能在 build 里直接写 `appState.getUrgentDDLs().length`**：
+   * `appState` 是普通类实例、不是 `@Observed`，ArkUI 不把它纳入依赖追踪。
+   * 实测（模拟器，2026-09-26）：删掉一条 DDL 后**列表已经刷新、这个徽章却还是旧数字**
+   * —— 截图里 4 条删成 3 条时，列表变了而右上角仍写着上一步的数。
+   * 所有会改 `ddlList` 的地方都调一次 `syncUrgentCount()`，两边才一致。
+   */
+  @State urgentDdlCount: number = appState.getUrgentDDLs().length;
+
+  /** 数据变了就同步刷新徽章数字（见 `urgentDdlCount` 的说明）。 */
+  private syncUrgentCount(): void {
+    this.urgentDdlCount = appState.getUrgentDDLs().length;
+  }
 
   private goBack(): void {
     try { router.back(); } catch (error) { console.error(`返回失败: ${JSON.stringify(error)}`); }
@@ -59,6 +74,7 @@ struct CourseImport {
         const ddls: HomeworkDDL[] = FileParserService.autoParseDDLs(content);
         appState.importDDLs(ddls);
         this.ddlList = appState.homeworkDDLs;
+        this.syncUrgentCount();
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
         this.importMessage = `上传成功：已导入 ${ddls.length} 项作业`;
@@ -93,6 +109,7 @@ struct CourseImport {
         const ddls: HomeworkDDL[] = FileParserService.autoParseDDLs(this.jsonInputText);
         appState.importDDLs(ddls);
         this.ddlList = appState.homeworkDDLs;
+        this.syncUrgentCount();
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
         this.importMessage = `成功导入 ${ddls.length} 项作业`;
@@ -249,7 +266,12 @@ struct CourseImport {
         Text('删除').fontSize(10).fontColor('#DC2626').fontWeight(FontWeight.Medium)
           .backgroundColor('#FEF2F2').borderRadius(6)
           .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-          .onClick(() => { appState.removeDDL(ddl.id); this.ddlList = appState.homeworkDDLs; })
+          .onClick(() => {
+            appState.removeDDL(ddl.id);
+            this.ddlList = appState.homeworkDDLs;
+            // 徽章数字也一起刷新 —— 少了这一句，删完列表变了、右上角还挂着旧数字（实测）。
+            this.syncUrgentCount();
+          })
       }.alignItems(HorizontalAlign.End)
     }
     .width('100%').padding(14).backgroundColor('#FFFFFF').borderRadius(14)
@@ -493,7 +515,8 @@ struct CourseImport {
             Column({ space: 4 }) {
               Row() {
                 Text('作业 DDL').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#202522').layoutWeight(1)
-                Text(`${appState.getUrgentDDLs().length} 项紧急`).fontSize(12).fontColor('#DC2626').fontWeight(FontWeight.Medium)
+                // 读 @State 而不是直接调 appState（后者不在 ArkUI 依赖追踪里，删完不刷新）。
+                Text(`${this.urgentDdlCount} 项紧急`).fontSize(12).fontColor('#DC2626').fontWeight(FontWeight.Medium)
                   .backgroundColor('#FEF2F2').borderRadius(10).padding({ left: 10, right: 10, top: 4, bottom: 4 })
               }.width('100%').margin({ bottom: 8 })
 
