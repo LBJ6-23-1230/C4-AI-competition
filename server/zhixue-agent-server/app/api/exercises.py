@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import uuid
 import json
 import threading
 from pathlib import Path
@@ -36,7 +37,8 @@ _repository: JsonRepository | None = None
 #
 # 这里用一把进程内锁把整段串行化。同一进程内的提交本来就不需要并行
 # （判分是纯计算，微秒级），串行化的吞吐代价可忽略，换来的是幂等语义真正成立。
-_SUBMIT_LOCK = threading.RLock()
+from app.tools.profile_merge import PROFILE_LOCK
+_SUBMIT_LOCK = PROFILE_LOCK
 
 _EXERCISE_BANK = [
 	{"exerciseId": "exercise-preorder-001", "knowledgePointId": "binary-tree-postorder",
@@ -246,7 +248,17 @@ def get_exercise_set(set_id: str):
 					"message": "针对该知识点现场出题失败，请重试。",
 				})
 			exercises = select_exercises(_EXERCISE_BANK, knowledge_point_id, difficulty, count, excluded_ids)
-	return jsonify({"setId": set_id, "exercises": exercises})
+	response = {"setId": set_id, "exercises": exercises}
+	if _repository and exercises and any(item.get("source") == "llm" for item in exercises):
+		trace_id = f"trace-select-{uuid.uuid4().hex}"
+		_repository.save("traces", trace_id, {"traceId": trace_id,
+			"userId": resolve_user_id(request.args.get("userId")), "events": [{
+				"agent": "exercise", "toolCalls": ["select_exercises"],
+				"inputSummary": f"请求知识点 {raw_point}", "outputSummary": f"生成并入库 {len(exercises)} 道题",
+				"evidenceIds": [], "stateVersion": 1, "timestamp": datetime.now(timezone.utc).isoformat(),
+				"status": "completed", "stepId": "step-1", "inputStateVersion": 1, "outputStateVersion": 1}]})
+		response["traceId"] = trace_id
+	return jsonify(response)
 
 
 @exercises_api.post("/api/v1/exercises/<set_id>/submit")
@@ -318,7 +330,9 @@ def submit_exercises(set_id: str):
 			if mastery.knowledge_point_id == lead_point:
 				old_mastery = mastery.mastery_score
 
-		assessment = grade_exercise(answers, answer_keys, knowledge_points, old_mastery, result_id)
+		names = {item["exerciseId"]: item.get("knowledgePointName", "知识点理解")
+			for item in [*_EXERCISE_BANK, *_repository.list("exercises")]}
+		assessment = grade_exercise(answers, answer_keys, knowledge_points, old_mastery, result_id, names)
 		score = assessment.score
 		new_mastery = assessment.suggested_new_mastery
 		# 本次提交真正主要练的知识点（按被判分题量，并列取字典序）
@@ -385,7 +399,7 @@ def submit_exercises(set_id: str):
 						response["plan"] = new_plan.to_dict()
 						response["planDiff"] = {"planId": new_plan.plan_id, **history}
 			events: list[dict] = [{
-				"agent": "assessment", "toolCalls": ["grade_exercise"],
+				"agent": "assessment", "toolCalls": ["grade_exercise"] + (["update_mastery"] if profile_model_dict else []),
 				"inputSummary": f"提交题集 {set_id}", "outputSummary": f"得分 {score}",
 				"evidenceIds": [evidence_id], "stateVersion": 1, "timestamp": timestamp.isoformat(),
 				"status": "completed", "sessionId": data.get("sessionId"), "stepId": "step-1",

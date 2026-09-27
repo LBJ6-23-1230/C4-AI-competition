@@ -349,7 +349,7 @@ def login_by_nickname(repository: Repository, nickname: Any,
     """按昵称登录；新账号若设置了密码则必须校验，旧账号保持兼容。"""
     matches = find_users_by_nickname(repository, nickname)
     if not matches:
-        raise AuthError("NOT_FOUND", "该昵称还没有账号，请先注册", 404)
+        raise AuthError("UNAUTHORIZED", "该昵称还没有账号，请先注册", 401)
     if len(matches) > 1:
         raise AuthError("CONFLICT",
                         f"昵称「{normalize_nickname(nickname)}」对应 {len(matches)} 个账号，"
@@ -400,7 +400,7 @@ def login_by_phone(repository: Repository, phone: Any,
     """
     user = find_user_by_phone(repository, phone)
     if user is None:
-        raise AuthError("NOT_FOUND", "该手机号还没有账号，请先注册", 404)
+        raise AuthError("UNAUTHORIZED", "该手机号还没有账号，请先注册", 401)
     if verify_secret:
         _verify_password(user, password)
     user_id = user["userId"]

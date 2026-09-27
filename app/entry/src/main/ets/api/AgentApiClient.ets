@@ -13,6 +13,10 @@ export interface ApiClientConfig {
   timeoutMs: number;
 }
 
+interface KnowledgePointImportRequest {
+  courses: string[];
+}
+
 /**
  * The single API entry point. Pages must use ViewModels instead of calling HTTP directly.
  *
@@ -56,6 +60,13 @@ export class AgentApiClient {
     // `connectTimeout` 仍用配置值：连不上要快速失败，不能陪着一起等。
     return AgentApiClient.request<WorkflowRunResponse>(http.RequestMethod.POST,
       `/api/v1/workflows/${encodeURIComponent(sessionId)}/run`, request,
+      ApiDefaults.LLM_BOUND_READ_TIMEOUT_MS);
+  }
+
+  static async importKnowledgePoints(userId: string, courses: string[]): Promise<ApiResult<ProfileResponse>> {
+    const payload: KnowledgePointImportRequest = { courses: courses };
+    return AgentApiClient.request<ProfileResponse>(http.RequestMethod.POST,
+      `/api/v1/profile/${encodeURIComponent(userId)}/knowledge-points`, payload,
       ApiDefaults.LLM_BOUND_READ_TIMEOUT_MS);
   }
 

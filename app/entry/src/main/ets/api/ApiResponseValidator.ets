@@ -48,6 +48,12 @@ export class ApiResponseValidator {
         ApiResponseValidator.hasNumber(data, 'stateVersion') &&
         ApiResponseValidator.isNullableString(data, 'finalAction');
     }
+    if (method === 'POST' && route.indexOf('/api/v1/profile/') === 0 && route.endsWith('/knowledge-points')) {
+      return ApiResponseValidator.hasNumber(data, 'profileVersion') &&
+        ApiResponseValidator.hasArray(data, 'mastery') &&
+        ApiResponseValidator.hasArray(data, 'history') &&
+        ApiResponseValidator.hasArray(data, 'evidence');
+    }
     if (method === 'GET' && route.indexOf('/api/v1/profile/') === 0) {
       return ApiResponseValidator.hasNumber(data, 'profileVersion') &&
         ApiResponseValidator.hasArray(data, 'mastery') &&

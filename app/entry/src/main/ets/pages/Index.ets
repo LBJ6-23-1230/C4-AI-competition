@@ -23,7 +23,23 @@ import { AuthStore } from '../api/AuthStore';
 @Entry
 @Component
 struct Index {
+  @StorageLink('learningDataRevision') @Watch('onLearningDataChanged') learningDataRevision: number = 0;
+  @StorageLink('knowledgeSyncMessage') knowledgeSyncMessage: string = '';
+  @State courseCount: number = 0;
+  @State urgentCount: number = 0;
   @State refreshKey: number = 0;
+
+  private onLearningDataChanged(): void {
+    this.courseCount = appState.courses.length;
+    this.urgentCount = appState.getUrgentDDLs().length;
+    this.refreshKey++;
+    if (this.isPageActive) this.ensurePlan();
+  }
+
+  onPageShow(): void {
+    this.isPageActive = true;
+    this.onLearningDataChanged();
+  }
   @State isWorkflowRefreshing: boolean = false;
   @State isAgentPlanLoading: boolean = false;
   @State agentPlan: LearningPlan | null = null;
@@ -651,9 +667,10 @@ struct Index {
 
   /** Agent 一句话感知摘要：先说"我知道什么"，再说"所以做什么"。 */
   private perceptionLine(): string {
-    const courses: number = appState.courses.length;
-    const ddls: number = appState.getUrgentDDLs().length;
+    const courses: number = this.courseCount;
+    const ddls: number = this.urgentCount;
     const d: ProactiveResponse | null = this.proactiveDecision;
+    if (this.knowledgeSyncMessage.length > 0) return `${courses} 门课程、${ddls} 项临近作业。${this.knowledgeSyncMessage}`;
     if (d !== null && d.contextTags.length > 0) {
       const labels: string[] = [];
       d.contextTags.forEach((tag: string) => {

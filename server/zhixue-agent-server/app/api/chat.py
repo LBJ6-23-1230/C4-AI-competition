@@ -324,6 +324,11 @@ def agent_chat():
     wrong_analysis = result.get("wrongAnalysis")
     if isinstance(wrong_analysis, dict) and wrong_analysis:
         payload["wrongAnalysis"] = wrong_analysis
+        point = wrong_analysis.get("knowledgePoint")
+        if _repository and isinstance(point, str) and point.strip():
+            from app.tools.profile_merge import merge_points_into_profile
+            merge_points_into_profile(_repository, _identity,
+                [{"name": point.strip(), "source": "diagnosis"}])
     if data.get("sessionId"):
         payload["sessionId"] = str(data["sessionId"])
     return jsonify(payload)

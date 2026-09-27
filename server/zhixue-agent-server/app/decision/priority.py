@@ -12,6 +12,15 @@ class PriorityResult:
 	total_score: float
 	factors: dict[str, dict[str, float]]
 	reason: str
+	# 知识点**中文名**。计划任务的展示名取自它。
+	#
+	# ⚠️ 为什么必须显式带着它：`to_dict()` 一旦缺这个字段，`PlannerAgent` 里那句
+	# `item.get("knowledgePointName") or item["knowledgePointId"]` 就会**静默回落到 id**
+	# —— 于是计划页出现 `binary-tree-traversal`、`graph-algorithm` 这类**内部英文标识**。
+	# 题库命中（用映射表匹配到的）知识点 id 都是英文，只有兜底分支拿课程名当 id
+	# 的那几个才**碰巧**是中文，所以这个缺陷以前一直没暴露。
+	# 与「内部英文标识不该直接给用户看」是同一条纪律。
+	knowledge_point_name: str = ""
 
 	def to_dict(self) -> dict[str, Any]:
 		factor_list = [
@@ -20,6 +29,7 @@ class PriorityResult:
 		]
 		return {
 			"knowledgePointId": self.knowledge_point_id,
+			"knowledgePointName": self.knowledge_point_name,
 			"score": self.total_score,
 			"totalScore": self.total_score,
 			"factors": dict(self.factors),
@@ -76,5 +86,7 @@ def calculate_learning_priority(knowledge_points: list[dict[str, Any]],
 		strongest = max(factor_values, key=factor_values.get)
 		reason = (f"{factor_labels.get(strongest, strongest)} 因子值为 "
 			f"{factor_values[strongest]:.2f}，应优先安排针对性练习")
-		results.append(PriorityResult(item["knowledgePointId"], score, factors, reason))
+		# 名字必须一路带到 `to_dict()` —— 见 `PriorityResult.knowledge_point_name` 的说明。
+		results.append(PriorityResult(item["knowledgePointId"], score, factors, reason,
+			str(item.get("knowledgePointName") or "")))
 	return [result.to_dict() for result in sorted(results, key=lambda value: value.total_score, reverse=True)]

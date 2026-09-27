@@ -123,13 +123,13 @@ def test_login_by_phone_accepts_common_formats(tmp_path):
     assert response.get_json()["user"]["userId"] == registered["user"]["userId"]
 
 
-def test_login_by_unknown_phone_is_404(tmp_path):
+def test_login_by_unknown_phone_is_401(tmp_path):
     client = create_app(tmp_path / "unknown-phone.json").test_client()
 
     response = client.post("/api/v1/auth/login", json={"phone": "13700000099"})
 
-    assert response.status_code == 404
-    assert response.get_json()["errorCode"] == "NOT_FOUND"
+    assert response.status_code == 401
+    assert response.get_json()["errorCode"] == "UNAUTHORIZED"
 
 
 def test_password_account_calls_backend_and_rejects_wrong_password(tmp_path):
@@ -316,14 +316,14 @@ def test_register_response_never_leaks_full_phone(tmp_path):
     assert body["user"]["hasPhone"] is True
 
 
-def test_login_by_unknown_nickname_is_404(tmp_path):
+def test_login_by_unknown_nickname_is_401(tmp_path):
     """昵称不存在时要明确报错，而不是悄悄建号。"""
     client = create_app(tmp_path / "unknown.json").test_client()
 
     response = client.post("/api/v1/auth/login", json={"nickname": "从没注册过"})
 
-    assert response.status_code == 404
-    assert response.get_json()["errorCode"] == "NOT_FOUND"
+    assert response.status_code == 401
+    assert response.get_json()["errorCode"] == "UNAUTHORIZED"
     assert "还没有账号" in response.get_json()["message"]
 
 
@@ -406,3 +406,4 @@ def test_login_or_register_response_shape_matches_contract(tmp_path):
         assert field in body["user"], f"user 缺少 {field}"
     # 绝不能泄漏凭据字段
     assert "authSubject" not in body["user"]
+

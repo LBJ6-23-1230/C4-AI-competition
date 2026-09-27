@@ -279,6 +279,12 @@ def upload_document(kb_id: str):
             "updatedAt": timestamp,
         })
 
+    if _repository and parsed["status"] == knowledge.STATUS_READY:
+        from app.tools.profile_merge import merge_points_into_profile
+        merge_points_into_profile(_repository, user_id, [
+            {"name": name, "source": "document", "sourceCourse": kb.get("courseName", "")}
+            for name in parsed["knowledgePoints"]])
+
     # 201 = 已接收并处理完成（含 failed，因为"受理"成功了，处理结果在 status 里）
     return jsonify(record), 201
 

@@ -21,6 +21,7 @@ import {
   PlanTaskStatus
 } from '../models/AgentModels';
 import { ChatHandoff } from '../models/ChatModels';
+import { AgentApiClient } from '../api/AgentApiClient';
 import { ApiDefaults } from '../api/ApiDefaults';
 import { AuthSource, AuthUser } from '../api/AuthModels';
 // 契约形状的「用户看得见的那份计划」。用别名避免与 AgentModels 里的本地模型撞名 ——
@@ -49,6 +50,43 @@ import { ClientCache } from '../cache/ClientCache';
  */
 export class AppState {
   private static instance: AppState;
+  private knowledgeSyncVersion: number = 0;
+
+  public notifyLearningDataChanged(): void {
+    AppStorage.setOrCreate('learningDataRevision', (AppStorage.get<number>('learningDataRevision') ?? 0) + 1);
+  }
+
+  private async syncImportedKnowledge(): Promise<void> {
+    this.notifyLearningDataChanged();
+    const version: number = ++this.knowledgeSyncVersion;
+    const userId: string = this.currentUser.userId;
+    const courses: string[] = [];
+    this.courses.forEach((item: CourseInfo) => {
+      if (item.courseName.trim().length > 0 && courses.indexOf(item.courseName) < 0) courses.push(item.courseName);
+    });
+    this.homeworkDDLs.forEach((item: HomeworkDDL) => {
+      if (item.courseName.trim().length > 0 && courses.indexOf(item.courseName) < 0) courses.push(item.courseName);
+    });
+    if (courses.length === 0) return;
+    AppStorage.setOrCreate('knowledgeSyncMessage', '本地导入已完成，正在同步知识点…');
+    try {
+      const result = await AgentApiClient.importKnowledgePoints(userId, courses);
+      if (userId !== this.currentUser.userId || version !== this.knowledgeSyncVersion) return;
+      if (result.ok) {
+        ClientCache.cacheProfile(result.data);
+        ClientCache.invalidateCurrentPlan();
+        AppStorage.setOrCreate('knowledgeSyncMessage', `已为你的 ${courses.length} 门课准备 ${result.data.mastery.length} 个知识点，点“开始诊断”即可练习。`);
+        this.notifyLearningDataChanged();
+      } else {
+        console.warn('课程知识点同步失败，本地导入数据已保留');
+        AppStorage.setOrCreate('knowledgeSyncMessage', '本地导入成功，知识点同步失败，请检查连接后重新导入。');
+      }
+    } catch (error) {
+      if (userId === this.currentUser.userId && version === this.knowledgeSyncVersion) {
+        AppStorage.setOrCreate('knowledgeSyncMessage', '本地导入成功，知识点同步失败，请稍后重新导入。');
+      }
+    }
+  }
 
   /* ========== 用户 & 课程数据 ========== */
   public currentUser: UserProfile = mockCurrentUser;
@@ -275,6 +313,7 @@ export class AppState {
     this.importedCourseCount = newCourses.length;
     this.isDataImported = true;
     this.advanceStage('input', '导入课程表数据');
+    this.syncImportedKnowledge();
   }
 
   /**
@@ -285,6 +324,7 @@ export class AppState {
     this.importedDDLCount = newDDLs.length;
     this.isDataImported = true;
     this.advanceStage('input', '导入作业DDL数据');
+    this.syncImportedKnowledge();
   }
 
   /** 删除指定课程 */
@@ -297,6 +337,7 @@ export class AppState {
     }
     this.courses = filtered;
     this.importedCourseCount = filtered.length;
+    this.notifyLearningDataChanged();
   }
 
   /** 删除指定DDL */
@@ -309,6 +350,7 @@ export class AppState {
     }
     this.homeworkDDLs = filtered;
     this.importedDDLCount = filtered.length;
+    this.notifyLearningDataChanged();
   }
 
   /**
@@ -320,6 +362,7 @@ export class AppState {
     }
     this.importedCourseCount += newCourses.length;
     this.isDataImported = true;
+    this.syncImportedKnowledge();
   }
 
   /**
@@ -331,6 +374,7 @@ export class AppState {
     }
     this.importedDDLCount += newDDLs.length;
     this.isDataImported = true;
+    this.syncImportedKnowledge();
   }
 
   /**
@@ -865,6 +909,8 @@ export class AppState {
    * 这是可复现的跨账号数据泄露。
    */
   public resetAccountScopedState(): void {
+    this.knowledgeSyncVersion++;
+    AppStorage.setOrCreate('knowledgeSyncMessage', '');
     this.chatMessages = '';
     this.hasActiveChat = false;
     this.pendingChatPrompt = '';
@@ -881,6 +927,7 @@ export class AppState {
     // 会让账号看到游客导入的内容（反之亦然），形成明显的跨身份串数据。
     this.courses = [];
     this.homeworkDDLs = [];
+    this.notifyLearningDataChanged();
     this.isDataImported = false;
     this.importedCourseCount = 0;
     this.importedDDLCount = 0;

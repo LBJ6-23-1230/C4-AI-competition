@@ -169,7 +169,12 @@ check("昵称+密码登录可用（用刚注册的昵称）", st in (200, 201), 
 st, r = call("POST", "/api/v1/auth/login", {"nickname": nick1, "password": "wrong-pw-000"})
 check("昵称+错误密码被拒（401）", st == 401, "HTTP %s %s" % (st, r.get("errorCode")))
 st, r = call("POST", "/api/v1/auth/login", {"nickname": nick("绝不存在的昵称")})
-check("未注册昵称返回 404", st == 404, "HTTP %s %s" % (st, r.get("errorCode")))
+# ⚠️ 期望值是 **401 而不是 404**。
+# `/auth/login` 的昵称分支用 401 UNAUTHORIZED 表示"这个身份登录不了"，
+# 契约 `contracts/openapi.json` 中该路径的响应码也只有 200/400/401/405（**没有 404**）。
+# 本闸门原先断言 404 —— 那是 404→401 那次改动（D7：前端不再撞一个必然 404 的请求）
+# **之前**的旧期望。2026-09-27 实测发现已过期，据此更正。
+check("未注册昵称返回 401（契约无 404）", st == 401, "HTTP %s %s" % (st, r.get("errorCode")))
 
 print()
 print("七、注销")

@@ -63,6 +63,17 @@ struct StudyTags {
     this.isPageActive = false;
     this.profileRequestVersion++;
     this.workflowRequestVersion++;
+    this.isStartingWorkflow = false;
+  }
+
+  onPageShow(): void {
+    this.isPageActive = true;
+  }
+
+  onPageHide(): void {
+    this.isPageActive = false;
+    this.workflowRequestVersion++;
+    this.isStartingWorkflow = false;
   }
 
   /**
@@ -113,11 +124,11 @@ struct StudyTags {
     this.isStartingWorkflow = true;
     this.workflowErrorMessage = '';
     const requestVersion: number = ++this.workflowRequestVersion;
+    try {
     const workflow = await this.workflowViewModel.start(this.goal, this.userId);
     if (!this.isPageActive || requestVersion !== this.workflowRequestVersion) {
       return;
     }
-    this.isStartingWorkflow = false;
     if (workflow === null) {
       this.workflowErrorMessage = this.workflowViewModel.getErrorMessage() || 'Agent 会话启动失败，请稍后重试。';
       return;
@@ -125,11 +136,20 @@ struct StudyTags {
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     // 带上归属身份：冷启动恢复时靠它判断这个会话是不是当前用户的。
     WorkflowSessionStore.save(context, workflow, appState.currentUser.userId);
-    await this.workflowViewModel.runUntilComplete(1);
+    const progress = await this.workflowViewModel.runUntilComplete(1);
+    if (progress === null || progress.status === 'failed' || progress.status === 'error') {
+      this.workflowErrorMessage = this.workflowViewModel.getErrorMessage() || 'Agent 会话推进失败，请重试。';
+      return;
+    }
     if (!this.isPageActive || requestVersion !== this.workflowRequestVersion) {
       return;
     }
     router.pushUrl({ url: 'pages/ExercisePractice' });
+    } catch (error) {
+      this.workflowErrorMessage = 'Agent 会话启动失败，请检查连接后重试。';
+    } finally {
+      if (requestVersion === this.workflowRequestVersion) this.isStartingWorkflow = false;
+    }
   }
 
   private buildChartData(): void {

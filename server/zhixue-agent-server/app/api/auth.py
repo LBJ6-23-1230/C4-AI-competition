@@ -141,7 +141,8 @@ def login():
     #
     # ⚠️ 这里必须按"键是否存在"判断，不能按"值是否非空"判断：
     # 否则 `{"userId":"","token":""}` 会掉到昵称分支，
-    # 报出 404「该昵称还没有账号」而不是 400「userId 不能为空」——语义错位。
+    # 报出 401「该昵称还没有账号」而不是 400「userId 不能为空」——语义错位。
+    # （昵称分支的状态码是 401 不是 404：契约里该路径只有 200/400/401/405。）
     if "userId" in data or "token" in data:
         try:
             result = service.login_user(_repository, data.get("userId"), data.get("token"))

@@ -341,6 +341,22 @@ struct ExercisePractice {
     .border({ width: 1, color: '#E2E8F0' })
   }
 
+  private weakPointText(value: ExerciseSubmissionResult): string {
+    const names: string[] = [];
+    this.exercises.forEach((item: Exercise) => {
+      if (value.assessment.perKnowledgeAccuracy[item.knowledgePointId] < 1 &&
+        /[\u4e00-\u9fff]/.test(item.knowledgePointName) && names.indexOf(item.knowledgePointName) < 0) {
+        names.push(item.knowledgePointName);
+      }
+    });
+    return names.length > 0 ? names.join('、') : '暂无明确薄弱知识点';
+  }
+
+  private errorTypeText(value: ExerciseSubmissionResult): string {
+    const names: string[] = value.assessment.errorTypes.filter((name: string) => /[\u4e00-\u9fff]/.test(name));
+    return names.length > 0 ? names.join('、') : '暂无明确错误类型';
+  }
+
   @Builder
   ResultPanel(value: ExerciseSubmissionResult) {
     Column({ space: 16 }) {
@@ -372,10 +388,12 @@ struct ExercisePractice {
       }.width('100%')
 
       Column({ space: 6 }) {
-        Text('需要巩固').fontSize(13).fontWeight(FontWeight.Bold).fontColor('#B45309')
-        Text(value.assessment.errorTypes.length > 0 ? value.assessment.errorTypes.join('、') : '暂无明显薄弱点')
+        Text('错误类型').fontSize(13).fontWeight(FontWeight.Bold).fontColor('#B45309')
+        Text(this.errorTypeText(value))
           .fontSize(14).fontColor('#475467')
       }.width('100%').padding(13).backgroundColor('#FFFBEB').borderRadius(12)
+
+      Text(`薄弱知识点：${this.weakPointText(value)}`).fontSize(14).fontColor('#475467')
 
       if (value.needReplan && value.planDiff !== undefined) {
         PlanDiffCard({ value: value.planDiff })
@@ -388,9 +406,11 @@ struct ExercisePractice {
       // 现在把「继续练这个知识点」立为唯一主行动，其余降级为次要。
       FollowUpCard({
         title: '接下来',
-        reason: value.needReplan
+        reason: value.needReplan && value.planDiff !== undefined
           ? `掌握度 ${value.assessment.oldMastery} → ${value.assessment.suggestedNewMastery}，Agent 已据此重排计划。再练一轮可以继续拉高掌握度。`
-          : `掌握度 ${value.assessment.oldMastery} → ${value.assessment.suggestedNewMastery}，保持这个节奏。`,
+          : value.needReplan
+            ? `掌握度 ${value.assessment.oldMastery} → ${value.assessment.suggestedNewMastery}，建议根据本次结果生成或调整学习计划。`
+            : `掌握度 ${value.assessment.oldMastery} → ${value.assessment.suggestedNewMastery}，保持这个节奏。`,
         primaryText: '再练一组同类题',
         secondaryText: '看更新后的知识画像',
         secondaryTarget: 'pages/StudyTags',
@@ -448,7 +468,7 @@ struct ExercisePractice {
             Button('去上传课程 / 资料')
               .width('100%').height(46).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
               .backgroundColor('#2563EB').borderRadius(12)
-              .onClick(() => router.pushUrl({ url: 'pages/CourseImport' }))
+              .onClick(() => router.pushUrl({ url: 'pages/CourseImport', params: { initialTab: 'import' } }))
             Button('去做错题诊断')
               .width('100%').height(44).fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
               .border({ width: 1, color: '#BFDBFE' }).borderRadius(12)

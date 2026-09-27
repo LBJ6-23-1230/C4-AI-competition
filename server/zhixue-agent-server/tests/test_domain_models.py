@@ -80,7 +80,7 @@ def test_grade_exercise_returns_expected_score_and_knowledge_accuracy():
 
     assert result.to_dict()["score"] == 66.67
     assert result.to_dict()["perKnowledgeAccuracy"] == {"binary-tree-postorder": 0.6667}
-    assert result.to_dict()["errorTypes"] == ["traversal-order"]
+    assert result.to_dict()["errorTypes"] == ["知识点理解·答错"]
     assert result.suggested_new_mastery == 58
 
 
@@ -319,7 +319,7 @@ def test_experiment_snapshot_exports_anonymous_counts_and_records(tmp_path):
     assert body["summary"]["eventCount"] >= 1
     assert body["summary"]["averageSteps"] == 0.5
     assert body["summary"]["coveredAgents"] == ["assessment"]
-    assert body["summary"]["coveredTools"] == ["grade_exercise"]
+    assert body["summary"]["coveredTools"] == ["grade_exercise", "update_mastery"]
     assert body["summary"]["averageMasteryDelta"] == 29
     assert body["summary"]["replanRate"] == 0
     assert body["summary"]["traceCompliant"] is True
@@ -746,3 +746,4 @@ def test_five_agents_return_structured_outputs_with_separate_responsibilities():
         "answerKeys": {"e1": "A"}, "knowledgePointsByExercise": {"e1": "tree"}, "oldMastery": 42})
     assert assessment.output["suggestedNewMastery"] == 71
     assert assessment.tool_calls == ("grade_exercise", "update_mastery")
+

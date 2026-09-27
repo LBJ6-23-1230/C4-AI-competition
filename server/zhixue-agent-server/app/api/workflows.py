@@ -35,7 +35,8 @@ _repository: JsonRepository | None = None
 # `profileVersion` 从 1 跳到 7、history 6 条且共用同一个 `evidence-<sessionId>`。
 #
 # 用可重入锁：`_run_saved_workflow` 也可能被其它已持锁的路径调用。
-_WORKFLOW_RUN_LOCK = threading.RLock()
+from app.tools.profile_merge import PROFILE_LOCK
+_WORKFLOW_RUN_LOCK = PROFILE_LOCK
 
 
 class SubmissionNotFound(KeyError):

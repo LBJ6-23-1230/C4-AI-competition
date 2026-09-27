@@ -15,6 +15,7 @@ def grade_exercise(
 	knowledge_points: Mapping[str, str] | None = None,
 	old_mastery: int | float = 0,
 	exercise_result_id: str | None = None,
+	knowledge_point_names: Mapping[str, str] | None = None,
 ) -> AssessmentResult:
 	"""Grade submitted answers without calling an LLM or mutating state."""
 	knowledge_points = knowledge_points or {}
@@ -33,7 +34,9 @@ def grade_exercise(
 		knowledge_point_id = knowledge_points.get(exercise_id, "unknown")
 		per_knowledge.setdefault(knowledge_point_id, []).append(exercise_id in correct_ids)
 	accuracy = {key: round(sum(values) / len(values), 4) for key, values in per_knowledge.items()}
-	error_types = ["traversal-order"] if len(correct_ids) < len(valid_ids) else []
+	wrong_names = list(dict.fromkeys((knowledge_point_names or {}).get(key, "知识点理解")
+		for key in valid_ids if key not in correct_ids))
+	error_types = [f"{name}·答错" for name in wrong_names]
 	return AssessmentResult(
 		score=score,
 		per_knowledge_accuracy=accuracy,
@@ -73,7 +76,7 @@ def persist_mastery(repository: Any, user_id: str, assessment: AssessmentResult,
 					timestamp: datetime | None = None) -> dict[str, Any] | None:
 	"""Persist the assessment-owned mastery, evidence, and history updates."""
 	profile = repository.get("profiles", user_id)
-	if profile is None:
+	if profile is None or not assessment.per_knowledge_accuracy:
 		return None
 	timestamp = timestamp or datetime.now(timezone.utc)
 	profile_model = LearnerProfile.from_dict(profile)
@@ -102,7 +105,10 @@ def persist_mastery(repository: Any, user_id: str, assessment: AssessmentResult,
 		))
 		touched_points.append(point)
 	profile_model.advance_version()
-	profile_dict = profile_model.to_dict()
+	profile_dict = {**profile, **profile_model.to_dict()}
+	previous_rows = {row["knowledgePointId"]: row for row in profile.get("mastery", [])}
+	profile_dict["mastery"] = [{**previous_rows.get(row["knowledgePointId"], {}), **row}
+		for row in profile_dict["mastery"]]
 	profile_dict["history"] = profile.get("history", []) + [
 		MasteryHistory(assessment.old_mastery, assessment.suggested_new_mastery,
 			[evidence_id], "assessment", timestamp).to_dict()]

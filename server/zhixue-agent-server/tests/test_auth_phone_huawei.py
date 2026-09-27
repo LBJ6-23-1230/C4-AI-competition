@@ -107,12 +107,12 @@ def test_login_by_phone_returns_same_account(tmp_path):
     assert logged.get_json()["user"]["userId"] == created["user"]["userId"]
 
 
-def test_login_by_unknown_phone_is_404(tmp_path):
+def test_login_by_unknown_phone_is_401(tmp_path):
     client = create_app(tmp_path / "unknown.json").test_client()
 
     response = client.post("/api/v1/auth/login", json={"phone": "13700000099"}, headers=H)
 
-    assert response.status_code == 404
+    assert response.status_code == 401
 
 
 def test_login_or_register_prefers_phone_over_nickname(tmp_path):
@@ -227,3 +227,4 @@ def test_huawei_login_token_works_for_me(tmp_path):
 
     assert me.status_code == 200
     assert me.get_json()["user"]["authProvider"] == "agc_phone"
+

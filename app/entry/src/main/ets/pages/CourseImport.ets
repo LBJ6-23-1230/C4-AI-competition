@@ -15,7 +15,13 @@ import { ImageEncoder } from '../utils/ImageEncoder';
 @Entry
 @Component
 struct CourseImport {
+  @StorageLink('knowledgeSyncMessage') knowledgeSyncMessage: string = '';
   @State activeTab: string = 'courses';
+
+  aboutToAppear(): void {
+    const params = router.getParams() as Record<string, string>;
+    if (params && params['initialTab'] === 'import') this.activeTab = 'import';
+  }
   @State jsonInputText: string = '';
   @State importType: string = 'course';
   @State showJsonInput: boolean = false;
@@ -227,7 +233,7 @@ struct CourseImport {
     this.activeTab = 'courses';
     this.showImageReview = false;
     this.importStatus = 'success';
-    this.importMessage = `已确认导入 ${this.recognizedCourses.length} 门课程，Agent 将据此更新学习计划。`;
+    this.importMessage = `已确认导入 ${this.recognizedCourses.length} 门课程。`;
     this.recognizedCourses = [];
   }
 
@@ -495,6 +501,9 @@ struct CourseImport {
       .backgroundColor('#FFFFFF').shadow({ radius: 4, color: '#08000000', offsetX: 0, offsetY: 2 })
 
       // 导入状态条
+      if (this.knowledgeSyncMessage.length > 0) {
+        Text(this.knowledgeSyncMessage).fontSize(13).fontColor('#2563EB').padding(12)
+      }
       if (this.importStatus.length > 0) {
         Row() {
           Text(this.importStatus === 'success' ? '✅' : (this.importStatus === 'processing' ? '⏳' : '❌')).fontSize(14)
