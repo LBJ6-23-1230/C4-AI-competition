@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """学习搭子匹配接口。
 
-⚠️ 候选人为什么要"真实账号 ∪ 演示数据"
---------------------------------------
+⚠️ 候选人为什么优先使用真实账号
+----------------------------------
 原先候选人**只**来自 `chat/mock_candidates.json`，里面是写死的
 `u002`(小红) / `u003`(小刚) —— 它们**不是账号，没人能登录**。
 
@@ -11,10 +11,9 @@
 「我想知道如果被邀请的用户能否接受到，并且以怎样的途径同意，并且使两个人
 联系起来呢？」—— 在那个实现下，答案是"不能"。
 
-把注册账号并进候选列表之后，A 能在匹配结果里看到 B，邀请才发得出去、
-B 登录后才收得到（收件箱见 `app/api/partner_invite.py`）。
-演示候选人保留在后面 —— 它们的分数与文档里的小红 90 / 小刚 70 一致，
-演示基线不受影响。
+把注册账号作为候选人之后，A 能在匹配结果里看到 B，邀请才发得出去、
+B 登录后才收得到（收件箱见 `app/api/partner_invite.py`）。只有系统里没有
+其他真实账号时才回退到演示候选人，避免真实使用时继续混入“小红/小刚”。
 """
 
 from __future__ import annotations
@@ -116,9 +115,10 @@ def post_partner_match():
 	if not isinstance(user, dict) or (candidates is not None and not isinstance(candidates, list)):
 		return bad_request("user/candidates 格式错误")
 	if candidates is None:
-		# 真实账号在前（用户更容易在列表里认出同学），演示候选人在后兜底，
-		# 保证"一个真实账号都没有"的全新环境里页面依然有结果可看。
-		candidates = _real_candidates(me) + list(_load_json("mock_candidates.json", []))
+		# 一旦存在真实账号，就不再把“小红/小刚”等预置人物混进结果；只有
+		# 全新环境没有其他账号时才回退到演示候选，保证游客演示仍可用。
+		real = _real_candidates(me)
+		candidates = real if real else list(_load_json("mock_candidates.json", []))
 	valid = [item for item in candidates if isinstance(item, dict)]
 	result = match_partners(user, valid)
 	result["candidateSources"] = {

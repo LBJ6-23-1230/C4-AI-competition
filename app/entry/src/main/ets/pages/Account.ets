@@ -54,6 +54,7 @@ struct Account {
   // ---- 修改密码（见页面下方「修改密码」区）----
   @State pwdOld: string = '';
   @State pwdNew: string = '';
+  @State pwdConfirm: string = '';
   @State pwdMsg: string = '';
   @State pwdOk: boolean = false;
   @State pwdBusy: boolean = false;
@@ -139,6 +140,11 @@ struct Account {
     if (this.pwdBusy) {
       return;
     }
+    if (this.pwdNew !== this.pwdConfirm) {
+      this.pwdOk = false;
+      this.pwdMsg = '两次输入的新密码不一致，请重新确认。';
+      return;
+    }
     this.pwdBusy = true;
     this.pwdMsg = '';
     const result: ChangePasswordResult = await AuthClient.changePassword(this.pwdOld, this.pwdNew);
@@ -149,6 +155,7 @@ struct Account {
       // 成功才清空输入框（失败时保留用户已填内容，便于改完重试）。
       this.pwdOld = '';
       this.pwdNew = '';
+      this.pwdConfirm = '';
     }
   }
 
@@ -185,6 +192,12 @@ struct Account {
     if (AuthStore.isSignedIn()) {
       await AuthClient.signOut();
       appState.applyLogout();
+      this.clearLocalCaches();
+    } else {
+      // 体验身份固定使用 demo-user，因此退出时清回演示基线，避免上一位体验者的
+      // 错题、课程或知识库残留给下一位。离线 Fixture 也走同一接口并清本机数据。
+      await AgentApiClient.resetDemo();
+      appState.resetToMockData();
       this.clearLocalCaches();
     }
     this.busy = false;
@@ -462,6 +475,9 @@ struct Account {
               TextInput({ placeholder: '新密码（至少 6 位）', text: this.pwdNew })
                 .type(InputType.Password).height(44).fontSize(14).enabled(!this.pwdBusy)
                 .onChange((value: string) => { this.pwdNew = value; })
+              TextInput({ placeholder: '再次输入新密码', text: this.pwdConfirm })
+                .type(InputType.Password).height(44).fontSize(14).enabled(!this.pwdBusy)
+                .onChange((value: string) => { this.pwdConfirm = value; })
               Button(this.pwdBusy ? '提交中…' : '确认修改')
                 .width('100%').height(44).fontSize(14).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
                 .backgroundColor(this.pwdBusy ? '#93C5FD' : '#3B82F6').borderRadius(12)

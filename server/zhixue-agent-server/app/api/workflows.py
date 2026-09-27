@@ -189,8 +189,19 @@ def _workflow_state(workflow: dict) -> dict:
 			if isinstance(first_row, dict) else 0)
 	if plan is not None:
 		state["plan"] = plan
-	state.setdefault("knowledgePoints", [{"knowledgePointId": "binary-tree-postorder",
-		"masteryScore": state.get("oldMastery", 42), "errorIntensity": 60, "importance": 90}])
+	# 规划输入必须来自这个用户的真实画像。此前即使新账号 mastery=[]，这里仍会
+	# 塞入 binary-tree-postorder，导致用户只是打开首页就被生成一条“二叉树后序遍历”
+	# 计划。那不是诊断结果，而是演示数据泄漏到了真实账号。
+	if "knowledgePoints" not in state:
+		rows = profile.get("mastery", []) if isinstance(profile, dict) else []
+		state["knowledgePoints"] = [{
+			"knowledgePointId": str(item.get("knowledgePointId") or ""),
+			"knowledgePointName": str(item.get("knowledgePointName") or
+				item.get("knowledgePointId") or ""),
+			"masteryScore": item.get("masteryScore", 0),
+			"errorIntensity": max(0, 100 - int(item.get("masteryScore", 0))),
+			"importance": 50,
+		} for item in rows if isinstance(item, dict) and item.get("knowledgePointId")]
 	state.setdefault("exercises", _EXERCISE_BANK)
 	state.setdefault("answerKeys", _ANSWER_KEYS)
 	state.setdefault("knowledgePointsByExercise", {

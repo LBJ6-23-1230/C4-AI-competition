@@ -82,6 +82,12 @@ export class ApiResponseValidator {
         ApiResponseValidator.isNullableRecord(data, 'profile') &&
         ApiResponseValidator.isNullableRecord(data, 'plan');
     }
+    if (method === 'POST' && route === '/api/v1/import/schedule-image') {
+      return ApiResponseValidator.hasArray(data, 'courses') &&
+        ApiResponseValidator.hasNumber(data, 'recognizedCount') &&
+        ApiResponseValidator.hasString(data, 'model') &&
+        ApiResponseValidator.hasString(data, 'recognizedAt');
+    }
     // 学习搭子匹配：五因子确定性算分
     //   matchedCandidate 可能为 null（全部候选人 0 分时），故只校验 candidates 是数组
     if (method === 'POST' && route === '/api/v1/agent/partner-match') {

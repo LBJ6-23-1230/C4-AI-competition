@@ -53,7 +53,6 @@ struct Index {
     this.applyInitialTab();
     this.ensurePlan();
     this.refreshKey++;
-    this.bootstrapWorkflow();
     this.loadProactiveDecision();
   }
 
@@ -184,7 +183,7 @@ struct Index {
     if (decision === null || decision.action.type !== 'focus') return;
     appState.setFocusTask({
       course: '数据结构',
-      task: decision.cardData.taskName ?? '二叉树后序遍历',
+      task: decision.cardData.taskName,
       plannedMinutes: decision.action.preset.durationMinutes ?? decision.cardData.durationMinutes ?? 45,
       source: 'agent',
       mode: 'normal',
@@ -457,7 +456,7 @@ struct Index {
   PrimaryActionCard() {
     Column({ space: 10 }) {
       Text(this.perceptionLine()).fontSize(11.5).fontColor('#64748B').width('100%')
-      if (this.proactiveDecision !== null) {
+      if (this.hasProactiveTask()) {
         Text(this.proactiveDecision!.cardData.taskName ?? this.proactiveDecision!.title)
           .fontSize(20).fontWeight(FontWeight.Bold).fontColor('#0F172A').width('100%')
         Text(this.proactiveDecision!.reason.length > 0
@@ -681,7 +680,7 @@ struct Index {
    */
   /** 是否已有明确的 Agent 建议可执行。 */
   private isActionReady(): boolean {
-    if (this.proactiveDecision !== null && this.proactiveDecision!.action.type === 'focus') {
+    if (this.hasProactiveTask() && this.proactiveDecision!.action.type === 'focus') {
       return true;
     }
     if (this.currentAgentTask() !== null) {
@@ -692,7 +691,7 @@ struct Index {
 
   /** 主按钮分派：走的都是既有逻辑（写 focusTask 再跳专注设置页），只是收口到一处。 */
   private onPrimaryAction(): void {
-    if (this.proactiveDecision !== null && this.proactiveDecision!.action.type === 'focus') {
+    if (this.hasProactiveTask() && this.proactiveDecision!.action.type === 'focus') {
       this.startProactiveTask();
       return;
     }
@@ -711,6 +710,12 @@ struct Index {
       return;
     }
     this.openExercisePractice();
+  }
+
+  /** 空画像返回的 proactive 响应只用于说明“暂无数据”，不能冒充当前任务。 */
+  private hasProactiveTask(): boolean {
+    return this.proactiveDecision !== null &&
+      (this.proactiveDecision!.cardData.taskName ?? '').trim().length > 0;
   }
 
   /** 窄入口：只在用户主动想"全面看看"时才铺开，不再默认铺开。 */

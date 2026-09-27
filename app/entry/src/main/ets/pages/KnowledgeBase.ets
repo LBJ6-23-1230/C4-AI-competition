@@ -1,5 +1,6 @@
 import router from '@ohos.router';
 import { util } from '@kit.ArkTS';
+import { fileIo, picker } from '@kit.CoreFileKit';
 import { AgentApiClient } from '../api/AgentApiClient';
 import {
   KnowledgeBase,
@@ -49,6 +50,7 @@ struct KnowledgeBasePage {
   @State isUploading: boolean = false;
   @State sampleText: string = '';
   @State sampleFileName: string = '';
+  @State uploadResultVisible: boolean = false;
 
   // 检索
   @State searchQuery: string = '';
@@ -213,12 +215,18 @@ struct KnowledgeBasePage {
       this.showMessage('内容编码失败，请重试。', true);
       return;
     }
+    await this.uploadEncoded(fileName, encoded, content.length, 'text/plain');
+  }
+
+  /** 上传已经完成 base64 编码的文件；文本粘贴与系统文件选择共用。 */
+  private async uploadEncoded(fileName: string, encoded: string,
+    sizeBytes: number, mimeType: string): Promise<void> {
     this.isUploading = true;
     const result = await AgentApiClient.uploadKnowledgeDocument(this.selectedKbId, {
       fileName: fileName,
       contentBase64: encoded,
-      mimeType: 'text/plain',
-      sizeBytes: content.length,
+      mimeType: mimeType,
+      sizeBytes: sizeBytes,
       userId: this.currentUserId()
     });
     if (!this.isActive) {
@@ -227,6 +235,8 @@ struct KnowledgeBasePage {
     this.isUploading = false;
     if (!result.ok) {
       this.showMessage((result as ApiFailure).error.message, true);
+      // 失败也必须居中反馈；否则用户在长页面底部看不到顶部消息条。
+      this.uploadResultVisible = true;
       return;
     }
     const doc: KnowledgeDocument = result.data;
@@ -238,8 +248,74 @@ struct KnowledgeBasePage {
         `「${doc.fileName}」已解析：${doc.chunkCount ?? 0} 个片段、` +
         `${(doc.knowledgePoints ?? []).length} 个知识点。`, false);
     }
+    // 结果浮层位于屏幕中间，避免顶部状态条在长页面中不可见。
+    this.uploadResultVisible = true;
     await this.loadKnowledgeBases();
     this.activeTab = 'documents';
+  }
+
+  private fileNameFromUri(uri: string): string {
+    const clean: string = uri.indexOf('?') >= 0 ? uri.substring(0, uri.indexOf('?')) : uri;
+    const slash: number = clean.lastIndexOf('/');
+    const name: string = slash >= 0 ? clean.substring(slash + 1) : clean;
+    return name.length > 0 ? name : `课程资料_${Date.now()}.txt`;
+  }
+
+  private mimeTypeFor(fileName: string): string {
+    const lower: string = fileName.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.docx')) {
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    }
+    if (lower.endsWith('.json')) return 'application/json';
+    if (lower.endsWith('.csv')) return 'text/csv';
+    if (lower.endsWith('.md') || lower.endsWith('.markdown')) return 'text/markdown';
+    return 'text/plain';
+  }
+
+  /** 从系统文件选择器读取二进制文件，不能先按 UTF-8 转字符串（PDF/DOCX 会损坏）。 */
+  private async pickAndUploadDocument(): Promise<void> {
+    if (this.selectedKbId.length === 0) {
+      this.showMessage('请先选择或创建一个知识库。', true);
+      return;
+    }
+    try {
+      const documentPicker = new picker.DocumentViewPicker();
+      const result: string[] = await documentPicker.select();
+      if (result.length === 0) return;
+      const uri: string = result[0];
+      const file: fileIo.File = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY);
+      try {
+        const stat: fileIo.Stat = fileIo.statSync(file.fd);
+        if (stat.size <= 0) {
+          this.showMessage('所选文件为空。', true);
+          this.uploadResultVisible = true;
+          return;
+        }
+        if (stat.size > 8 * 1024 * 1024) {
+          this.showMessage('文件超过 8MB 上限，请压缩后重试。', true);
+          this.uploadResultVisible = true;
+          return;
+        }
+        const buffer: ArrayBuffer = new ArrayBuffer(stat.size);
+        const read: number = fileIo.readSync(file.fd, buffer);
+        if (read !== stat.size) {
+          this.showMessage('文件没有读取完整，请重新选择。', true);
+          this.uploadResultVisible = true;
+          return;
+        }
+        const helper: util.Base64Helper = new util.Base64Helper();
+        const encoded: string = helper.encodeToStringSync(new Uint8Array(buffer));
+        const fileName: string = this.fileNameFromUri(uri);
+        await this.uploadEncoded(fileName, encoded, stat.size, this.mimeTypeFor(fileName));
+      } finally {
+        fileIo.closeSync(file);
+      }
+    } catch (error) {
+      this.isUploading = false;
+      this.showMessage('文件选择或读取失败，请重试。', true);
+      this.uploadResultVisible = true;
+    }
   }
 
   private async uploadSample(): Promise<void> {
@@ -471,6 +547,9 @@ struct KnowledgeBasePage {
       if (this.detailVisible) {
         this.DocumentDetailOverlay()
       }
+      if (this.uploadResultVisible) {
+        this.UploadResultOverlay()
+      }
     }
     .width('100%').height('100%')
   }
@@ -621,8 +700,8 @@ struct KnowledgeBasePage {
           if ((doc.knowledgePoints ?? []).length > 0) {
             Text(`知识点：${(doc.knowledgePoints ?? []).join('、')}`)
               .fontSize(12).fontColor('#2563EB').width('100%').lineHeight(18)
-            Text(`AI 从你的资料中学到：识别 ${(doc.knowledgePoints ?? []).length} 个知识点、` +
-              `提取 ${doc.chunkCount ?? 0} 个可用于出题的片段` +
+            Text(`资料解析结果：识别 ${(doc.knowledgePoints ?? []).length} 个知识点、` +
+              `提取 ${doc.chunkCount ?? 0} 个可检索片段` +
               ((doc.errorPointCandidates ?? []).length > 0
                 ? `、发现 ${(doc.errorPointCandidates ?? []).length} 个易错点` : ''))
               .fontSize(12).fontColor('#166534').width('100%').lineHeight(18)
@@ -727,10 +806,36 @@ struct KnowledgeBasePage {
   }
 
   @Builder
+  UploadResultOverlay() {
+    Column() {
+      Column({ space: 14 }) {
+        Text(this.messageIsError ? '上传未完成' : '上传成功')
+          .fontSize(18).fontWeight(FontWeight.Bold)
+          .fontColor(this.messageIsError ? '#B91C1C' : '#166534')
+        Text(this.message).fontSize(13).lineHeight(20).fontColor('#475467').width('100%')
+        Button('知道了').width('100%').height(42).fontColor('#FFFFFF')
+          .backgroundColor('#2563EB').borderRadius(10)
+          .onClick(() => { this.uploadResultVisible = false; })
+      }
+      .width('84%').padding(18).backgroundColor('#FFFFFF').borderRadius(16)
+      .border({ width: 1, color: '#E2E8F0' })
+    }
+    .width('100%').height('100%').justifyContent(FlexAlign.Center)
+    .backgroundColor('rgba(15, 23, 42, 0.45)')
+  }
+
+  @Builder
   UploadSection() {
     Column({ space: 12 }) {
-      Text('支持 TXT / Markdown / CSV / JSON。PDF 暂不支持（会明确提示失败原因）。')
+      Text('支持 TXT / Markdown / CSV / JSON / Word（DOCX）/ PDF。扫描版 PDF 需先做 OCR。')
         .fontSize(12).fontColor('#64748B').width('100%').lineHeight(18)
+
+      Button(this.isUploading ? '正在上传…' : '选择 Word / PDF / 文本文件')
+        .width('100%').height(46).fontSize(14).fontColor('#2563EB')
+        .backgroundColor('#EFF6FF').borderRadius(10)
+        .border({ width: 1, color: '#BFDBFE' })
+        .enabled(!this.isUploading)
+        .onClick(() => { this.pickAndUploadDocument(); })
 
       TextArea({ placeholder: '把讲义 / 笔记内容粘贴到这里…', text: this.sampleText })
         .height(160).fontSize(13)

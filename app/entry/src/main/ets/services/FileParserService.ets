@@ -410,6 +410,47 @@ export class FileParserService {
     return FileParserService.parseDDLsFromCSV(trimmed);
   }
 
+  /**
+   * 根据容器键或 CSV 表头判断内容实际属于课程还是作业 DDL。
+   * 返回空串表示无法可靠判断，由页面沿用用户选择。
+   */
+  static detectImportType(content: string): string {
+    const trimmed: string = content.trim();
+    if (trimmed.length === 0) return '';
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        const parsed: Object = JSON.parse(trimmed);
+        if (FileParserService.jsonArrayOf(parsed, ['ddls', 'ddlList', 'homework']) !== null) {
+          return 'ddl';
+        }
+        if (FileParserService.jsonArrayOf(parsed, ['courses', 'courseList']) !== null) {
+          return 'course';
+        }
+      } catch (error) {
+        return '';
+      }
+      return '';
+    }
+
+    const lines: string[] = trimmed.replace(/\r/g, '').split('\n');
+    const first: number = FileParserService.firstDataLine(lines);
+    if (first < 0) return '';
+    const delimiter: string = FileParserService.detectDelimiter(lines[first]);
+    const header: string[] = FileParserService.splitRow(lines[first], delimiter);
+    let ddlSignals: number = 0;
+    let courseSignals: number = 0;
+    for (let i: number = 0; i < header.length; i++) {
+      const cell: string = header[i];
+      if (headerMatches(TITLE_ALIASES, cell) || headerMatches(DUE_DATE_ALIASES, cell)
+        || headerMatches(ESTIMATED_MINUTES_ALIASES, cell)) ddlSignals++;
+      if (headerMatches(EXAM_DATE_ALIASES, cell) || headerMatches(STUDY_HOURS_ALIASES, cell)
+        || headerMatches(STATUS_ALIASES, cell)) courseSignals++;
+    }
+    if (ddlSignals >= 2 && ddlSignals > courseSignals) return 'ddl';
+    if (courseSignals >= 1 && courseSignals > ddlSignals) return 'course';
+    return '';
+  }
+
   /* ================================================================
    * 模板生成
    * ================================================================ */

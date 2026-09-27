@@ -113,6 +113,11 @@ struct ExercisePractice {
     this.loadExercises(true);
   }
 
+  /** 演示题只属于游客演示身份，真实账号的空画像不再被演示结果污染。 */
+  private isDemoIdentity(): boolean {
+    return appState.currentUser.userId === DemoSnapshot.USER_ID;
+  }
+
   /** 从练习界面回到选择器，换一个知识点练。 */
   private backToPicker(): void {
     this.result = null;
@@ -430,12 +435,25 @@ struct ExercisePractice {
       if (this.pickerOptions.length === 0) {
         Column({ space: 12 }) {
           Text('还没有可练的知识点').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
-          Text('你的知识画像里目前没有知识点记录。可以先做一轮演示题目 —— 做完会按**实际答题结果**建立掌握度，之后这里就会列出你自己的知识点。')
-            .fontSize(13).fontColor('#667085').lineHeight(20).width('100%')
-          Button('先用演示知识点练一轮')
-            .width('100%').height(46).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
-            .backgroundColor('#2563EB').borderRadius(12)
-            .onClick(() => this.practiceDemoPoint())
+          if (this.isDemoIdentity()) {
+            Text('当前是游客演示身份，可以先用演示知识点体验完整练习流程。')
+              .fontSize(13).fontColor('#667085').lineHeight(20).width('100%')
+            Button('先用演示知识点练一轮')
+              .width('100%').height(46).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+              .backgroundColor('#2563EB').borderRadius(12)
+              .onClick(() => this.practiceDemoPoint())
+          } else {
+            Text('先上传课程或资料，或拍一道错题完成诊断。系统会根据你的真实内容生成知识点和练习。')
+              .fontSize(13).fontColor('#667085').lineHeight(20).width('100%')
+            Button('去上传课程 / 资料')
+              .width('100%').height(46).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+              .backgroundColor('#2563EB').borderRadius(12)
+              .onClick(() => router.pushUrl({ url: 'pages/CourseImport' }))
+            Button('去做错题诊断')
+              .width('100%').height(44).fontSize(14).fontColor('#2563EB').backgroundColor('#FFFFFF')
+              .border({ width: 1, color: '#BFDBFE' }).borderRadius(12)
+              .onClick(() => router.pushUrl({ url: 'pages/WrongQuestion' }))
+          }
         }.width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
       } else {
         ForEach(this.pickerOptions, (item: KnowledgeMastery, index: number) => {

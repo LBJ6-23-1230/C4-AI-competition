@@ -214,6 +214,15 @@ struct StudyTags {
   }
 
   private evidenceValue(evidence: Evidence): string {
+    if (typeof evidence.value === 'number') {
+      const value: number = evidence.value as number;
+      // 正确率等指标通常是 0–1，小数原样展示会出现
+      // `0.6667000000000001` 这类浮点噪声；面向用户统一显示为百分比。
+      if (evidence.metric === 'accuracy' && value >= 0 && value <= 1) {
+        return `${Math.round(value * 100)}%`;
+      }
+      return `${Math.round(value * 100) / 100}`;
+    }
     return JSON.stringify(evidence.value);
   }
 
@@ -334,7 +343,7 @@ struct StudyTags {
                       }.width('100%').alignItems(VerticalAlign.Top)
                       Progress({ value: item.masteryScore, total: 100, type: ProgressType.Linear })
                         .color('#2563EB').backgroundColor('#DBEAFE').height(8).borderRadius(8)
-                      Text(`关联学习证据 ${this.evidenceCount(item.knowledgePointId)} 条`)
+                      Text(`关联练习记录 ${this.evidenceCount(item.knowledgePointId)} 条`)
                         .fontSize(12).fontColor('#475467')
                     }
                     .width('100%').padding(14).backgroundColor('#F8FAFC')
@@ -357,7 +366,7 @@ struct StudyTags {
                       Row() {
                         Text(`${item.oldScore} → ${item.newScore} · 来源：${ApiDisplayFormatter.evidenceSource(item.source)}`)
                           .fontSize(14).fontColor('#1F2937').layoutWeight(1)
-                        Text(this.isHistoryExpanded(item) ? '收起 ↑' : '查看证据 ↓')
+                        Text(this.isHistoryExpanded(item) ? '收起 ↑' : '查看练习详情 ↓')
                           .fontSize(12).fontWeight(FontWeight.Medium).fontColor('#2563EB')
                       }.width('100%').onClick(() => this.toggleHistoryEvidence(item))
                       if (this.isHistoryExpanded(item)) {
@@ -372,23 +381,6 @@ struct StudyTags {
                       }
                     }.width('100%').padding(12).backgroundColor('#EFF6FF').borderRadius(10)
                   }, (item: MasteryHistory) => item.timestamp)
-                }
-                .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
-              }
-
-              if (this.evidence.length > 0) {
-                Column({ space: 10 }) {
-                  Text('Evidence 学习证据').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
-                  ForEach(this.evidence, (item: Evidence) => {
-                    Column({ space: 5 }) {
-                      Text(`${ApiDisplayFormatter.evidenceSource(item.sourceType)} · ${ApiDisplayFormatter.metric(item.metric)}`).fontSize(14).fontWeight(FontWeight.Medium).fontColor('#1F2937')
-                      Text(`知识点：${ApiDisplayFormatter.knowledgePoint(item.knowledgePointId)} · 数值：${this.evidenceValue(item)}`)
-                        .fontSize(12).fontColor('#475467')
-                      Text(ApiDisplayFormatter.timestamp(item.timestamp)).fontSize(11).fontColor('#98A2B3')
-                    }
-                    .width('100%').padding(13).backgroundColor('#F8FAFC')
-                    .border({ width: 1, color: '#E2E8F0' }).borderRadius(12)
-                  }, (item: Evidence) => item.id)
                 }
                 .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
               }

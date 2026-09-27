@@ -720,6 +720,73 @@
         ]
       }
     },
+    "/api/v1/import/schedule-image": {
+      "post": {
+        "summary": "识别课表截图",
+        "description": "调用配置的多模态模型读取真实课表图片，返回可由用户确认后导入的课程列表；未配置模型时明确返回 503，不使用本地模板冒充识别结果。",
+        "operationId": "recognizeScheduleImage",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleRecognitionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "识别成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleRecognitionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "422": {
+            "description": "图片中没有可识别的课程",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "多模态模型调用或响应解析失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "未配置多模态模型",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
         "summary": "注册账号（昵称 + 年级，无需密码）",
@@ -3770,6 +3837,96 @@
           "semanticWeight": {
             "type": "number",
             "description": "本次语义分在融合得分里的权重（0–1）。降级为纯关键词时为 0，可据此判断语义是否真的参与打分。"
+          }
+        }
+      },
+      "ScheduleRecognitionRequest": {
+        "type": "object",
+        "required": [
+          "imageBase64"
+        ],
+        "properties": {
+          "imageBase64": {
+            "type": "string",
+            "description": "课表图片的纯 base64 内容，上限 5MB"
+          }
+        }
+      },
+      "CourseInfo": {
+        "type": "object",
+        "required": [
+          "courseId",
+          "courseName",
+          "exam",
+          "priority",
+          "recentStatus"
+        ],
+        "properties": {
+          "courseId": {
+            "type": "string"
+          },
+          "courseName": {
+            "type": "string"
+          },
+          "exam": {
+            "type": "object",
+            "required": [
+              "date",
+              "daysLeft"
+            ],
+            "properties": {
+              "date": {
+                "type": "string"
+              },
+              "daysLeft": {
+                "type": "integer"
+              }
+            }
+          },
+          "priority": {
+            "type": "string"
+          },
+          "recentStatus": {
+            "type": "object",
+            "required": [
+              "studyHours",
+              "status"
+            ],
+            "properties": {
+              "studyHours": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "ScheduleRecognitionResponse": {
+        "type": "object",
+        "required": [
+          "courses",
+          "recognizedCount",
+          "model",
+          "recognizedAt"
+        ],
+        "properties": {
+          "courses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseInfo"
+            }
+          },
+          "recognizedCount": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "recognizedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

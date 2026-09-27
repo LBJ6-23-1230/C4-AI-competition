@@ -21,6 +21,7 @@ from app.api.partner_invite import (
 )
 from app.api.profile import profile_api
 from app.api.proactive import proactive_api
+from app.api.schedule_import import schedule_import_api
 from app.api.traces import traces_api
 from app.api.workflows import configure_workflows_repository, workflows_api
 from app.auth import service as auth_service
@@ -162,6 +163,7 @@ def create_app(repository_path: str | Path | None = None) -> Flask:
     app.register_blueprint(workflows_api)
     app.register_blueprint(proactive_api)
     app.register_blueprint(knowledge_api)
+    app.register_blueprint(schedule_import_api)
 
     @app.before_request
     def resolve_optional_identity():

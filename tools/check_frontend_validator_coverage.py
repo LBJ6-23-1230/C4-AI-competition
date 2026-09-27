@@ -68,9 +68,13 @@ NON_CONTRACT_ENDPOINTS = {"/", "/health"}
 
 def parse_validator_routes(source: str) -> tuple[set[tuple[str, str]], set[tuple[str, str]]]:
     """从 `.ets` 源码抽出 (method, path) 判定，返回 `(精确集合, 前缀集合)`。"""
-    exact = set(re.findall(r"method === '([A-Z]+)'\s*&&\s*path === '([^']+)'", source))
+    # 校验器会先把原始 path 去掉查询串存入 `route`；兼容旧版直接比较
+    # `path` 的写法，避免检查脚本把全部已覆盖接口误报为缺口。
+    exact = set(re.findall(
+        r"method === '([A-Z]+)'\s*&&\s*(?:path|route) === '([^']+)'", source))
     prefix = set(re.findall(
-        r"method === '([A-Z]+)'\s*&&\s*path\.indexOf\('([^']+)'\)\s*===\s*0", source))
+        r"method === '([A-Z]+)'\s*&&\s*(?:path|route)\.indexOf\('([^']+)'\)\s*===\s*0",
+        source))
     return exact, prefix
 
 

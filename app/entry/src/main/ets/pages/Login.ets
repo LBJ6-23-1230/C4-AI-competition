@@ -68,16 +68,6 @@ struct Login {
   /** 开发模式回显的验证码；非空时界面用醒目样式标注"开发回显"。 */
   @State devCode: string = '';
   @State grade: string = '';
-  /**
-   * 注册时是否**载入演示数据**（二叉树等示例知识点 + 起始计划）。
-   *
-   * 默认 `false`（从零开始），与后端 `seedDemoData` 的默认值、以及用户的要求一致：
-   * 「创建一个新账号最好不直接给出已经写死的数据……否则会给用户一种虚假的感觉，
-   * 用户登录应该做到的事自己上传然后进行一系列的智能体操作。」
-   * 想快速看完整闭环的用户自己勾上 —— **选择权交给用户**，
-   * 与「知识库」那条产品线（要不要用本地演示数据由用户决定）保持同一套口径。
-   */
-  @State seedDemoData: boolean = false;
   @State rememberMe: boolean = true;
   @State showPassword: boolean = false;
   @State busy: boolean = false;
@@ -255,8 +245,9 @@ struct Login {
     // 关键分派
     let result: AuthResult;
     if (this.mode === 'register') {
+      // 真实账号固定从零开始；完整示例只属于“跳过登录”的游客模式。
       result = await AuthClient.loginOrRegister(this.nickname, this.grade, phone,
-        this.password, this.seedDemoData);
+        this.password);
     } else if (phone.length > 0) {
       // 登录且填了手机号 → 按手机号登录（唯一、可验证，比昵称可靠）
       result = await AuthClient.loginByPhone(phone, this.password);
@@ -306,7 +297,8 @@ struct Login {
     }
     this.isHuaweiLoggingIn = true;
     this.message = '';
-    const result: AuthResult = await AuthClient.loginWithHuaweiAccount(this.seedDemoData);
+    // 华为账号首次建号同样不载入任何课程、知识点或计划预置。
+    const result: AuthResult = await AuthClient.loginWithHuaweiAccount();
     if (!this.isActive) {
       return;
     }
@@ -385,12 +377,11 @@ struct Login {
     this.busy = true;
     this.message = '';
     // 昵称/年级只在"首次自动建号"时被后端采用；已注册手机号会忽略它们。
-    // `seedDemoData` 同理：只在该手机号**首次建号**时起作用。
+    // 验证码首次建号固定为空数据，演示预置只保留给游客身份。
     const result: AuthResult = await AuthClient.verifyCode(
       this.normalizedPhone(), this.verifyCode.trim(),
       this.nickname.length > 0 ? this.nickname : undefined,
-      this.grade.length > 0 ? this.grade : undefined,
-      this.seedDemoData);
+      this.grade.length > 0 ? this.grade : undefined);
     if (!this.isActive) {
       return;
     }
@@ -645,37 +636,13 @@ struct Login {
               }.width('100%')
             }
 
-            // ---------- 载入演示数据？（仅注册模式） ----------
-            // 「选择权交给用户」：新账号默认**不写死**任何知识点与计划，
-            // 想快速看完整闭环的人自己勾。两种状态下文案都要把后果说清楚，
-            // 不能只写个"载入演示数据"让用户猜系统到底给了他什么。
             if (this.mode === 'register') {
-              Column({ space: 8 }) {
-                Row({ space: 10 }) {
-                  Text(this.seedDemoData ? '☑' : '☐')
-                    .fontSize(18).fontColor(this.seedDemoData ? '#2563EB' : '#94A3B8')
-                  Column({ space: 4 }) {
-                    Text('载入演示数据（二叉树等示例知识点与计划）')
-                      .fontSize(14).fontWeight(FontWeight.Medium).fontColor('#0F172A').width('100%')
-                    Text('适合快速体验：注册完立刻有一份示例画像与计划。')
-                      .fontSize(11).fontColor('#98A2B3').lineHeight(17).width('100%')
-                  }.layoutWeight(1)
-                }
-                .width('100%')
-                .enabled(!this.busy)
-                .onClick(() => { this.seedDemoData = !this.seedDemoData; })
-
-                Text(this.seedDemoData
-                  ? '将写入示例知识点「二叉树后序遍历」与一份 30 分钟起始计划 —— 它们是示例，不是你自己的记录。'
-                  : '从零开始：画像与计划不预置任何内容，会从你自己的练习与智能体对话中建立。')
-                  .fontSize(11)
-                  .fontColor(this.seedDemoData ? '#B45309' : '#1D4ED8')
-                  .lineHeight(17).width('100%')
-              }
+              Text('新账号将从零开始：不预置课程、知识点或学习计划，内容由你导入的资料、练习和智能体操作逐步建立。')
+                .fontSize(11).fontColor('#1D4ED8').lineHeight(17).width('100%')
               .width('100%').padding(12)
-              .backgroundColor(this.seedDemoData ? '#FFFBEB' : '#F8FAFC')
+              .backgroundColor('#F8FAFC')
               .borderRadius(10)
-              .border({ width: 1, color: this.seedDemoData ? '#FDE68A' : '#E2E8F0' })
+              .border({ width: 1, color: '#E2E8F0' })
             }
 
             // 记住我

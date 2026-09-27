@@ -199,6 +199,24 @@ def test_register_defaults_to_empty_profile(client):
     assert plan.get_json()["errorCode"] == "NOT_FOUND"
 
 
+def test_empty_account_workflow_never_injects_demo_knowledge(client):
+    """真实空账号即使显式启动工作流，也不能凭空得到二叉树计划。"""
+    registered = _register(client, seed_demo_data=False)
+    headers = _auth_header(registered["token"])
+
+    created = client.post("/api/v1/workflows", json={"goal": "从零开始"},
+                          headers=headers).get_json()
+    client.post(f"/api/v1/workflows/{created['sessionId']}/run", json={},
+                headers=headers)
+
+    plan = client.get("/api/v1/plans/current", headers=headers)
+    assert plan.status_code == 200
+    assert plan.get_json()["tasks"] == []
+    profile = client.get(f"/api/v1/profile/{registered['user']['userId']}",
+                         headers=headers).get_json()
+    assert profile["mastery"] == []
+
+
 def test_register_can_opt_into_demo_data(client):
     """显式 `seedDemoData: true` → 保持原行为（示例知识点 + 起始计划），便于快速体验。"""
     registered = _register(client, seed_demo_data=True)

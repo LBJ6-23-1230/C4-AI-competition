@@ -6,6 +6,8 @@
 """
 
 import base64
+import io
+import zipfile
 
 from app import create_app
 from app.agent import knowledge
@@ -152,8 +154,8 @@ def test_search_rejects_bad_top_k(tmp_path):
 
 
 # --------------------------------------------------------------------- 诚实降级
-def test_pdf_upload_fails_honestly_not_silently(tmp_path):
-    """PDF 第一期不支持，必须**明确失败并给出原因**，不能假装成功。"""
+def test_invalid_pdf_upload_fails_honestly_not_silently(tmp_path):
+    """损坏的 PDF 必须明确失败，不能假装解析成功。"""
     client = create_app(tmp_path / "kb-pdf.json").test_client()
     kb_id = _make_kb(client)
 
@@ -167,14 +169,39 @@ def test_pdf_upload_fails_honestly_not_silently(tmp_path):
     assert body["chunkCount"] == 0
 
 
-def test_unsupported_extension_fails_honestly(tmp_path):
+def test_docx_upload_extracts_text(tmp_path):
     client = create_app(tmp_path / "kb-ext.json").test_client()
     kb_id = _make_kb(client)
 
-    body = _upload(client, kb_id, file_name="讲义.docx", text="内容").get_json()
+    document_xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body><w:p><w:r><w:t>二叉树后序遍历的顺序是左右根。</w:t></w:r></w:p></w:body>
+</w:document>"""
+    payload = io.BytesIO()
+    with zipfile.ZipFile(payload, "w") as archive:
+        archive.writestr("word/document.xml", document_xml)
+
+    response = client.post(f"/api/v1/knowledge-bases/{kb_id}/documents", json={
+        "fileName": "讲义.docx",
+        "contentBase64": base64.b64encode(payload.getvalue()).decode("ascii"),
+    }, headers=H)
+    body = response.get_json()
+
+    assert body["status"] == "ready"
+    assert body["chunkCount"] == 1
+    hits = client.post(f"/api/v1/knowledge-bases/{kb_id}/search",
+                       json={"query": "后序遍历"}, headers=H).get_json()["hits"]
+    assert hits and "左右根" in hits[0]["text"]
+
+
+def test_legacy_doc_extension_fails_with_conversion_hint(tmp_path):
+    client = create_app(tmp_path / "kb-doc.json").test_client()
+    kb_id = _make_kb(client)
+
+    body = _upload(client, kb_id, file_name="讲义.doc", text="内容").get_json()
 
     assert body["status"] == "failed"
-    assert "不支持" in body["statusMessage"]
+    assert "docx" in body["statusMessage"]
 
 
 def test_invalid_base64_fails_honestly(tmp_path):

@@ -1,5 +1,5 @@
 import { util } from '@kit.ArkTS';
-import { DecisionFactor, DemoResetResponse, Evidence, Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeChunkHit, KnowledgeDocument, KnowledgeDocumentChunk, KnowledgeDocumentDetail, KnowledgeDocumentListResponse, KnowledgeDocumentUploadRequest, KnowledgeMastery, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
+import { DecisionFactor, DemoResetResponse, Evidence, Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeChunkHit, KnowledgeDocument, KnowledgeDocumentChunk, KnowledgeDocumentDetail, KnowledgeDocumentListResponse, KnowledgeDocumentUploadRequest, KnowledgeMastery, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, ScheduleRecognitionResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { ApiDefaults } from './ApiDefaults';
 import { FixtureDemoStateStore } from './FixtureDemoStateStore';
@@ -127,6 +127,22 @@ export class FixtureApiTransport {
       FixtureDemoStateStore.reset();
       FixtureApiTransport.resetKnowledge();
       return apiSuccess<DemoResetResponse>(FixtureApiTransport.reset(), 'fixture') as ApiResult<T>;
+    }
+    if (method === 'POST' && route === '/api/v1/import/schedule-image') {
+      const recognized: ScheduleRecognitionResponse = {
+        courses: [
+          { courseId: 'ocr-fixture-data-structure', courseName: '数据结构',
+            exam: { date: '未设置', daysLeft: 30 }, priority: '高',
+            recentStatus: { studyHours: 0, status: '待建立复习记录' } },
+          { courseId: 'ocr-fixture-operating-system', courseName: '操作系统',
+            exam: { date: '未设置', daysLeft: 30 }, priority: '中',
+            recentStatus: { studyHours: 0, status: '待建立复习记录' } }
+        ],
+        recognizedCount: 2,
+        model: 'fixture-schedule-sample',
+        recognizedAt: new Date().toISOString()
+      };
+      return apiSuccess<ScheduleRecognitionResponse>(recognized, 'fixture') as ApiResult<T>;
     }
     if (method === 'POST' && route === '/api/v1/agent/proactive') {
       return apiSuccess<ProactiveResponse>(FixtureApiTransport.proactive(body as ProactiveRequest), 'fixture') as ApiResult<T>;

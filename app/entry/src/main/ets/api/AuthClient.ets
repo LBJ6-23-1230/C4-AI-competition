@@ -142,11 +142,9 @@ export class AuthClient {
    * 它是一颗休眠炸弹：谁按注释去用它就会踩。
    * 现在类型层面挡住了这条路。
    *
-   * `seedDemoData` = 是否顺便载入演示数据（二叉树等示例）；省略即"从零开始"，
-   * 与后端默认值一致 —— 详见 `AuthSeedDemoDataField`。
+   * 真实账号固定从零开始；演示数据只属于游客 `demo-user`。
    */
-  static async register(nickname: string, phone: string, grade?: string,
-    seedDemoData?: boolean): Promise<AuthResult> {
+  static async register(nickname: string, phone: string, grade?: string): Promise<AuthResult> {
     if (AgentApiClient.getConfig().useFixture) {
       return AuthClient.offlineUnavailable();
     }
@@ -159,7 +157,7 @@ export class AuthClient {
       nickname: nickname.trim(),
       phone: phone.trim(),
       grade: grade !== undefined && grade.length > 0 ? grade : undefined,
-      seedDemoData: seedDemoData === true
+      seedDemoData: false
     });
     if (!result.ok) {
       return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
@@ -188,10 +186,10 @@ export class AuthClient {
    * 现在由服务端判定：昵称已存在就登录、不存在才建号，响应里的 `created`
    * 用于区分文案。
    *
-   * `seedDemoData` 只在**本次真的建号**时生效（已存在的账号不会被覆盖画像）。
+   * 新建真实账号一律不载入演示数据。
    */
   static async loginOrRegister(nickname: string, grade: string, phone?: string,
-    password?: string, seedDemoData?: boolean): Promise<AuthResult> {
+    password?: string): Promise<AuthResult> {
     if (AgentApiClient.getConfig().useFixture) {
       return AuthClient.offlineUnavailable();
     }
@@ -205,7 +203,7 @@ export class AuthClient {
       grade: grade.length > 0 ? grade : undefined,
       phone: phone !== undefined && phone.length > 0 ? phone : undefined,
       password: password !== undefined && password.length > 0 ? password : undefined,
-      seedDemoData: seedDemoData === true
+      seedDemoData: false
     });
     if (!result.ok) {
       return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
@@ -316,7 +314,7 @@ export class AuthClient {
    * 因此可以放心一并传上，不需要前端先探测"这个号存不存在"。
    */
   static async verifyCode(phone: string, code: string,
-    nickname?: string, grade?: string, seedDemoData?: boolean): Promise<AuthResult> {
+    nickname?: string, grade?: string): Promise<AuthResult> {
     if (AgentApiClient.getConfig().useFixture) {
       return AuthClient.offlineUnavailable();
     }
@@ -335,9 +333,8 @@ export class AuthClient {
     if (grade !== undefined && grade.length > 0) {
       request.grade = grade;
     }
-    // 验证码链路对**未注册手机号**会自动建号，所以要带上同一个选择；
-    // 已注册手机号会走登录，服务端会忽略这个字段。
-    request.seedDemoData = seedDemoData === true;
+    // 验证码链路对未注册手机号会自动建号，但真实账号仍固定从零开始。
+    request.seedDemoData = false;
 
     const result = await AgentApiClient.authVerifyCode(request);
     if (!result.ok) {
@@ -378,7 +375,7 @@ export class AuthClient {
    * 缺任何一条都会在 `executeRequest` 阶段失败。这里把失败原因
    * **原样返回给用户**，不静默降级成"登录成功"。
    */
-  static async loginWithHuaweiAccount(seedDemoData?: boolean): Promise<AuthResult> {
+  static async loginWithHuaweiAccount(): Promise<AuthResult> {
     if (AgentApiClient.getConfig().useFixture) {
       return AuthClient.offlineUnavailable();
     }
@@ -390,8 +387,8 @@ export class AuthClient {
       openId: outcome.openId,
       unionId: outcome.unionId,
       nickname: outcome.nickname,
-      // 首次用华为账号登录时会自动建号，同样要尊重用户的"载入 / 不载入"选择
-      seedDemoData: seedDemoData === true
+      // 首次用华为账号登录时会自动建号，但演示预置只属于游客模式。
+      seedDemoData: false
     });
     if (!result.ok) {
       return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };

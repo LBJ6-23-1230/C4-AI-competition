@@ -1,3 +1,5 @@
+import { CourseInfo } from '../models/AgentModels';
+
 /** DTOs mirrored from the authoritative Agent backend contract. */
 export const API_CONTRACT_VERSION: string = 'api-contract-v0.3';
 
@@ -146,6 +148,17 @@ export interface KnowledgeDocumentUploadRequest {
   mimeType?: string;
   sizeBytes?: number;
   userId?: string;
+}
+
+export interface ScheduleRecognitionRequest {
+  imageBase64: string;
+}
+
+export interface ScheduleRecognitionResponse {
+  courses: CourseInfo[];
+  recognizedCount: number;
+  model: string;
+  recognizedAt: string;
 }
 
 export interface Evidence {

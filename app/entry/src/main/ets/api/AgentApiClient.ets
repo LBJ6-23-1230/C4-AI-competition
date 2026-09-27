@@ -1,5 +1,5 @@
 import { http } from '@kit.NetworkKit';
-import { API_CONTRACT_VERSION, DemoResetResponse, PartnerContactListResponse, PartnerInvitationCreateRequest, PartnerInvitationListResponse, PartnerInvitationResponse, PartnerMatchRequest, PartnerMatchResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeDocument, KnowledgeDocumentDetail, KnowledgeDocumentUploadRequest, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
+import { API_CONTRACT_VERSION, DemoResetResponse, PartnerContactListResponse, PartnerInvitationCreateRequest, PartnerInvitationListResponse, PartnerInvitationResponse, PartnerMatchRequest, PartnerMatchResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeDocument, KnowledgeDocumentDetail, KnowledgeDocumentUploadRequest, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, ScheduleRecognitionRequest, ScheduleRecognitionResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiFailure, ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { ApiDefaults } from './ApiDefaults';
 import { AuthChangePasswordRequest, AuthChangePasswordResponse, AuthHuaweiLoginRequest, AuthLoginOrRegisterRequest, AuthLoginOrRegisterResponse, AuthLoginRequest, AuthRegisterRequest, AuthSendCodeRequest, AuthSendCodeResponse, AuthSessionResponse, AuthStatusResponse, AuthUserResponse, AuthVerifyCodeRequest } from './AuthModels';
@@ -114,6 +114,12 @@ export class AgentApiClient {
 
   static async resetDemo(): Promise<ApiResult<DemoResetResponse>> {
     return AgentApiClient.request<DemoResetResponse>(http.RequestMethod.POST, '/api/v1/demo/reset');
+  }
+
+  static async recognizeScheduleImage(
+    request: ScheduleRecognitionRequest): Promise<ApiResult<ScheduleRecognitionResponse>> {
+    return AgentApiClient.request<ScheduleRecognitionResponse>(http.RequestMethod.POST,
+      '/api/v1/import/schedule-image', request, ApiDefaults.LLM_BOUND_READ_TIMEOUT_MS);
   }
 
   static async getProactiveDecision(request: ProactiveRequest): Promise<ApiResult<ProactiveResponse>> {
