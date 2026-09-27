@@ -32,10 +32,7 @@
 2. **只有收件人能改变邀请状态**。发起人想撤回，那是另一件事（本版不做），
    但绝不能替对方"已接受" —— 那会让"两个人联系起来"变成单方面宣称。
 3. **不编造**。目标账号不存在就如实 404，不假装已经发出去了。
-4. **演示同学要如实标注**。候选人里的 `u002`/`u003` 是 `chat/mock_candidates.json`
-   里的**演示数据，不是真实账号**，没人能登录他们。这类邀请照常记录（发起方看得到），
-   但响应里带 `targetKind: "demo"`，前端据此如实说明"对方是演示同学，不会真的回复" ——
-   而不是让用户以为邀请已经送达了。
+4. **只允许真实账号**。目标账号不存在就返回 404；在线链路不再接纳任何预置候选人。
 """
 
 from __future__ import annotations
@@ -46,7 +43,6 @@ from typing import Any
 
 from flask import Blueprint, jsonify, request
 
-from app.agent.chat_llm import _load_json
 from app.api.identity import resolve_user_id
 from app.api.validation import MAX_ID_CHARS, bad_request, bounded_str, json_object
 
@@ -103,27 +99,12 @@ def _active_user(user_id: str) -> dict[str, Any] | None:
 	return record
 
 
-def _known_candidate_ids() -> set[str]:
-	"""演示候选人的 userId 集合（`u002` / `u003` …）。"""
-	items = _load_json("mock_candidates.json", [])
-	if not isinstance(items, list):
-		return set()
-	return {str(item.get("userId")) for item in items
-		if isinstance(item, dict) and item.get("userId")}
-
-
 def _display_name(user_id: str) -> str:
 	record = _active_user(user_id)
 	if record is not None:
 		name = record.get("nickname")
 		if isinstance(name, str) and name.strip():
 			return name.strip()
-	for item in _load_json("mock_candidates.json", []):
-		if not isinstance(item, dict) or str(item.get("userId")) != user_id:
-			continue
-		info = item.get("basicInfo")
-		if isinstance(info, dict) and isinstance(info.get("name"), str):
-			return info["name"].strip()
 	return user_id
 
 
@@ -228,11 +209,11 @@ def create_invitation():
 	if target == sender:
 		return bad_request("不能邀请自己")
 
-	# 目标必须**要么是有效账号、要么是名单里的演示候选人**。
+	# 目标必须是有效真实账号。
 	# 不做这个校验的话，随手编一个 userId 也能"发出成功"，而对面永远不存在 ——
 	# 那是本工程明令禁止的"静默假成功"。
 	target_account = _active_user(target)
-	if target_account is None and target not in _known_candidate_ids():
+	if target_account is None:
 		return jsonify({
 			"errorCode": "NOT_FOUND",
 			"message": "找不到这个用户，无法发起邀请",
@@ -253,7 +234,7 @@ def create_invitation():
 		"toName": _display_name(target),
 		"message": message,
 		"status": PENDING,
-		"targetKind": "account" if target_account is not None else "demo",
+		"targetKind": "account",
 		"createdAt": _now(),
 		"respondedAt": "",
 	}

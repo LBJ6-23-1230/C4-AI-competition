@@ -1,4 +1,5 @@
 from app import create_app
+from app.agent import chat_llm
 from app.agent.partner_match import match_partners, score_partner
 
 
@@ -11,12 +12,19 @@ def test_partner_match_uses_deterministic_backend_scoring(tmp_path):
 			"knowledge": {"weakness": ["图算法"], "strength": ["递归理解"]},
 			"basicInfo": {"grade": "大二", "major": "计算机科学与技术"},
 		},
+		"candidates": [{
+			"userId": "candidate-1",
+			"basicInfo": {"name": "候选同学", "grade": "大二", "major": "计算机科学与技术"},
+			"learningGoal": {"course": "数据结构", "goal": "期末80+"},
+			"time": {"freeTime": ["21:00-23:00"]},
+			"knowledge": {"weakness": ["递归理解"], "strength": ["图算法"]},
+		}],
 	})
 
 	body = response.get_json()
 	assert response.status_code == 200
 	assert body["realModeUnavailable"] is False
-	assert body["matchedCandidate"]["candidate"]["userId"] == "u002"
+	assert body["matchedCandidate"]["candidate"]["userId"] == "candidate-1"
 	assert body["matchedCandidate"]["factors"]["overlapMinutes"] == 120
 
 
@@ -37,6 +45,65 @@ def test_real_accounts_replace_demo_people_when_available(tmp_path):
 	assert response.status_code == 200
 	assert body["candidateSources"] == {"accounts": 1, "demo": 0}
 	assert body["candidates"][0]["candidate"]["basicInfo"]["name"] == "真实测试同学"
+
+
+def test_online_match_never_falls_back_to_demo_candidates(tmp_path):
+	client = create_app(tmp_path / "partner-no-demo-fallback.json").test_client()
+
+	response = client.post("/api/v1/agent/partner-match", json={"user": {
+		"userId": "demo-user", "basicInfo": {"grade": "大二"},
+	}})
+	body = response.get_json()
+
+	assert response.status_code == 200
+	assert body["candidateSources"] == {"accounts": 0, "demo": 0}
+	assert body["matchedCandidate"] is None
+	assert body["candidates"] == []
+
+
+def test_chat_and_detail_page_share_same_real_account_winner(tmp_path):
+	client = create_app(tmp_path / "partner-shared-ranking.json").test_client()
+	alice = client.post("/api/v1/auth/register", json={
+		"nickname": "甲", "grade": "大二", "phone": "13800138101", "seedDemoData": False,
+	}).get_json()
+	client.post("/api/v1/auth/register", json={
+		"nickname": "低年级候选", "grade": "大一", "phone": "13800138102", "seedDemoData": False,
+	})
+	best = client.post("/api/v1/auth/register", json={
+		"nickname": "同年级最高分", "grade": "大二", "phone": "13800138103", "seedDemoData": False,
+	}).get_json()
+	headers = {"Authorization": f"Bearer {alice['token']}"}
+
+	detail = client.post("/api/v1/agent/partner-match", json={}, headers=headers).get_json()
+	chat_rank = chat_llm._authoritative_partner_scores({}, alice["user"]["userId"])
+
+	assert detail["matchedCandidate"]["candidate"]["userId"] == best["user"]["userId"]
+	assert chat_rank["matchedCandidate"]["userId"] == best["user"]["userId"]
+	assert chat_rank["matchedCandidate"]["score"] == detail["matchedCandidate"]["score"]
+	assert all(item["name"] not in {"小红", "小刚"} for item in chat_rank["全部候选人排名"])
+
+
+def test_chat_response_cannot_be_overridden_by_llm_fixture_name(monkeypatch):
+	authoritative = {
+		"matchedCandidate": {"userId": "real-1", "name": "1", "score": 45},
+		"总分": 45,
+		"分项得分": {"goal": 0, "timeOverlap": 30, "knowledgeComplement": 0,
+			"basicMatch": 10, "stability": 5},
+		"全部候选人排名": [
+			{"userId": "real-1", "name": "1", "score": 45},
+			{"userId": "real-2", "name": "2", "score": 20},
+		],
+	}
+	monkeypatch.setattr(chat_llm, "_authoritative_partner_scores",
+		lambda _data, _user_id: authoritative)
+	monkeypatch.setattr(chat_llm, "_call_llm",
+		lambda *_args, **_kwargs: "小红是你的最佳学习搭子，总分10分。")
+
+	result = chat_llm._handle_match_partner("帮我匹配一个学习搭子", {}, "real-user")
+
+	assert result.startswith("1 是当前匹配分最高的学习搭子（总分 45/100）")
+	assert "小红" not in result
+	assert "总分10" not in result
 
 
 def test_partner_goal_factor_distinguishes_exact_and_course_overlap():

@@ -50,6 +50,20 @@ def _upload(client, kb_id, file_name="二叉树复习讲义.md", text=LECTURE):
                        headers=H)
 
 
+def test_upload_decodes_percent_encoded_file_name(tmp_path):
+    """系统文件选择器返回的 URI 文件名应显示为中文，而不是 `%E5...`。"""
+    client = create_app(tmp_path / "kb-file-name.json").test_client()
+    kb_id = _make_kb(client)
+
+    body = _upload(client, kb_id, file_name="%E8%AF%BE%E7%A8%8B%E8%B5%84%E6%96%99.md").get_json()
+
+    assert body["fileName"] == "课程资料.md"
+
+
+def test_file_name_decode_keeps_path_traversal_out():
+    assert knowledge.normalize_file_name("%2E%2E%2Fsecret.pdf") == "secret.pdf"
+
+
 # --------------------------------------------------------------------- 切片与标题路径
 def test_upload_extracts_chunks_with_heading_path(tmp_path):
     """切片必须带 `headingPath` —— 这是引用能标注"第几章第几节"的前提。"""

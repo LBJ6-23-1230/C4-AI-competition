@@ -11,9 +11,9 @@
 「我想知道如果被邀请的用户能否接受到，并且以怎样的途径同意，并且使两个人
 联系起来呢？」—— 在那个实现下，答案是"不能"。
 
-把注册账号作为候选人之后，A 能在匹配结果里看到 B，邀请才发得出去、
-B 登录后才收得到（收件箱见 `app/api/partner_invite.py`）。只有系统里没有
-其他真实账号时才回退到演示候选人，避免真实使用时继续混入“小红/小刚”。
+把注册账号作为唯一候选人之后，A 能在匹配结果里看到 B，邀请才发得出去、
+B 登录后才收得到（收件箱见 `app/api/partner_invite.py`）。在线模式不再回退
+任何演示候选人；没有其他真实账号时就如实返回空结果。
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from typing import Any
 
 from flask import Blueprint, jsonify
 
-from app.agent.chat_llm import _load_json
+from app.agent import chat_llm
 from app.agent.partner_match import match_partners
 from app.api.identity import resolve_user_id
 from app.api.validation import bad_request, json_object
@@ -40,6 +40,7 @@ _repository = None
 def configure_partner_match_repository(repository) -> None:
 	global _repository
 	_repository = repository
+	chat_llm.set_partner_match_hook(_rank_for_identity)
 
 
 def _mastery_names(profile: dict[str, Any], weak: bool) -> list[str]:
@@ -98,6 +99,42 @@ def _real_candidates(exclude: str) -> list[dict[str, Any]]:
 	return candidates
 
 
+def _real_user_profile(user_id: str) -> dict[str, Any] | None:
+	"""读取一个真实账号的权威匹配画像，与候选人转换规则完全一致。"""
+	if _repository is None:
+		return None
+	record = _repository.get("users", user_id)
+	if not isinstance(record, dict) or record.get("status") != "active":
+		return None
+	profile = _repository.get("profiles", user_id)
+	if not isinstance(profile, dict):
+		profile = {}
+	slots = profile.get("freeTimeSlots")
+	return {
+		"userId": user_id,
+		"basicInfo": {
+			"name": str(record.get("nickname") or user_id),
+			"grade": str(record.get("grade") or ""),
+			"major": str(record.get("major") or ""),
+		},
+		"learningGoal": {"course": "", "goal": str(profile.get("goal") or "")},
+		"time": {"freeTime": slots if isinstance(slots, list) else []},
+		"knowledge": {
+			"weakness": _mastery_names(profile, weak=True),
+			"strength": _mastery_names(profile, weak=False),
+		},
+		"accountKind": "account",
+	}
+
+
+def _rank_for_identity(user_id: str) -> dict[str, Any]:
+	"""聊天与详情页共用的唯一排名入口，只使用真实注册账号。"""
+	user = _real_user_profile(user_id)
+	if user is None:
+		return {"userId": user_id, "matchedCandidate": None, "candidates": []}
+	return match_partners(user, _real_candidates(user_id))
+
+
 @partner_match_api.post("/api/v1/agent/partner-match")
 def post_partner_match():
 	# 非对象 JSON（[1,2,3] / "hello" / 123 / true）原先会因 data.get 抛
@@ -110,15 +147,13 @@ def post_partner_match():
 
 	# 已登录时忽略请求体里的 userId，避免"带甲的 token 拿到乙的匹配结果"。
 	me = resolve_user_id(data.get("userId"))
-	user = data.get("user") or {"userId": me}
+	user = _real_user_profile(me) or data.get("user") or {"userId": me}
 	candidates = data.get("candidates")
 	if not isinstance(user, dict) or (candidates is not None and not isinstance(candidates, list)):
 		return bad_request("user/candidates 格式错误")
 	if candidates is None:
-		# 一旦存在真实账号，就不再把“小红/小刚”等预置人物混进结果；只有
-		# 全新环境没有其他账号时才回退到演示候选，保证游客演示仍可用。
-		real = _real_candidates(me)
-		candidates = real if real else list(_load_json("mock_candidates.json", []))
+		# 联机模式只匹配真实注册账号；没有其他账号就返回空候选。
+		candidates = _real_candidates(me)
 	valid = [item for item in candidates if isinstance(item, dict)]
 	result = match_partners(user, valid)
 	result["candidateSources"] = {

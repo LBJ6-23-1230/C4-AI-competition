@@ -84,6 +84,86 @@ def test_reply_is_labelled_as_local_rule_when_llm_is_absent(client):
     assert "DASHSCOPE_API_KEY" in body["reply"], "未配置 Key 时必须显式声明是本地规则兜底"
 
 
+def test_real_user_without_evidence_never_receives_demo_weakness(client):
+    """真实账号空画像不能回退到小雅链表作业等演示数据。"""
+    body = client.post("/api/agent/chat", json={
+        "message": "帮我看看我的薄弱知识点",
+        "userId": "real-user-with-empty-profile",
+        "user_data": {"isDataImported": False, "courses": [], "homeworkDDLs": []},
+    }).get_json()
+
+    assert body["intent"] == "analyze_weakness"
+    assert body["llmUsed"] is False
+    assert "没有足够的掌握度或有效错题证据" in body["reply"]
+    assert "链表" not in body["reply"]
+
+
+def test_real_user_context_does_not_fall_back_to_mock_courses():
+    data = chat_llm._user_data(
+        {"isDataImported": False, "courses": [], "homeworkDDLs": []},
+        {"userId": "real-user", "knowledge": {"weakness": [], "strength": []},
+         "mastery": []},
+        "real-user",
+    )
+
+    assert data["courses"] == []
+    assert data["users"]["userId"] == "real-user"
+
+
+def test_real_user_can_query_imported_ddls_without_course_table():
+    data = chat_llm._user_data(
+        {"isDataImported": True, "courses": [], "homeworkDDLs": [{
+            "id": "ddl-1", "courseName": "操作系统", "title": "进程调度作业",
+            "dueDate": "2026-10-01",
+        }]},
+        {"userId": "real-user", "knowledge": {"weakness": [], "strength": []}},
+        "real-user",
+    )
+
+    assert data["courses"] == [{
+        "courseName": "操作系统",
+        "exam": {"date": "", "daysLeft": 0},
+        "priority": "中",
+        "recentStatus": {"studyHours": 0, "status": ""},
+        "tasks": [{"taskname": "进程调度作业", "deadline": "2026-10-01"}],
+    }]
+
+
+def test_demo_user_still_uses_packaged_demo_data():
+    data = chat_llm._user_data(None, None, "demo-user")
+
+    assert data["courses"], "演示身份仍应保留离线演示课程"
+    assert data["users"]["basicInfo"]["name"] == "小明"
+
+
+def test_llm_judges_empty_evidence_instead_of_hardcoded_reply(monkeypatch):
+    """有 Key 时应把真实空证据交给 LLM 判断，而不是直接返回固定文案。"""
+    monkeypatch.setenv("DASHSCOPE_API_KEY", "configured")
+    weakness_prompts: list[str] = []
+
+    def _fake_call(system_prompt, user_prompt, **_kwargs):
+        if user_prompt.startswith("现在请分析用户输入"):
+            return '{"intent":"analyze_weakness"}'
+        weakness_prompts.append(user_prompt)
+        return "根据你当前的画像和错题记录，还没有足够证据判断具体薄弱点。"
+
+    monkeypatch.setattr(chat_llm, "_call_llm", _fake_call)
+
+    result = chat_llm.chat(
+        "帮我看看我的薄弱知识点",
+        frontend_data={"isDataImported": False, "courses": [], "homeworkDDLs": []},
+        user_id="real-empty-user",
+        user_context={"userId": "real-empty-user",
+                      "knowledge": {"weakness": [], "strength": []}, "mastery": []},
+    )
+
+    assert result["llmUsed"] is True
+    assert result["reply"].startswith("根据你当前的画像和错题记录")
+    assert weakness_prompts, "薄弱点子 Agent 必须实际调用 LLM"
+    assert '"hasLearningEvidence": false' in weakness_prompts[0]
+    assert "当前用户的有效错题证据：[]" in weakness_prompts[0]
+
+
 def test_image_without_llm_does_not_claim_multimodal_recognition(client):
     body = client.post("/api/agent/chat",
                        json={"image": "ZmFrZS1pbWFnZQ=="}).get_json()

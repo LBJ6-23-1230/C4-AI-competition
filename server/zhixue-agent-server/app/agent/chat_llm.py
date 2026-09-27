@@ -19,6 +19,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import threading
 import time
 import uuid
@@ -47,6 +48,9 @@ _HISTORY_LOCK = threading.RLock()
 #: 签名 `(user_id, updates) -> list[str]`，返回**实际写入成功的字段名列表**，
 #: 供回复文案如实说明"改了什么"。未注册时按"无法落盘"处理（不再谎称成功）。
 _PROFILE_UPDATE_HOOK: Any = None
+#: 学习搭子的权威排名钩子：由 API 层注入仓储中的真实账号排名。
+#: 对话层不得再自行读取 `mock_candidates.json`，否则聊天与详情页会选出不同的人。
+_PARTNER_MATCH_HOOK: Any = None
 
 # 对话式画像修改采用“两步确认”：第一轮只暂存模型解析出的结构化改动，
 # 用户明确回复“确认更新”后才落盘。这样既防止模型误解一句自然语言就改档案，
@@ -61,6 +65,12 @@ def set_profile_update_hook(hook: Any) -> None:
     """注册画像落盘钩子（由 api 层在 create_app 时调用）。"""
     global _PROFILE_UPDATE_HOOK
     _PROFILE_UPDATE_HOOK = hook
+
+
+def set_partner_match_hook(hook: Any) -> None:
+    """注册“按当前身份返回确定性搭子排名”的钩子。"""
+    global _PARTNER_MATCH_HOOK
+    _PARTNER_MATCH_HOOK = hook
 
 
 def _var_dir() -> Path:
@@ -382,10 +392,12 @@ def _format_history(num_entries: int = 10, user_id: str | None = None) -> str:
 def _format_frontend_courses(courses: list[Any], ddls: list[Any]) -> list[dict[str, Any]]:
     """把前端注入的 CourseInfo[] + HomeworkDDL[] 转成 Prompt 可读的结构。"""
     result: list[dict[str, Any]] = []
+    seen_course_names: set[str] = set()
     for course in courses:
         if not isinstance(course, dict):
             continue
         course_name = course.get("courseName", "")
+        seen_course_names.add(str(course_name))
         exam = course.get("exam") if isinstance(course.get("exam"), dict) else {}
         recent = course.get("recentStatus") if isinstance(course.get("recentStatus"), dict) else {}
         tasks = [
@@ -403,11 +415,36 @@ def _format_frontend_courses(courses: list[Any], ddls: list[Any]) -> list[dict[s
             },
             "tasks": tasks,
         })
-    return result or _load_json("mock_courses.json", [])
+    # 允许用户只导入 DDL，而没有先导入课表。原实现只遍历 courses，
+    # 这种情况下明明 homeworkDDLs 有数据，Prompt 里却仍是“暂无任务”。
+    ddl_course_names = list(dict.fromkeys(
+        str(item.get("courseName") or "").strip()
+        for item in (ddls or []) if isinstance(item, dict)
+        and str(item.get("courseName") or "").strip()
+    ))
+    for course_name in ddl_course_names:
+        if course_name in seen_course_names:
+            continue
+        result.append({
+            "courseName": course_name,
+            "exam": {"date": "", "daysLeft": 0},
+            "priority": "中",
+            "recentStatus": {"studyHours": 0, "status": ""},
+            "tasks": [
+                {"taskname": item.get("title", ""), "deadline": item.get("dueDate", "")}
+                for item in (ddls or [])
+                if isinstance(item, dict) and item.get("courseName", "") == course_name
+            ],
+        })
+    # 这里只做格式转换，不能偷偷补演示数据。是否允许使用 mock 课程必须由
+    # `_user_data()` 根据当前身份统一决定，否则真实账号传空课程时会被悄悄
+    # 塞入“小雅链表作业 / 过期高数任务”，继而被模型误判成用户薄弱点。
+    return result
 
 
 def _user_data(frontend_data: dict[str, Any] | None,
-               user_context: dict[str, Any] | None = None) -> dict[str, Any]:
+               user_context: dict[str, Any] | None = None,
+               user_id: str | None = None) -> dict[str, Any]:
     """组装喂给模型的上下文。
 
     `users` 一节**优先用调用方传入的真实身份资料** `user_context`（由 API 层按
@@ -419,14 +456,92 @@ def _user_data(frontend_data: dict[str, Any] | None,
     模型都会把用户当成"小明"、张口就"二叉树遍历"。这是实测反馈
     「怎么一直在小明」「默认不要直接说我掌握了二叉树遍历」的根因。
     """
+    identity = (user_id or "").strip()
+    use_demo_data = not identity or identity == DEFAULT_HISTORY_USER
     users = (user_context if isinstance(user_context, dict) and user_context
-             else _load_json("mock_users.json", {}))
+             else (_load_json("mock_users.json", {}) if use_demo_data else {
+                 "userId": identity,
+                 "basicInfo": {"name": "同学", "grade": "", "major": ""},
+                 "knowledge": {"weakness": [], "strength": []},
+                 "mastery": [],
+             }))
     if frontend_data and frontend_data.get("isDataImported"):
         courses = _format_frontend_courses(
             frontend_data.get("courses") or [], frontend_data.get("homeworkDDLs") or [])
-    else:
+        if not courses and use_demo_data:
+            courses = _load_json("mock_courses.json", [])
+    elif use_demo_data:
         courses = _load_json("mock_courses.json", [])
-    return {"users": users, "courses": courses}
+    else:
+        courses = []
+    wrong_questions = _wrong_question_evidence(identity)
+    return {
+        "users": users,
+        "courses": courses,
+        "wrongQuestions": wrong_questions,
+        "evidenceSummary": {
+            "hasLearningEvidence": _profile_has_learning_evidence(users) or bool(wrong_questions),
+            "validWrongQuestionCount": len(wrong_questions),
+        },
+    }
+
+
+def _profile_has_learning_evidence(users: Any) -> bool:
+    """画像里是否存在掌握度或显式强弱项证据。"""
+    if not isinstance(users, dict):
+        return False
+    mastery = users.get("mastery")
+    if isinstance(mastery, list) and any(isinstance(item, dict) for item in mastery):
+        return True
+    knowledge = users.get("knowledge")
+    if not isinstance(knowledge, dict):
+        return False
+    for key in ("weakness", "strength"):
+        points = knowledge.get(key)
+        if isinstance(points, list) and any(str(point).strip() for point in points):
+            return True
+    return False
+
+
+def _wrong_question_evidence(user_id: str) -> list[dict[str, Any]]:
+    """只提取当前用户且确实识别出知识点的错题证据。
+
+    “用户未提供题目，无法判断”这类占位诊断不算证据；演示账号与真实账号
+    严格按 userId 隔离，不能把包内 demo-user 的错题喂给真实用户的模型。
+    """
+    if not user_id:
+        user_id = DEFAULT_HISTORY_USER
+    rows = _load_json("mock_wrong_questions.json", [])
+    evidence: list[dict[str, Any]] = []
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict) or str(row.get("userId") or "") != user_id:
+            continue
+        analysis = row.get("AIAnalysis") or row.get("analysis") or {}
+        if not isinstance(analysis, dict):
+            continue
+        raw_points = analysis.get("knowledge") or analysis.get("knowledgePoint") or []
+        if not isinstance(raw_points, list):
+            raw_points = [raw_points]
+        points: list[str] = []
+        for point in raw_points:
+            name = point.get("name") if isinstance(point, dict) else point
+            clean = str(name or "").strip()
+            if clean and clean not in points:
+                points.append(clean)
+        if not points:
+            continue
+        evidence.append({
+            "questionId": str(row.get("questionId") or analysis.get("questionId") or ""),
+            "knowledgePoints": points[:5],
+            "wrongType": str(analysis.get("wrongType") or ""),
+            "reason": str(analysis.get("reason") or ""),
+        })
+    return evidence[-10:]
+
+
+def _has_learning_evidence(data: dict[str, Any]) -> bool:
+    summary = data.get("evidenceSummary")
+    return bool(isinstance(summary, dict) and summary.get("hasLearningEvidence"))
 
 
 def _task_lines(courses: Any) -> list[str]:
@@ -458,11 +573,14 @@ def _context_prompt(user_message: str, data: dict[str, Any],
         f"当前日期：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}\n"
         f"用户信息：{json.dumps(data.get('users', {}), ensure_ascii=False)}\n"
         f"课程信息：{json.dumps(data.get('courses', {}), ensure_ascii=False)}\n"
-        f"任务列表：{chr(10).join(_task_lines(data.get('courses', {}))) or '暂无任务'}"
+        f"任务列表：{chr(10).join(_task_lines(data.get('courses', {}))) or '暂无任务'}\n"
+        f"当前用户的有效错题证据：{json.dumps(data.get('wrongQuestions', []), ensure_ascii=False)}\n"
+        f"证据摘要：{json.dumps(data.get('evidenceSummary', {}), ensure_ascii=False)}"
     )
 
 
 def _partner_prompt(user_message: str, data: dict[str, Any],
+                    authoritative: dict[str, Any],
                     user_id: str | None = None) -> str:
     users = data.get("users", {})
     profile = users if isinstance(users, dict) else {}
@@ -474,7 +592,7 @@ def _partner_prompt(user_message: str, data: dict[str, Any],
         f"用户学习目标：{json.dumps(profile.get('learningGoal', {}), ensure_ascii=False)}\n"
         f"用户空闲时间：{json.dumps(profile.get('time', {}), ensure_ascii=False)}\n"
         f"用户知识情况：{json.dumps(profile.get('knowledge', {}), ensure_ascii=False)}\n"
-        f"候选人列表：{json.dumps(_load_json('mock_candidates.json', []), ensure_ascii=False)}"
+        f"后端确定性排名：{json.dumps(authoritative, ensure_ascii=False)}"
     )
 
 
@@ -572,7 +690,9 @@ def _handle_query_tasks(message: str, data: dict[str, Any],
 
 def _handle_analyze_weakness(message: str, data: dict[str, Any],
              user_id: str | None = None) -> str:
-    return _call_llm(_load_prompt("AnalyzeWeaknessPrompt.txt"), _context_prompt(message, data, user_id))
+    return _call_llm(
+        _load_prompt("AnalyzeWeaknessPrompt.txt"),
+        _context_prompt(message, data, user_id))
 
 
 def _handle_get_suggestion(message: str, data: dict[str, Any],
@@ -599,48 +719,90 @@ def _handle_match_partner(message: str, data: dict[str, Any],
     再把**结果**注入 prompt，让模型只做"用自然语言解释为什么是这个人"
     这件事。prompt 里的打分规则已删除（见 MatchPartnerPrompt.txt）。
     """
-    authoritative = _authoritative_partner_scores(data)
-    prompt = _partner_prompt(message, data, user_id)
-    if authoritative:
-        prompt = (
-            f"{prompt}\n\n"
-            f"【已由确定性引擎算好的匹配结果（**直接引用，不要自己重新算分**）】\n"
-            f"{json.dumps(authoritative, ensure_ascii=False)}\n"
-            f"请基于这份结果说明：为什么是这个人、哪几项匹配得好、建议怎么一起学。"
-            f"若用户问分数，必须原样引用上面的总分与分项分，不得改动。"
-        )
-    return _call_llm(_load_prompt("MatchPartnerPrompt.txt"), prompt)
+    authoritative = _authoritative_partner_scores(data, user_id)
+    prompt = _partner_prompt(message, data, authoritative, user_id)
+    prompt = (
+        f"{prompt}\n\n"
+        f"【已由确定性引擎算好的唯一权威结果】\n"
+        f"{json.dumps(authoritative, ensure_ascii=False)}\n"
+        f"只能解释匹配原因，不要重复候选人姓名或总分。不得提到小红、小刚等预置人物，"
+        f"不得自行换人或重新算分。"
+    )
+    best = authoritative.get("matchedCandidate")
+    if not isinstance(best, dict) or not str(best.get("name") or "").strip():
+        return "当前真实账号候选中暂无合适的学习搭子。可以先完善课程目标和空闲时间，再重新匹配。"
+
+    # 人选和总分属于业务结果，必须由确定性引擎落字，不能再让 LLM 决定。
+    # LLM 只补充说明；一旦它提到旧预置人物、其他候选人或自行报分，就丢弃该段，
+    # 避免历史上下文把“小红”等已删除 Fixture 带回线上回复。
+    name = str(best["name"]).strip()
+    score = best.get("score")
+    explanation = _call_llm(_load_prompt("MatchPartnerPrompt.txt"), prompt).strip()
+    other_names = {
+        str(item.get("name") or "").strip()
+        for item in (authoritative.get("全部候选人排名") or [])
+        if isinstance(item, dict) and str(item.get("name") or "").strip() != name
+    }
+    forbidden_names = ({"小红", "小刚"} | other_names) - {name}
+    if (not explanation
+            or any(candidate in explanation for candidate in forbidden_names)
+            or re.search(r"\d+\s*(?:分|/\s*100)", explanation)):
+        explanation = _partner_factor_explanation(authoritative.get("分项得分"))
+    return f"{name} 是当前匹配分最高的学习搭子（总分 {score}/100）。{explanation}"
 
 
-def _authoritative_partner_scores(data: dict[str, Any]) -> dict[str, Any]:
-    """用确定性引擎算出搭子排名；数据不足时返回空 dict（不猜）。"""
-    from app.agent.partner_match import match_partners  # 局部导入，避免循环依赖
+def _partner_factor_explanation(factors: Any) -> str:
+    """在 LLM 解释越权时，用权威分项生成不含虚构人物的简短说明。"""
+    values = factors if isinstance(factors, dict) else {}
+    labels = (
+        ("学习目标", "goal"),
+        ("时间重叠", "timeOverlap"),
+        ("知识互补", "knowledgeComplement"),
+        ("基础匹配", "basicMatch"),
+        ("稳定性", "stability"),
+    )
+    ranked = sorted(
+        ((label, values.get(key, 0)) for label, key in labels),
+        key=lambda item: item[1] if isinstance(item[1], (int, float)) else 0,
+        reverse=True,
+    )
+    useful = [f"{label} {value} 分" for label, value in ranked
+              if isinstance(value, (int, float)) and value > 0]
+    if useful:
+        return f"主要匹配依据是{'、'.join(useful[:3])}，可进入详情页查看完整分项。"
+    return "当前分数来自后端统一匹配算法，可进入详情页查看完整分项。"
 
-    user = data.get("users")
-    if not isinstance(user, dict) or not user:
-        return {}
-    candidates = _load_json("mock_candidates.json", [])
-    if not isinstance(candidates, list) or not candidates:
-        return {}
-    valid = [item for item in candidates if isinstance(item, dict)]
-    if not valid:
-        return {}
+
+def _authoritative_partner_scores(data: dict[str, Any],
+                                  user_id: str | None = None) -> dict[str, Any]:
+    """读取与详情页同源的真实账号排名；没有候选时如实返回空排名。"""
+    identity = (user_id or str((data.get("users") or {}).get("userId") or "")).strip()
+    if _PARTNER_MATCH_HOOK is None or not identity:
+        return {"matchedCandidate": None, "全部候选人排名": []}
     try:
-        result = match_partners(user, valid)
+        result = _PARTNER_MATCH_HOOK(identity)
     except Exception as error:  # noqa: BLE001 - 算分失败就退回纯自然语言解释
         print(f"[chat] 搭子确定性匹配失败: {error}")
-        return {}
+        return {"matchedCandidate": None, "全部候选人排名": []}
+    if not isinstance(result, dict):
+        return {"matchedCandidate": None, "全部候选人排名": []}
     best = result.get("matchedCandidate")
-    if not isinstance(best, dict):
-        return {}
-    factors = best.get("factors") if isinstance(best.get("factors"), dict) else {}
+    factors = (best.get("factors") if isinstance(best, dict)
+               and isinstance(best.get("factors"), dict) else {})
+    candidate = best.get("candidate") if isinstance(best, dict) else None
+    basic = candidate.get("basicInfo") if isinstance(candidate, dict) else None
     return {
-        "总分": best.get("score"),
+        "matchedCandidate": ({
+            "userId": candidate.get("userId") if isinstance(candidate, dict) else None,
+            "name": basic.get("name") if isinstance(basic, dict) else None,
+            "score": best.get("score"),
+        } if isinstance(best, dict) else None),
+        "总分": best.get("score") if isinstance(best, dict) else None,
         "分项得分": factors,
-        "被选中同学": (best.get("candidate") or {}).get("basicInfo")
-            if isinstance(best.get("candidate"), dict) else None,
         "全部候选人排名": [
             {"score": item.get("score"),
+             "userId": (item.get("candidate") or {}).get("userId")
+                if isinstance(item.get("candidate"), dict) else None,
              "name": ((item.get("candidate") or {}).get("basicInfo") or {}).get("name")
                 if isinstance(item.get("candidate"), dict) else None}
             for item in (result.get("candidates") or [])
@@ -902,7 +1064,7 @@ def chat(message: str, image_base64: str | None = None,
     if not message and image_base64:
         message = "帮我分析这道题"
 
-    data = _user_data(frontend_data, user_context)
+    data = _user_data(frontend_data, user_context, user_id)
     intent, llm_used = detect_intent(message, has_image=bool(image_base64))
 
     reply = ""
@@ -929,7 +1091,13 @@ def chat(message: str, image_base64: str | None = None,
             profile_updates = {}
 
     if not reply.strip():
-        reply = _LOCAL_REPLY.get(intent, _LOCAL_REPLY["unknown"])
+        if intent == "analyze_weakness" and not _has_learning_evidence(data):
+            # 仅在模型不可用/失败时使用的安全降级；正常配置下由 LLM 根据上面的
+            # 空证据摘要自行判断并生成回复。
+            reply = ("目前没有足够的掌握度或有效错题证据，暂时无法判断薄弱知识点。"
+                     "请先完成诊断练习或提交一道信息完整的错题。")
+        else:
+            reply = _LOCAL_REPLY.get(intent, _LOCAL_REPLY["unknown"])
         if image_base64:
             reply = ("图片已收到。当前未接入多模态识别，请进入错题分析页手动确认知识点，"
                      "或在服务端配置 DASHSCOPE_API_KEY 后重试。")

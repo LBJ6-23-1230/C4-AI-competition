@@ -257,8 +257,16 @@ struct KnowledgeBasePage {
   private fileNameFromUri(uri: string): string {
     const clean: string = uri.indexOf('?') >= 0 ? uri.substring(0, uri.indexOf('?')) : uri;
     const slash: number = clean.lastIndexOf('/');
-    const name: string = slash >= 0 ? clean.substring(slash + 1) : clean;
-    return name.length > 0 ? name : `课程资料_${Date.now()}.txt`;
+    const encodedName: string = slash >= 0 ? clean.substring(slash + 1) : clean;
+    if (encodedName.length === 0) {
+      return `课程资料_${Date.now()}.txt`;
+    }
+    try {
+      return decodeURIComponent(encodedName);
+    } catch (error) {
+      // URI 含不完整的百分号转义时保留原名，上传仍可继续。
+      return encodedName;
+    }
   }
 
   private mimeTypeFor(fileName: string): string {

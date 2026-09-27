@@ -187,18 +187,28 @@ def test_partner_match_still_scores_correctly(tmp_path):
     """加完类型护栏后，正常匹配结果必须不变（防"修坏"）。"""
     client = create_app(tmp_path / "guard-scoring.json").test_client()
 
-    response = client.post("/api/v1/agent/partner-match", json={"user": {
-        "userId": "demo-user",
-        "learningGoal": {"course": "数据结构", "goal": "期末80+"},
-        "time": {"freeTime": ["21:00-23:00"]},
-        "knowledge": {"weakness": ["图算法"], "strength": ["递归理解"]},
-        "basicInfo": {"grade": "大二", "major": "计算机科学与技术"},
-    }})
+    response = client.post("/api/v1/agent/partner-match", json={
+        "user": {
+            "userId": "demo-user",
+            "learningGoal": {"course": "数据结构", "goal": "期末80+"},
+            "time": {"freeTime": ["21:00-23:00"]},
+            "knowledge": {"weakness": ["图算法"], "strength": ["递归理解"]},
+            "basicInfo": {"grade": "大二", "major": "计算机科学与技术"},
+        },
+        # 在线接口已不再自动注入“小红/小刚”；本测试显式提供候选，只验证算分护栏。
+        "candidates": [{
+            "userId": "candidate-guard",
+            "learningGoal": {"course": "数据结构", "goal": "期末80+"},
+            "time": {"freeTime": ["21:00-23:00"]},
+            "knowledge": {"weakness": ["递归理解"], "strength": ["图算法"]},
+            "basicInfo": {"name": "候选同学", "grade": "大二", "major": "计算机科学与技术"},
+        }],
+    })
 
     assert response.status_code == 200
     body = response.get_json()
     assert body["realModeUnavailable"] is False
-    assert body["matchedCandidate"]["candidate"]["userId"] == "u002"
+    assert body["matchedCandidate"]["candidate"]["userId"] == "candidate-guard"
     assert body["matchedCandidate"]["factors"]["overlapMinutes"] == 120
 
 

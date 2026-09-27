@@ -40,6 +40,7 @@ import {
 } from './MockData';
 import { DateHelper } from '../utils/DateHelper';
 import { ClientCache } from '../cache/ClientCache';
+import { LearningDataStore, StoredLearningData } from '../cache/LearningDataStore';
 
 /**
  * AppState — 全局单例状态管理
@@ -54,6 +55,29 @@ export class AppState {
 
   public notifyLearningDataChanged(): void {
     AppStorage.setOrCreate('learningDataRevision', (AppStorage.get<number>('learningDataRevision') ?? 0) + 1);
+  }
+
+  /** 把当前课程/DDL 快照保存到当前 userId 的独立命名空间。 */
+  private persistLearningData(): void {
+    const snapshot: StoredLearningData = {
+      courses: this.courses,
+      homeworkDDLs: this.homeworkDDLs,
+      isDataImported: this.isDataImported
+    };
+    if (!LearningDataStore.save(this.currentUser.userId, snapshot)) {
+      console.warn('课程与 DDL 本地持久化失败');
+    }
+  }
+
+  /** 身份切换完成后只恢复该账号自己的课程与 DDL。 */
+  private restoreLearningData(userId: string): void {
+    const saved: StoredLearningData = LearningDataStore.load(userId);
+    this.courses = saved.courses;
+    this.homeworkDDLs = saved.homeworkDDLs;
+    this.isDataImported = saved.isDataImported;
+    this.importedCourseCount = saved.courses.length;
+    this.importedDDLCount = saved.homeworkDDLs.length;
+    this.notifyLearningDataChanged();
   }
 
   private async syncImportedKnowledge(): Promise<void> {
@@ -231,6 +255,7 @@ export class AppState {
     ClientCache.bindIdentity(user.userId);
     if (identityChanged) {
       this.resetAccountScopedState();
+      this.restoreLearningData(user.userId);
     }
     // ⚠️ 必须放在 `resetAccountScopedState()` **之后**：那里面会把 loginNotice 清空
     // （它也是账号维度的状态，不能串给下一个登录的人）。
@@ -265,6 +290,7 @@ export class AppState {
     // 否则退出登录后游客会读到刚退出的那个账号的数据。
     ClientCache.bindIdentity(ApiDefaults.DEMO_USER_ID);
     this.resetAccountScopedState();
+    this.restoreLearningData(ApiDefaults.DEMO_USER_ID);
   }
 
   public startChatTask(taskName: string): void {
@@ -312,6 +338,7 @@ export class AppState {
     this.courses = newCourses;
     this.importedCourseCount = newCourses.length;
     this.isDataImported = true;
+    this.persistLearningData();
     this.advanceStage('input', '导入课程表数据');
     this.syncImportedKnowledge();
   }
@@ -323,6 +350,7 @@ export class AppState {
     this.homeworkDDLs = newDDLs;
     this.importedDDLCount = newDDLs.length;
     this.isDataImported = true;
+    this.persistLearningData();
     this.advanceStage('input', '导入作业DDL数据');
     this.syncImportedKnowledge();
   }
@@ -337,7 +365,49 @@ export class AppState {
     }
     this.courses = filtered;
     this.importedCourseCount = filtered.length;
+    this.isDataImported = this.courses.length > 0 || this.homeworkDDLs.length > 0;
+    this.persistLearningData();
     this.notifyLearningDataChanged();
+  }
+
+  /**
+   * 只更新一门课程，供图片识别后的人工校正使用。
+   *
+   * 使用新对象和新数组替换旧值，保证 ArkUI 能观察到变化；如果课程名发生变化，
+   * 还要重新同步由课程名派生的知识点。课程 id 始终沿用原值，避免编辑后卡片身份变化。
+   */
+  public updateCourse(courseId: string, updatedCourse: CourseInfo): boolean {
+    const next: CourseInfo[] = [];
+    let found: boolean = false;
+    let courseNameChanged: boolean = false;
+    for (let i = 0; i < this.courses.length; i++) {
+      const current: CourseInfo = this.courses[i];
+      if (current.courseId === courseId) {
+        found = true;
+        courseNameChanged = current.courseName !== updatedCourse.courseName;
+        next.push({
+          courseId: current.courseId,
+          courseName: updatedCourse.courseName,
+          exam: {
+            date: updatedCourse.exam.date,
+            daysLeft: updatedCourse.exam.daysLeft
+          },
+          priority: updatedCourse.priority,
+          recentStatus: {
+            studyHours: current.recentStatus.studyHours,
+            status: current.recentStatus.status
+          }
+        });
+      } else {
+        next.push(current);
+      }
+    }
+    if (!found) return false;
+    this.courses = next;
+    this.persistLearningData();
+    this.notifyLearningDataChanged();
+    if (courseNameChanged) this.syncImportedKnowledge();
+    return true;
   }
 
   /** 删除指定DDL */
@@ -350,6 +420,8 @@ export class AppState {
     }
     this.homeworkDDLs = filtered;
     this.importedDDLCount = filtered.length;
+    this.isDataImported = this.courses.length > 0 || this.homeworkDDLs.length > 0;
+    this.persistLearningData();
     this.notifyLearningDataChanged();
   }
 
@@ -362,6 +434,7 @@ export class AppState {
     }
     this.importedCourseCount += newCourses.length;
     this.isDataImported = true;
+    this.persistLearningData();
     this.syncImportedKnowledge();
   }
 
@@ -374,6 +447,7 @@ export class AppState {
     }
     this.importedDDLCount += newDDLs.length;
     this.isDataImported = true;
+    this.persistLearningData();
     this.syncImportedKnowledge();
   }
 
@@ -386,6 +460,7 @@ export class AppState {
     this.isDataImported = false;
     this.importedCourseCount = 0;
     this.importedDDLCount = 0;
+    this.persistLearningData();
     this.resetSession();
   }
 

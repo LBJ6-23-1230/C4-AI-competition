@@ -358,11 +358,13 @@ def chat_history_clear():
 @chat_api.get("/api/agent/user-data")
 def user_data_snapshot():
     identity: str = _chat_identity()
-    data = chat_llm._user_data(None, _user_context_for(identity))  # noqa: SLF001 - 自用只读快照
+    data = chat_llm._user_data(  # noqa: SLF001 - 自用只读快照
+        None, _user_context_for(identity), identity)
     return jsonify({
         "users": data.get("users", {}),
         "courses": data.get("courses", {}),
-        "candidates": chat_llm._load_json("mock_candidates.json", []),  # noqa: SLF001
+        # 在线模式不再暴露“小红/小刚”等预置候选；真实排名统一走 partner-match。
+        "candidates": [],
         "wrong_questions": _wrong_questions_for(identity),
     })
 

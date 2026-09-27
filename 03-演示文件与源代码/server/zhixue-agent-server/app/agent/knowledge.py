@@ -27,6 +27,7 @@ import re
 import zipfile
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import unquote
 from xml.etree import ElementTree
 
 # --------------------------------------------------------------------------- 常量
@@ -67,10 +68,13 @@ def _digest(*parts: str) -> str:
 
 # --------------------------------------------------------------------------- 文件名与类型
 def normalize_file_name(raw: Any) -> str:
-    """取文件名的最后一段，避免路径穿越（`../../etc/passwd`）。"""
+    """解码文件选择器 URI 中的名称，并取最后一段以避免路径穿越。"""
     if not isinstance(raw, str):
         return ""
     name = raw.strip().replace("\\", "/").split("/")[-1]
+    # HarmonyOS 文件选择器可能返回 `%E8%AF%BE%E7%A8%8B.pdf`。后端再做一层
+    # 兜底，兼容旧客户端；解码后重新取 basename，避免 `%2F` 绕过路径清理。
+    name = unquote(name).replace("\\", "/").split("/")[-1]
     return name[:200]
 
 

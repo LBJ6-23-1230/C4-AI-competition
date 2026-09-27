@@ -8,6 +8,7 @@ import { AuthResult } from '../api/AuthResult';
 import { AuthStore } from '../api/AuthStore';
 import { FixtureDemoStateStore } from '../api/FixtureDemoStateStore';
 import { WorkflowSessionStore } from '../cache/WorkflowSessionStore';
+import { LearningDataStore } from '../cache/LearningDataStore';
 import { appState } from '../data/AppState';
 import { DistributedStateService } from '../services/DistributedStateService';
 import { ProactiveSurfaceService } from '../services/ProactiveSurfaceService';
@@ -54,6 +55,10 @@ export default class EntryAbility extends UIAbility {
     if (!ProactiveSettingsStore.restore(this.context)) {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore proactive notification settings.');
     }
+
+    // 课程与 DDL 是账号维度的本地数据。必须先绑定 context，随后 applyLogout/applyLogin
+    // 才能分别恢复 demo-user 或真实 userId 对应的快照。
+    LearningDataStore.initialize(this.context);
 
     // 启动时先把 AppState 对齐到已知身份，避免首页在异步校验完成前读到空身份。
     appState.applyLogout();

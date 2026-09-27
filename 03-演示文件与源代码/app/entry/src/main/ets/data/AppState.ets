@@ -40,6 +40,7 @@ import {
 } from './MockData';
 import { DateHelper } from '../utils/DateHelper';
 import { ClientCache } from '../cache/ClientCache';
+import { LearningDataStore, StoredLearningData } from '../cache/LearningDataStore';
 
 /**
  * AppState — 全局单例状态管理
@@ -54,6 +55,27 @@ export class AppState {
 
   public notifyLearningDataChanged(): void {
     AppStorage.setOrCreate('learningDataRevision', (AppStorage.get<number>('learningDataRevision') ?? 0) + 1);
+  }
+
+  private persistLearningData(): void {
+    const snapshot: StoredLearningData = {
+      courses: this.courses,
+      homeworkDDLs: this.homeworkDDLs,
+      isDataImported: this.isDataImported
+    };
+    if (!LearningDataStore.save(this.currentUser.userId, snapshot)) {
+      console.warn('课程与 DDL 本地持久化失败');
+    }
+  }
+
+  private restoreLearningData(userId: string): void {
+    const saved: StoredLearningData = LearningDataStore.load(userId);
+    this.courses = saved.courses;
+    this.homeworkDDLs = saved.homeworkDDLs;
+    this.isDataImported = saved.isDataImported;
+    this.importedCourseCount = saved.courses.length;
+    this.importedDDLCount = saved.homeworkDDLs.length;
+    this.notifyLearningDataChanged();
   }
 
   private async syncImportedKnowledge(): Promise<void> {
@@ -231,6 +253,7 @@ export class AppState {
     ClientCache.bindIdentity(user.userId);
     if (identityChanged) {
       this.resetAccountScopedState();
+      this.restoreLearningData(user.userId);
     }
     // ⚠️ 必须放在 `resetAccountScopedState()` **之后**：那里面会把 loginNotice 清空
     // （它也是账号维度的状态，不能串给下一个登录的人）。
@@ -265,6 +288,7 @@ export class AppState {
     // 否则退出登录后游客会读到刚退出的那个账号的数据。
     ClientCache.bindIdentity(ApiDefaults.DEMO_USER_ID);
     this.resetAccountScopedState();
+    this.restoreLearningData(ApiDefaults.DEMO_USER_ID);
   }
 
   public startChatTask(taskName: string): void {
@@ -312,6 +336,7 @@ export class AppState {
     this.courses = newCourses;
     this.importedCourseCount = newCourses.length;
     this.isDataImported = true;
+    this.persistLearningData();
     this.advanceStage('input', '导入课程表数据');
     this.syncImportedKnowledge();
   }
@@ -323,6 +348,7 @@ export class AppState {
     this.homeworkDDLs = newDDLs;
     this.importedDDLCount = newDDLs.length;
     this.isDataImported = true;
+    this.persistLearningData();
     this.advanceStage('input', '导入作业DDL数据');
     this.syncImportedKnowledge();
   }
@@ -337,6 +363,8 @@ export class AppState {
     }
     this.courses = filtered;
     this.importedCourseCount = filtered.length;
+    this.isDataImported = this.courses.length > 0 || this.homeworkDDLs.length > 0;
+    this.persistLearningData();
     this.notifyLearningDataChanged();
   }
 
@@ -350,6 +378,8 @@ export class AppState {
     }
     this.homeworkDDLs = filtered;
     this.importedDDLCount = filtered.length;
+    this.isDataImported = this.courses.length > 0 || this.homeworkDDLs.length > 0;
+    this.persistLearningData();
     this.notifyLearningDataChanged();
   }
 
@@ -362,6 +392,7 @@ export class AppState {
     }
     this.importedCourseCount += newCourses.length;
     this.isDataImported = true;
+    this.persistLearningData();
     this.syncImportedKnowledge();
   }
 
@@ -374,6 +405,7 @@ export class AppState {
     }
     this.importedDDLCount += newDDLs.length;
     this.isDataImported = true;
+    this.persistLearningData();
     this.syncImportedKnowledge();
   }
 
@@ -386,6 +418,7 @@ export class AppState {
     this.isDataImported = false;
     this.importedCourseCount = 0;
     this.importedDDLCount = 0;
+    this.persistLearningData();
     this.resetSession();
   }
 
