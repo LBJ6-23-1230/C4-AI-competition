@@ -1,8 +1,8 @@
 import { http } from '@kit.NetworkKit';
-import { API_CONTRACT_VERSION, DemoResetResponse, PartnerMatchRequest, PartnerMatchResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeDocument, KnowledgeDocumentUploadRequest, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
+import { API_CONTRACT_VERSION, DemoResetResponse, PartnerContactListResponse, PartnerInvitationCreateRequest, PartnerInvitationListResponse, PartnerInvitationResponse, PartnerMatchRequest, PartnerMatchResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeDocument, KnowledgeDocumentDetail, KnowledgeDocumentUploadRequest, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, ScheduleRecognitionRequest, ScheduleRecognitionResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
 import { ApiFailure, ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { ApiDefaults } from './ApiDefaults';
-import { AuthHuaweiLoginRequest, AuthLoginOrRegisterRequest, AuthLoginOrRegisterResponse, AuthLoginRequest, AuthRegisterRequest, AuthSendCodeRequest, AuthSendCodeResponse, AuthSessionResponse, AuthStatusResponse, AuthUserResponse, AuthVerifyCodeRequest } from './AuthModels';
+import { AuthChangePasswordRequest, AuthChangePasswordResponse, AuthHuaweiLoginRequest, AuthLoginOrRegisterRequest, AuthLoginOrRegisterResponse, AuthLoginRequest, AuthRegisterRequest, AuthSendCodeRequest, AuthSendCodeResponse, AuthSessionResponse, AuthStatusResponse, AuthUserResponse, AuthVerifyCodeRequest } from './AuthModels';
 import { AuthStore } from './AuthStore';
 import { FixtureApiTransport } from './FixtureApiTransport';
 import { ApiResponseValidator } from './ApiResponseValidator';
@@ -11,6 +11,10 @@ export interface ApiClientConfig {
   baseUrl: string;
   useFixture: boolean;
   timeoutMs: number;
+}
+
+interface KnowledgePointImportRequest {
+  courses: string[];
 }
 
 /**
@@ -56,6 +60,13 @@ export class AgentApiClient {
     // `connectTimeout` 仍用配置值：连不上要快速失败，不能陪着一起等。
     return AgentApiClient.request<WorkflowRunResponse>(http.RequestMethod.POST,
       `/api/v1/workflows/${encodeURIComponent(sessionId)}/run`, request,
+      ApiDefaults.LLM_BOUND_READ_TIMEOUT_MS);
+  }
+
+  static async importKnowledgePoints(userId: string, courses: string[]): Promise<ApiResult<ProfileResponse>> {
+    const payload: KnowledgePointImportRequest = { courses: courses };
+    return AgentApiClient.request<ProfileResponse>(http.RequestMethod.POST,
+      `/api/v1/profile/${encodeURIComponent(userId)}/knowledge-points`, payload,
       ApiDefaults.LLM_BOUND_READ_TIMEOUT_MS);
   }
 
@@ -116,6 +127,12 @@ export class AgentApiClient {
     return AgentApiClient.request<DemoResetResponse>(http.RequestMethod.POST, '/api/v1/demo/reset');
   }
 
+  static async recognizeScheduleImage(
+    request: ScheduleRecognitionRequest): Promise<ApiResult<ScheduleRecognitionResponse>> {
+    return AgentApiClient.request<ScheduleRecognitionResponse>(http.RequestMethod.POST,
+      '/api/v1/import/schedule-image', request, ApiDefaults.LLM_BOUND_READ_TIMEOUT_MS);
+  }
+
   static async getProactiveDecision(request: ProactiveRequest): Promise<ApiResult<ProactiveResponse>> {
     return AgentApiClient.request<ProactiveResponse>(http.RequestMethod.POST, '/api/v1/agent/proactive', request);
   }
@@ -130,6 +147,45 @@ export class AgentApiClient {
   static async matchPartner(request: PartnerMatchRequest): Promise<ApiResult<PartnerMatchResponse>> {
     return AgentApiClient.request<PartnerMatchResponse>(http.RequestMethod.POST,
       '/api/v1/agent/partner-match', request);
+  }
+
+  // ------------------------------------------------ 学习搭子邀请（真正跨账号）
+  //
+  // ⚠️ 下面这组的 (method, path) 必须与 `ApiResponseValidator` 里的分支**一一对应**，
+  // 少一条就会落到校验器末尾的 `return false`：后端明明回了 200，前端却判
+  // INVALID_RESPONSE —— 表现为"邀请发不出去 / 收件箱打不开"。
+  static async createPartnerInvitation(
+    request: PartnerInvitationCreateRequest): Promise<ApiResult<PartnerInvitationResponse>> {
+    return AgentApiClient.request<PartnerInvitationResponse>(http.RequestMethod.POST,
+      '/api/v1/agent/partner-invitations', request);
+  }
+
+  /** 收件箱（默认）或发件箱。收件箱只回**待处理**的那些。 */
+  static async listPartnerInvitations(
+    box: string = 'inbox'): Promise<ApiResult<PartnerInvitationListResponse>> {
+    return AgentApiClient.request<PartnerInvitationListResponse>(http.RequestMethod.GET,
+      `/api/v1/agent/partner-invitations?box=${encodeURIComponent(box)}`);
+  }
+
+  static async acceptPartnerInvitation(invitationId: string): Promise<ApiResult<PartnerInvitationResponse>> {
+    return AgentApiClient.request<PartnerInvitationResponse>(http.RequestMethod.POST,
+      `/api/v1/agent/partner-invitations/${encodeURIComponent(invitationId)}/accept`);
+  }
+
+  static async declinePartnerInvitation(invitationId: string): Promise<ApiResult<PartnerInvitationResponse>> {
+    return AgentApiClient.request<PartnerInvitationResponse>(http.RequestMethod.POST,
+      `/api/v1/agent/partner-invitations/${encodeURIComponent(invitationId)}/decline`);
+  }
+
+  /** 叉掉 = 无视（只是自己不再看到，与"明确不接受"分开记状态）。 */
+  static async dismissPartnerInvitation(invitationId: string): Promise<ApiResult<PartnerInvitationResponse>> {
+    return AgentApiClient.request<PartnerInvitationResponse>(http.RequestMethod.POST,
+      `/api/v1/agent/partner-invitations/${encodeURIComponent(invitationId)}/dismiss`);
+  }
+
+  static async listPartnerContacts(): Promise<ApiResult<PartnerContactListResponse>> {
+    return AgentApiClient.request<PartnerContactListResponse>(http.RequestMethod.GET,
+      '/api/v1/agent/partner-contacts');
   }
 
   // ------------------------------------------------------------------ 知识库
@@ -159,6 +215,19 @@ export class AgentApiClient {
     request: KnowledgeDocumentUploadRequest): Promise<ApiResult<KnowledgeDocument>> {
     return AgentApiClient.request<KnowledgeDocument>(http.RequestMethod.POST,
       `/api/v1/knowledge-bases/${encodeURIComponent(kbId)}/documents`, request);
+  }
+
+  /**
+   * 文档详情（**含切片正文**）。
+   *
+   * 为什么必须有它：文档列表只回元信息（文件名 / 字数 / 片段数 / 知识点），
+   * 正文在 `chunks` 集合里，只有这条接口能读到 —— 没有它就表现为
+   * "上传了讲义却看不了内容"。
+   * 响应里 `chunkTotal` / `chunksTruncated` 是后端的截断标注，前端照实展示。
+   */
+  static async getKnowledgeDocument(documentId: string): Promise<ApiResult<KnowledgeDocumentDetail>> {
+    return AgentApiClient.request<KnowledgeDocumentDetail>(http.RequestMethod.GET,
+      `/api/v1/documents/${encodeURIComponent(documentId)}`);
   }
 
   static async deleteKnowledgeDocument(documentId: string): Promise<ApiResult<KnowledgeDocument>> {
@@ -217,6 +286,11 @@ export class AgentApiClient {
 
   static async authMe(): Promise<ApiResult<AuthUserResponse>> {
     return AgentApiClient.request<AuthUserResponse>(http.RequestMethod.GET, '/api/v1/auth/me');
+  }
+
+  static async authChangePassword(request: AuthChangePasswordRequest): Promise<ApiResult<AuthChangePasswordResponse>> {
+    return AgentApiClient.request<AuthChangePasswordResponse>(http.RequestMethod.POST,
+      '/api/v1/auth/change-password', request);
   }
 
   static async authLogout(): Promise<ApiResult<AuthStatusResponse>> {

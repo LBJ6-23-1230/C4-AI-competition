@@ -21,7 +21,7 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-ROOT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(r"E:\C4-liantiao\liantiao5")
+ROOT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 ETS = ROOT / "app" / "entry" / "src" / "main" / "ets"
 CLIENT = ETS / "api" / "AgentApiClient.ets"
 VALIDATOR = ETS / "api" / "ApiResponseValidator.ets"
@@ -48,10 +48,11 @@ prefix: set[tuple[str, str]] = set()
 endswith: set[str] = set()
 
 for m in re.finditer(
-        r"method === '(\w+)' && route === '([^']+)'", validator_src):
+        r"method === '(\w+)'\s*&&\s*(?:path|route) === '([^']+)'", validator_src):
     exact.add((m.group(1), m.group(2)))
 for m in re.finditer(
-        r"method === '(\w+)' && route\.indexOf\('([^']+)'\) === 0", validator_src):
+        r"method === '(\w+)'\s*&&\s*(?:path|route)\.indexOf\('([^']+)'\)\s*===\s*0",
+        validator_src):
     prefix.add((m.group(1), m.group(2)))
 for m in re.finditer(r"route\.indexOf\('([^']+)'\) === 0", validator_src):
     prefix.add(("*", m.group(1)))

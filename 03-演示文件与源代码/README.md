@@ -50,7 +50,7 @@ HarmonyOS 原生应用 · ArkTS 前端 + Python Agent 后端
 
 | 路径 | 内容 |
 |---|---|
-| `知学Mate+暗影骑士王们.zip` | **打包好的提交压缩包**（338 条目） |
+| `知学Mate+暗影骑士王们.zip` | **打包好的提交压缩包**（348 条目） |
 | `hap/知学Mate-signed.hap` | 签名 HAP 副本（release，有效至 2029-09-21） |
 | `01-作品说明文档/` `02-演示视频/` | 必交材料 |
 | `app/` | **HarmonyOS ArkTS 前端**（19 页面 / 5 智能体 / 服务卡片 / 意图框架 / 分布式接续） |
@@ -68,7 +68,7 @@ HarmonyOS 原生应用 · ArkTS 前端 + Python Agent 后端
 git clone https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
 ```
 
-> **`dev-history` 分支**：完整开发历史（47 个提交，含每一轮修复与验证记录），
+> **`dev-history` 分支**：完整开发历史（含每一轮修复与验证记录；提交数随开发增长，不写死），
 > 供追溯用；文件内容与 `main` 一致。`main` 是单一提交的提交快照。
 >
 > **`backend` / `frontend` 两个分支是更早期的历史留档，不要用** ——
@@ -445,7 +445,7 @@ python integration\run_liantiao5.py --port 5097 --llm-mode live
 | 后端逻辑、契约、判分、Agent 循环 | ✅ 真实 HTTP 实跑验证（98/98） |
 | 后端单元测试 | ✅ `342 passed` |
 | 契约一致性 | ✅ 逐字节一致（111,253 B） |
-| 真模型 live 模式 | ✅ 11 轮 × 95/95，基线零漂移 |
+| 真模型 live 模式 | ✅ 连跑 11 次全部通过、基线零漂移（该轮断言集为 95 项，**现为 98 项**；证据见 `evidence/run_summary_2026-09-21_*.json`） |
 | 前端编译 | ✅ `BUILD SUCCESSFUL`，**`[ERROR]` 级 0 条 / ArkTS 编译错误 0 条** |
 | **签名 HAP** | ✅ **已产出并通过独立验签**（发布证书 + 发布 Profile，摘要校验 `true`，`SignHap` 耗时 4.6 s） |
 | **本机模拟器** | ✅ **已打通**（`Pura 90` 等 4 实例，API 24；`tools/start_emulator.ps1` 一键启动） |

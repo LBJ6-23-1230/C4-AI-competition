@@ -105,6 +105,33 @@ def proactive_decision(payload: dict[str, Any]) -> dict[str, Any]:
     payload = payload if isinstance(payload, dict) else {}
     context = payload.get("context") if isinstance(payload.get("context"), dict) else {}
     user_id = payload.get("userId", "demo-user")
+
+    # 新账号没有画像、DDL、考试或学习记录时必须返回真实空状态，不能继续用
+    # 58 分 / 5 天等演示默认值拼出一张“当前薄弱知识点”任务卡。
+    pending_tasks = context.get("pendingTasks")
+    has_pending_tasks = isinstance(pending_tasks, list) and any(
+        isinstance(item, dict) for item in pending_tasks)
+    has_learning_signal = any(key in context for key in (
+        "taskName", "knowledgePointId", "masteryScore", "daysLeft", "lastStudyAt"))
+    if not has_learning_signal and not has_pending_tasks:
+        return {
+            "userId": user_id,
+            "shouldNotify": False,
+            "channel": "silent",
+            "title": "",
+            "body": "",
+            "action": {"type": "none", "label": "", "targetPage": "", "preset": {}},
+            "contextTags": [],
+            "reason": "尚未建立学习画像，请先导入课程、上传资料或完成错题诊断",
+            "factors": [],
+            "cardData": {
+                "taskName": "",
+                "knowledgePointId": "",
+                "durationMinutes": 0,
+                "examCountdownDays": 0,
+                "hint": "",
+            },
+        }
     if context.get("focusSessionActive"):
         return {
             "userId": user_id,

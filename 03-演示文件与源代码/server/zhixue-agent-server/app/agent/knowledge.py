@@ -22,9 +22,12 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
+import io
 import re
+import zipfile
 from datetime import datetime, timezone
 from typing import Any
+from xml.etree import ElementTree
 
 # --------------------------------------------------------------------------- 常量
 MAX_FILE_BYTES = 8 * 1024 * 1024          # 单文件 8MB
@@ -32,11 +35,22 @@ MAX_DOCUMENTS_PER_KB = 50                 # 单库文档数上限
 MAX_CHUNK_CHARS = 800                     # 单片最大字符数
 CHUNK_OVERLAP_CHARS = 80                  # 相邻片重叠，避免答案被切断
 MAX_CHUNKS_PER_DOC = 400                  # 防止超大文件把仓库撑爆
+# 文档详情**单次回传**的切片条数上限。
+#
+# 为什么需要它：详情接口现在要把切片正文一并回传（用户要看"具体内容"），
+# 而 `MAX_CHUNKS_PER_DOC` 允许单文档 400 片、单片 800 字 —— 全量回传
+# 单次响应能到几百 KB，手机端解析 JSON 会明显卡顿。
+# 但**不能静默截断**：只回前 N 片、却让界面看起来"文档就这么多内容"
+# 是欺骗性展示。因此接口同时回传 `chunkTotal` 与 `chunksTruncated`，
+# 由前端如实标注"仅显示前 N 段"。
+MAX_CHUNKS_PER_RESPONSE = 50
+
 MAX_KB_NAME_CHARS = 60
 MAX_QUERY_CHARS = 200
 
 TEXT_EXTENSIONS = {".txt", ".md", ".markdown", ".csv", ".json"}
 PDF_EXTENSIONS = {".pdf"}
+DOCX_EXTENSIONS = {".docx"}
 
 # 处理状态：必须真实反映后端进度，失败态要可见（评审看到"能失败、能重试"更可信）
 STATUS_READY = "ready"
@@ -67,13 +81,30 @@ def extension_of(file_name: str) -> str:
 
 
 def classify(file_name: str) -> tuple[str, str]:
-    """返回 (类别, 失败原因)。类别 ∈ {text, pdf, unsupported}。"""
+    """返回 (类别, 失败原因)。类别 ∈ {text, pdf, docx, unsupported}。"""
     ext = extension_of(file_name)
     if ext in TEXT_EXTENSIONS:
         return "text", ""
     if ext in PDF_EXTENSIONS:
         return "pdf", ""
+    if ext in DOCX_EXTENSIONS:
+        return "docx", ""
+    if ext == ".doc":
+        return "unsupported", "旧版 .doc 暂不支持，请在 Word/WPS 中另存为 .docx 后上传"
     return "unsupported", f"暂不支持的文件类型：{ext or '（无扩展名）'}"
+
+
+def decode_binary(content_base64: Any) -> tuple[bytes, str]:
+    """校验 base64 与大小限制，返回原始字节。"""
+    if not isinstance(content_base64, str) or not content_base64.strip():
+        return b"", "文件内容为空"
+    try:
+        raw = base64.b64decode(content_base64, validate=True)
+    except (binascii.Error, ValueError):
+        return b"", "文件内容不是合法的 base64"
+    if len(raw) > MAX_FILE_BYTES:
+        return b"", f"文件超过 {MAX_FILE_BYTES // (1024 * 1024)}MB 上限"
+    return raw, ""
 
 
 def decode_text(content_base64: Any) -> tuple[str, str]:
@@ -83,14 +114,9 @@ def decode_text(content_base64: Any) -> tuple[str, str]:
     用 Latin-1 逐字节解码导致中文必乱码）。后端这边也要显式处理：
     先严格 UTF-8，再尝试 utf-8-sig（去 BOM），最后回退 GBK（国内 CSV 常见）。
     """
-    if not isinstance(content_base64, str) or not content_base64.strip():
-        return "", "文件内容为空"
-    try:
-        raw = base64.b64decode(content_base64, validate=True)
-    except (binascii.Error, ValueError):
-        return "", "文件内容不是合法的 base64"
-    if len(raw) > MAX_FILE_BYTES:
-        return "", f"文件超过 {MAX_FILE_BYTES // (1024 * 1024)}MB 上限"
+    raw, error = decode_binary(content_base64)
+    if error:
+        return "", error
 
     for encoding in ("utf-8", "utf-8-sig", "gbk"):
         try:
@@ -98,6 +124,58 @@ def decode_text(content_base64: Any) -> tuple[str, str]:
         except (UnicodeDecodeError, LookupError):
             continue
     return raw.decode("utf-8", errors="replace"), ""
+
+
+def decode_docx(content_base64: Any) -> tuple[str, str]:
+    """从 DOCX 的 OOXML 主文档中提取段落与表格文字。"""
+    raw, error = decode_binary(content_base64)
+    if error:
+        return "", error
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            names = set(archive.namelist())
+            if "word/document.xml" not in names:
+                return "", "DOCX 文件结构无效：缺少 word/document.xml"
+            # 防止小体积压缩包展开成异常大的 XML。
+            info = archive.getinfo("word/document.xml")
+            if info.file_size > 32 * 1024 * 1024:
+                return "", "DOCX 正文超过 32MB 解析上限"
+            root = ElementTree.fromstring(archive.read("word/document.xml"))
+    except (zipfile.BadZipFile, KeyError, ElementTree.ParseError, OSError) as exc:
+        return "", f"DOCX 解析失败：{exc}"
+
+    namespace = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+    lines: list[str] = []
+    for paragraph in root.findall(".//w:body//w:p", namespace):
+        text = "".join(node.text or "" for node in paragraph.findall(".//w:t", namespace)).strip()
+        if text and (not lines or text != lines[-1]):
+            lines.append(text)
+    return "\n\n".join(lines), "" if lines else "DOCX 中没有可提取的文字"
+
+
+def decode_pdf(content_base64: Any) -> tuple[str, str]:
+    """用 pypdf 提取可复制文本；扫描版 PDF 会返回明确提示。"""
+    raw, error = decode_binary(content_base64)
+    if error:
+        return "", error
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        return "", "服务端未安装 PDF 解析依赖 pypdf，请先安装 requirements.txt"
+    try:
+        reader = PdfReader(io.BytesIO(raw))
+        if reader.is_encrypted:
+            return "", "PDF 已加密，暂时无法解析"
+        pages: list[str] = []
+        for page in reader.pages[:300]:
+            text = (page.extract_text() or "").strip()
+            if text:
+                pages.append(text)
+    except Exception as exc:  # pypdf 会抛多种格式异常，统一转成人话
+        return "", f"PDF 解析失败：{exc}"
+    if not pages:
+        return "", "PDF 中没有可提取的文字；如果是扫描件，请先做 OCR"
+    return "\n\n".join(pages), ""
 
 
 # --------------------------------------------------------------------------- 切片
@@ -372,14 +450,11 @@ def process_document(file_name: str, content_base64: str,
                 "errorPointCandidates": []}
 
     if category == "pdf":
-        # 诚实降级：PDF 需要额外解析库，第一期不假装能读
-        return {"status": STATUS_FAILED,
-                "statusMessage": "PDF 解析需要安装解析依赖（pypdf），当前版本暂不支持。"
-                                 "可先上传 TXT/Markdown/CSV/JSON。",
-                "charCount": 0, "chunks": [], "knowledgePoints": [],
-                "errorPointCandidates": []}
-
-    text, error = decode_text(content_base64)
+        text, error = decode_pdf(content_base64)
+    elif category == "docx":
+        text, error = decode_docx(content_base64)
+    else:
+        text, error = decode_text(content_base64)
     if error:
         return {"status": STATUS_FAILED, "statusMessage": error,
                 "charCount": 0, "chunks": [], "knowledgePoints": [],

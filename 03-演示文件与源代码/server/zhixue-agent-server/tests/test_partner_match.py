@@ -20,6 +20,25 @@ def test_partner_match_uses_deterministic_backend_scoring(tmp_path):
 	assert body["matchedCandidate"]["factors"]["overlapMinutes"] == 120
 
 
+def test_real_accounts_replace_demo_people_when_available(tmp_path):
+	client = create_app(tmp_path / "partner-real-accounts.json").test_client()
+	created = client.post("/api/v1/auth/register", json={
+		"nickname": "真实测试同学", "grade": "大二", "phone": "13800138001",
+		"seedDemoData": False,
+	})
+	assert created.status_code == 201
+
+	response = client.post("/api/v1/agent/partner-match", json={"user": {
+		"userId": "demo-user",
+		"basicInfo": {"grade": "大二", "major": "计算机科学与技术"},
+	}})
+	body = response.get_json()
+
+	assert response.status_code == 200
+	assert body["candidateSources"] == {"accounts": 1, "demo": 0}
+	assert body["candidates"][0]["candidate"]["basicInfo"]["name"] == "真实测试同学"
+
+
 def test_partner_goal_factor_distinguishes_exact_and_course_overlap():
 	user = {"learningGoal": {"course": "数据结构", "goal": "期末80+"}}
 	exact = score_partner(user, {"learningGoal": {"course": "数据结构", "goal": "期末80+"}})

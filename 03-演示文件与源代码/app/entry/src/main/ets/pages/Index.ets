@@ -23,7 +23,23 @@ import { AuthStore } from '../api/AuthStore';
 @Entry
 @Component
 struct Index {
+  @StorageLink('learningDataRevision') @Watch('onLearningDataChanged') learningDataRevision: number = 0;
+  @StorageLink('knowledgeSyncMessage') knowledgeSyncMessage: string = '';
+  @State courseCount: number = 0;
+  @State urgentCount: number = 0;
   @State refreshKey: number = 0;
+
+  private onLearningDataChanged(): void {
+    this.courseCount = appState.courses.length;
+    this.urgentCount = appState.getUrgentDDLs().length;
+    this.refreshKey++;
+    if (this.isPageActive) this.ensurePlan();
+  }
+
+  onPageShow(): void {
+    this.isPageActive = true;
+    this.onLearningDataChanged();
+  }
   @State isWorkflowRefreshing: boolean = false;
   @State isAgentPlanLoading: boolean = false;
   @State agentPlan: LearningPlan | null = null;
@@ -53,7 +69,6 @@ struct Index {
     this.applyInitialTab();
     this.ensurePlan();
     this.refreshKey++;
-    this.bootstrapWorkflow();
     this.loadProactiveDecision();
   }
 
@@ -184,7 +199,7 @@ struct Index {
     if (decision === null || decision.action.type !== 'focus') return;
     appState.setFocusTask({
       course: '数据结构',
-      task: decision.cardData.taskName ?? '二叉树后序遍历',
+      task: decision.cardData.taskName,
       plannedMinutes: decision.action.preset.durationMinutes ?? decision.cardData.durationMinutes ?? 45,
       source: 'agent',
       mode: 'normal',
@@ -457,7 +472,7 @@ struct Index {
   PrimaryActionCard() {
     Column({ space: 10 }) {
       Text(this.perceptionLine()).fontSize(11.5).fontColor('#64748B').width('100%')
-      if (this.proactiveDecision !== null) {
+      if (this.hasProactiveTask()) {
         Text(this.proactiveDecision!.cardData.taskName ?? this.proactiveDecision!.title)
           .fontSize(20).fontWeight(FontWeight.Bold).fontColor('#0F172A').width('100%')
         Text(this.proactiveDecision!.reason.length > 0
@@ -652,9 +667,10 @@ struct Index {
 
   /** Agent 一句话感知摘要：先说"我知道什么"，再说"所以做什么"。 */
   private perceptionLine(): string {
-    const courses: number = appState.courses.length;
-    const ddls: number = appState.getUrgentDDLs().length;
+    const courses: number = this.courseCount;
+    const ddls: number = this.urgentCount;
     const d: ProactiveResponse | null = this.proactiveDecision;
+    if (this.knowledgeSyncMessage.length > 0) return `${courses} 门课程、${ddls} 项临近作业。${this.knowledgeSyncMessage}`;
     if (d !== null && d.contextTags.length > 0) {
       const labels: string[] = [];
       d.contextTags.forEach((tag: string) => {
@@ -681,7 +697,7 @@ struct Index {
    */
   /** 是否已有明确的 Agent 建议可执行。 */
   private isActionReady(): boolean {
-    if (this.proactiveDecision !== null && this.proactiveDecision!.action.type === 'focus') {
+    if (this.hasProactiveTask() && this.proactiveDecision!.action.type === 'focus') {
       return true;
     }
     if (this.currentAgentTask() !== null) {
@@ -692,7 +708,7 @@ struct Index {
 
   /** 主按钮分派：走的都是既有逻辑（写 focusTask 再跳专注设置页），只是收口到一处。 */
   private onPrimaryAction(): void {
-    if (this.proactiveDecision !== null && this.proactiveDecision!.action.type === 'focus') {
+    if (this.hasProactiveTask() && this.proactiveDecision!.action.type === 'focus') {
       this.startProactiveTask();
       return;
     }
@@ -711,6 +727,12 @@ struct Index {
       return;
     }
     this.openExercisePractice();
+  }
+
+  /** 空画像返回的 proactive 响应只用于说明“暂无数据”，不能冒充当前任务。 */
+  private hasProactiveTask(): boolean {
+    return this.proactiveDecision !== null &&
+      (this.proactiveDecision!.cardData.taskName ?? '').trim().length > 0;
   }
 
   /** 窄入口：只在用户主动想"全面看看"时才铺开，不再默认铺开。 */
@@ -951,7 +973,9 @@ struct Index {
               Row({ space: 10 }) {
                 this.StatCard(`${appState.getFocusSummary().streakDays}`, '连续学习天数')
                 this.StatCard(`${Math.round(appState.getFocusSummary().completionRate)}%`, '专注完成率')
-                this.StatCard(`${appState.getUrgentDDLs().length}`, '待处理作业')
+                // 同 Account 页：这里是**全部**待处理作业。用只数 7 天内的
+                // getUrgentDDLs() 会让"导入 N 条却显示 N-1 条"（实测反馈的数字对不上）。
+                this.StatCard(`${appState.getPendingDDLs().length}`, '待处理作业')
               }.width('100%')
 
               this.PanelRow('◰', '学习复盘', '汇总任务、知识点与下一步建议', 'pages/ReviewSummary')

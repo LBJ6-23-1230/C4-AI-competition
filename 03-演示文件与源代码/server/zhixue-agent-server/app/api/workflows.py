@@ -35,7 +35,8 @@ _repository: JsonRepository | None = None
 # `profileVersion` 从 1 跳到 7、history 6 条且共用同一个 `evidence-<sessionId>`。
 #
 # 用可重入锁：`_run_saved_workflow` 也可能被其它已持锁的路径调用。
-_WORKFLOW_RUN_LOCK = threading.RLock()
+from app.tools.profile_merge import PROFILE_LOCK
+_WORKFLOW_RUN_LOCK = PROFILE_LOCK
 
 
 class SubmissionNotFound(KeyError):
@@ -170,11 +171,38 @@ def _workflow_state(workflow: dict) -> dict:
 	state["goal"] = workflow["goal"]
 	if profile is not None:
 		state["profile"] = profile
-		state["oldMastery"] = profile.get("mastery", [{}])[0].get("masteryScore", 42)
+		# ⚠️ 取画像**第一条**掌握度作为本次的起点分。必须显式判空：
+		#
+		# 原实现是 `profile.get("mastery", [{}])[0].get("masteryScore", 42)` ——
+		# `get` 的默认值只在**键缺失**时生效，而"从零开始"的新账号（见
+		# `app/auth/service.py::provision_starter_profile`）画像里 `mastery` 是
+		# **存在的空列表** → `[][0]` 抛 IndexError → 整条工作流 500。
+		# 实测：注册时不载入演示数据的账号，创建/推进工作流直接 500。
+		#
+		# 空画像时的起点分取 0（"还没有任何掌握度记录"是事实），
+		# 不沿用 42 —— 42 是 demo-user 的演示基线值，写进真实账号的
+		# 判分起点会凭空造出一条"42 → xx"的掌握度历史。
+		# demo-user 不受影响：它画像里第一条就是 binary-tree-postorder=42。
+		mastery_rows = profile.get("mastery")
+		first_row = (mastery_rows[0] if isinstance(mastery_rows, list) and mastery_rows
+			else None)
+		state["oldMastery"] = (first_row.get("masteryScore", 42)
+			if isinstance(first_row, dict) else 0)
 	if plan is not None:
 		state["plan"] = plan
-	state.setdefault("knowledgePoints", [{"knowledgePointId": "binary-tree-postorder",
-		"masteryScore": state.get("oldMastery", 42), "errorIntensity": 60, "importance": 90}])
+	# 规划输入必须来自这个用户的真实画像。此前即使新账号 mastery=[]，这里仍会
+	# 塞入 binary-tree-postorder，导致用户只是打开首页就被生成一条“二叉树后序遍历”
+	# 计划。那不是诊断结果，而是演示数据泄漏到了真实账号。
+	if "knowledgePoints" not in state:
+		rows = profile.get("mastery", []) if isinstance(profile, dict) else []
+		state["knowledgePoints"] = [{
+			"knowledgePointId": str(item.get("knowledgePointId") or ""),
+			"knowledgePointName": str(item.get("knowledgePointName") or
+				item.get("knowledgePointId") or ""),
+			"masteryScore": item.get("masteryScore", 0),
+			"errorIntensity": max(0, 100 - int(item.get("masteryScore", 0))),
+			"importance": 50,
+		} for item in rows if isinstance(item, dict) and item.get("knowledgePointId")]
 	state.setdefault("exercises", _EXERCISE_BANK)
 	state.setdefault("answerKeys", _ANSWER_KEYS)
 	state.setdefault("knowledgePointsByExercise", {

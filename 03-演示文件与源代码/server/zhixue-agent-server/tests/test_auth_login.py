@@ -123,13 +123,13 @@ def test_login_by_phone_accepts_common_formats(tmp_path):
     assert response.get_json()["user"]["userId"] == registered["user"]["userId"]
 
 
-def test_login_by_unknown_phone_is_404(tmp_path):
+def test_login_by_unknown_phone_is_401(tmp_path):
     client = create_app(tmp_path / "unknown-phone.json").test_client()
 
     response = client.post("/api/v1/auth/login", json={"phone": "13700000099"})
 
-    assert response.status_code == 404
-    assert response.get_json()["errorCode"] == "NOT_FOUND"
+    assert response.status_code == 401
+    assert response.get_json()["errorCode"] == "UNAUTHORIZED"
 
 
 def test_password_account_calls_backend_and_rejects_wrong_password(tmp_path):
@@ -181,6 +181,87 @@ def test_passwordless_account_cannot_log_in_with_any_password(tmp_path):
         response = client.post("/api/v1/auth/login",
                                json={"phone": phone, "password": password})
         assert response.status_code == 401, f"密码 {password!r} 竟然登进去了"
+
+
+def _auth_header_for(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_change_password_verifies_old_password_and_takes_effect(tmp_path):
+    """★ 回归：改密码必须验证原密码；改完新密码可用、旧密码失效。
+
+    对应实测反馈「APP 目前没有修改密码的入口，需要增加一个用户自己修改密码的功能」。
+    """
+    client = create_app(tmp_path / "change-pw.json").test_client()
+    phone = _phone()
+    created = client.post("/api/v1/auth/login-or-register", json={
+        "nickname": "改密用户", "phone": phone, "password": "old-pw-123456",
+    }).get_json()
+    headers = _auth_header_for(created["token"])
+
+    # 原密码不对 → 401，且**不生效**
+    wrong = client.post("/api/v1/auth/change-password",
+                        json={"oldPassword": "nope-000000", "newPassword": "new-pw-123456"},
+                        headers=headers)
+    assert wrong.status_code == 401, wrong.get_json()
+    assert client.post("/api/v1/auth/login",
+                       json={"phone": phone, "password": "old-pw-123456"}).status_code == 200
+
+    # 原密码正确 → 200
+    ok = client.post("/api/v1/auth/change-password",
+                     json={"oldPassword": "old-pw-123456", "newPassword": "new-pw-123456"},
+                     headers=headers)
+    assert ok.status_code == 200, ok.get_json()
+    assert ok.get_json()["wasFirstTime"] is False
+
+    # 新密码可登录、旧密码失效
+    assert client.post("/api/v1/auth/login",
+                       json={"phone": phone, "password": "new-pw-123456"}).status_code == 200
+    assert client.post("/api/v1/auth/login",
+                       json={"phone": phone, "password": "old-pw-123456"}).status_code == 401
+
+
+def test_change_password_first_time_for_verification_code_account(tmp_path):
+    """验证码建号是无密码的 → 登录后可以**首次设置**密码（无需原密码）。
+
+    这正是"没有改密入口就永远补不上密码"那条断链的修复。
+    """
+    client = create_app(tmp_path / "change-pw-first.json").test_client()
+    phone = _phone()
+    code = client.post("/api/v1/auth/send-code", json={"phone": phone}).get_json()["devCode"]
+    created = client.post("/api/v1/auth/verify-code",
+                          json={"phone": phone, "code": code, "nickname": "首设用户"})
+    headers = _auth_header_for(created.get_json()["token"])
+
+    ok = client.post("/api/v1/auth/change-password",
+                     json={"newPassword": "first-pw-123456"}, headers=headers)
+    assert ok.status_code == 200, ok.get_json()
+    assert ok.get_json()["wasFirstTime"] is True
+
+    assert client.post("/api/v1/auth/login",
+                       json={"phone": phone, "password": "first-pw-123456"}).status_code == 200
+
+
+def test_change_password_requires_login(tmp_path):
+    """未登录不能改密码 —— 否则就是一个人人可用的越权接口。"""
+    client = create_app(tmp_path / "change-pw-anon.json").test_client()
+
+    response = client.post("/api/v1/auth/change-password", json={"newPassword": "whatever-1"})
+
+    assert response.status_code == 401
+
+
+def test_change_password_rejects_short_new_password(tmp_path):
+    client = create_app(tmp_path / "change-pw-short.json").test_client()
+    created = client.post("/api/v1/auth/login-or-register", json={
+        "nickname": "短密用户", "phone": _phone(), "password": "old-pw-123456",
+    }).get_json()
+
+    response = client.post("/api/v1/auth/change-password",
+                           json={"oldPassword": "old-pw-123456", "newPassword": "abc"},
+                           headers=_auth_header_for(created["token"]))
+
+    assert response.status_code == 400, response.get_json()
 
 
 def test_password_hash_is_not_exposed_or_stored_as_plaintext(tmp_path):
@@ -235,14 +316,14 @@ def test_register_response_never_leaks_full_phone(tmp_path):
     assert body["user"]["hasPhone"] is True
 
 
-def test_login_by_unknown_nickname_is_404(tmp_path):
+def test_login_by_unknown_nickname_is_401(tmp_path):
     """昵称不存在时要明确报错，而不是悄悄建号。"""
     client = create_app(tmp_path / "unknown.json").test_client()
 
     response = client.post("/api/v1/auth/login", json={"nickname": "从没注册过"})
 
-    assert response.status_code == 404
-    assert response.get_json()["errorCode"] == "NOT_FOUND"
+    assert response.status_code == 401
+    assert response.get_json()["errorCode"] == "UNAUTHORIZED"
     assert "还没有账号" in response.get_json()["message"]
 
 
@@ -325,3 +406,4 @@ def test_login_or_register_response_shape_matches_contract(tmp_path):
         assert field in body["user"], f"user 缺少 {field}"
     # 绝不能泄漏凭据字段
     assert "authSubject" not in body["user"]
+

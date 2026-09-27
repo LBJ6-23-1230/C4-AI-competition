@@ -3,7 +3,7 @@ import { common } from '@kit.AbilityKit';
 import { AgentApiClient } from '../api/AgentApiClient';
 import { ApiDefaults } from '../api/ApiDefaults';
 import { AuthClient } from '../api/AuthClient';
-import { AuthUser } from '../api/AuthModels';
+import { AuthUser, ChangePasswordResult } from '../api/AuthModels';
 import { AuthResult } from '../api/AuthResult';
 import { AuthStore } from '../api/AuthStore';
 import { ClientCache } from '../cache/ClientCache';
@@ -50,8 +50,14 @@ struct Account {
   @State busy: boolean = false;
   @State showSignOutConfirm: boolean = false;
   @State showDeleteConfirm: boolean = false;
-  @State showSwitchConfirm: boolean = false;
   @State proactiveEnabled: boolean = ProactiveSettingsStore.isEnabled();
+  // ---- 修改密码（见页面下方「修改密码」区）----
+  @State pwdOld: string = '';
+  @State pwdNew: string = '';
+  @State pwdConfirm: string = '';
+  @State pwdMsg: string = '';
+  @State pwdOk: boolean = false;
+  @State pwdBusy: boolean = false;
 
   aboutToAppear(): void {
     this.refresh();
@@ -124,6 +130,35 @@ struct Account {
     this.messageIsError = !saved;
   }
 
+  /**
+   * 提交改密码。
+   *
+   * 结果文案**由 `AuthClient.changePassword` 如实给出**（区分"已修改"/"已设置"/
+   * 各种失败原因），这里只负责展示，不自己编一句"修改成功"。
+   */
+  private async doChangePassword(): Promise<void> {
+    if (this.pwdBusy) {
+      return;
+    }
+    if (this.pwdNew !== this.pwdConfirm) {
+      this.pwdOk = false;
+      this.pwdMsg = '两次输入的新密码不一致，请重新确认。';
+      return;
+    }
+    this.pwdBusy = true;
+    this.pwdMsg = '';
+    const result: ChangePasswordResult = await AuthClient.changePassword(this.pwdOld, this.pwdNew);
+    this.pwdBusy = false;
+    this.pwdOk = result.ok;
+    this.pwdMsg = result.message;
+    if (result.ok) {
+      // 成功才清空输入框（失败时保留用户已填内容，便于改完重试）。
+      this.pwdOld = '';
+      this.pwdNew = '';
+      this.pwdConfirm = '';
+    }
+  }
+
   private static sourceText(source: string): string {
     // `local` 现在覆盖**所有本机主动登录**（昵称/手机号 + 密码、注册），
     // 原文案写死"（昵称注册）"会与手机号登录的场景对不上。
@@ -153,11 +188,16 @@ struct Account {
    * 否则用户在登录页按返回会又回到「我的」，逻辑上很怪。
    */
   private async goToLogin(): Promise<void> {
-    this.showSwitchConfirm = false;
     this.busy = true;
     if (AuthStore.isSignedIn()) {
       await AuthClient.signOut();
       appState.applyLogout();
+      this.clearLocalCaches();
+    } else {
+      // 体验身份固定使用 demo-user，因此退出时清回演示基线，避免上一位体验者的
+      // 错题、课程或知识库残留给下一位。离线 Fixture 也走同一接口并清本机数据。
+      await AgentApiClient.resetDemo();
+      appState.resetToMockData();
       this.clearLocalCaches();
     }
     this.busy = false;
@@ -170,6 +210,15 @@ struct Account {
     router.replaceUrl({ url: 'pages/Login' });
   }
 
+  /**
+   * 退出登录 —— **并离开本页回到登录页**。
+   *
+   * 为什么改：这段原先退出后 `applyLogout()` 就留在 App 内（于是停在游客的「我的」），
+   * 而页面上另一个常驻的「返回登录页」按钮去向是登录页 —— 两个按钮功能重叠、去向不同。
+   * 实测反馈原话：「有两个功能重复的按钮（返回登录页和退出登录），并且点击后返回的是
+   * 小明的游客登录的我的界面，不是登录界面，相当于多了一个不必要的过程」。
+   * 现在两者合一：确认后真正退出，并**直接回登录页**，不在游客态多停一步。
+   */
   private async doSignOut(): Promise<void> {
     this.showSignOutConfirm = false;
     this.busy = true;
@@ -179,21 +228,33 @@ struct Account {
     this.clearLocalCaches();
     this.message = result.message.length > 0 ? result.message : '已退出登录。';
     this.messageIsError = false;
-    this.refresh();
+    // 与 `goToLogin` 保持一致：离开前关掉离线 Fixture，否则登录页上的入口会报
+    // 「未找到 fixture 路由」（`FixtureApiTransport` 没有任何 auth 路由）。
+    AgentApiClient.setUseFixture(false);
+    router.replaceUrl({ url: 'pages/Login' });
   }
 
+  /**
+   * 注销账号 —— 成功时与退出登录一样**直接回登录页**（账号已停用，没有可停留的身份）。
+   *
+   * 失败时**不再清本地登录态**：账号可能仍然可用，把用户踢成游客再报错
+   * 反而会让人以为注销成功了。如实报错并保持原状态。
+   */
   private async doDeleteAccount(): Promise<void> {
     this.showDeleteConfirm = false;
     this.busy = true;
     const result: AuthResult = await AuthClient.deleteAccount();
     this.busy = false;
+    if (!result.ok) {
+      this.message = `注销未在服务端完成：${result.message}`;
+      this.messageIsError = true;
+      this.refresh();
+      return;
+    }
     appState.applyLogout();
     this.clearLocalCaches();
-    this.message = result.ok
-      ? result.message
-      : `注销未在服务端完成：${result.message} 本机登录信息已清除。`;
-    this.messageIsError = !result.ok;
-    this.refresh();
+    AgentApiClient.setUseFixture(false);
+    router.replaceUrl({ url: 'pages/Login' });
   }
 
   /**
@@ -206,19 +267,12 @@ struct Account {
   build() {
     Stack() {
       this.pageContent()
-      if (this.showSwitchConfirm) {
-        this.confirmOverlay('返回登录页？',
-          this.signedIn
-            ? '当前账号会先退出登录（服务端凭据同时失效），然后回到登录页。你可以在那里换一个身份重新进入。'
-            : '将回到登录页。你可以用昵称建立自己的账号，或再次以演示身份进入。',
-          '返回登录页', '#2563EB',
-          (): void => { this.goToLogin(); },
-          (): void => { this.showSwitchConfirm = false; })
-      }
       if (this.showSignOutConfirm) {
-        this.confirmOverlay('退出登录？',
-          '退出后回到体验身份（demo-user），演示基线数据会重新出现。账号本身不会被删除。',
-          '退出', '#2563EB',
+        this.confirmOverlay(this.signedIn ? '退出登录？' : '返回登录页？',
+          this.signedIn
+            ? '将退出当前账号（服务端凭据同时失效）并回到登录页。账号数据仍保留在服务端，随时可以再登录。'
+            : '将回到登录页。你可以用昵称建立自己的账号，或再次以演示身份进入。',
+          this.signedIn ? '退出并返回登录页' : '返回登录页', '#2563EB',
           (): void => { this.doSignOut(); },
           (): void => { this.showSignOutConfirm = false; })
       }
@@ -335,23 +389,16 @@ struct Account {
               Button('建立我的账号')
                 .width('100%').height(44).fontSize(14).fontColor('#FFFFFF')
                 .backgroundColor('#2563EB').borderRadius(10)
-                .onClick(() => this.showSwitchConfirm = true)
+                // 直接去登录页，不再先弹一次二次确认 —— 游客态没有任何可丢失的状态，
+                // 多这一层只是实测反馈里说的"多了一个不必要的过程"。
+                .onClick(() => { this.goToLogin(); })
             }
             .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(14)
             .border({ width: 1, color: '#E2E8F0' })
           }
 
-          // ---------- 返回登录页（切换身份）★ 常驻出口 ----------
-          Button(this.busy ? '处理中…' : '返回登录页')
-            .width('100%').height(48).fontSize(15).fontWeight(FontWeight.Bold)
-            .fontColor('#2563EB')
-            .backgroundColor('#FFFFFF').border({ width: 1, color: '#BFDBFE' }).borderRadius(12)
-            .enabled(!this.busy)
-            .onClick(() => this.showSwitchConfirm = true)
-          Text(this.signedIn
-            ? '返回登录页会先退出当前账号，然后你可以换一个身份进来。'
-            : '返回登录页可以改用昵称建立账号，或以演示身份重新进入。')
-            .fontSize(11).fontColor('#98A2B3').lineHeight(17).width('100%')
+          // 「返回登录页」按钮**已删除** —— 它与下方的「退出登录」功能重叠、去向却不同，
+          // 用户实测反馈要「只保留一个」。两者的能力已合并到下面那唯一的身份出口。
 
           // ---------- 学习搭子 ----------
           Column({ space: 10 }) {
@@ -404,22 +451,66 @@ struct Account {
             Row({ space: 10 }) {
               this.StatBlock(`${appState.getFocusSummary().streakDays}`, '连续学习天数')
               this.StatBlock(`${Math.round(appState.getFocusSummary().completionRate)}%`, '专注完成率')
-              this.StatBlock(`${appState.getUrgentDDLs().length}`, '待处理作业')
+              // 「待处理作业」= **全部**导入的作业，不能再用只数 7 天内的 getUrgentDDLs()，
+              // 否则导入 4 条里有一条在 8 天后，界面就少一个（实测反馈的数字对不上）。
+              this.StatBlock(`${appState.getPendingDDLs().length}`, '待处理作业')
             }.width('100%')
           }
           .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(14)
           .border({ width: 1, color: '#E2E8F0' })
 
-          // ---------- 退出登录 ----------
+          // ---------- 修改密码 ----------
+          //
+          // 这个入口所在页面以前叫「账号与密码管理」，却**没有任何密码管理能力**
+          // （实测反馈：「APP 目前没有修改密码的入口，需要增加一个用户自己修改密码的功能」）。
+          // 验证码建出来的账号本来是无密码的，所以这里同时承担「首次设置密码」。
           if (this.signedIn) {
-            Button(this.busy ? '处理中…' : '退出登录')
-              .width('100%').height(48).fontSize(15).fontColor('#2563EB')
-              .backgroundColor('#FFFFFF').border({ width: 1, color: '#BFDBFE' }).borderRadius(12)
-              .enabled(!this.busy)
-              .onClick(() => this.showSignOutConfirm = true)
-            Text('退出后留在 App 内，回到体验身份；账号数据仍保留在服务端。')
-              .fontSize(11).fontColor('#98A2B3').width('100%')
+            Column({ space: 10 }) {
+              Text('修改密码').fontSize(15).fontWeight(FontWeight.Bold).fontColor('#1F2937').width('100%')
+              Text('账号已设过密码时需填写原密码；从未设过密码的账号可直接设置新密码。')
+                .fontSize(11).fontColor('#98A2B3').width('100%')
+              TextInput({ placeholder: '原密码（从未设过可留空）', text: this.pwdOld })
+                .type(InputType.Password).height(44).fontSize(14).enabled(!this.pwdBusy)
+                .onChange((value: string) => { this.pwdOld = value; })
+              TextInput({ placeholder: '新密码（至少 6 位）', text: this.pwdNew })
+                .type(InputType.Password).height(44).fontSize(14).enabled(!this.pwdBusy)
+                .onChange((value: string) => { this.pwdNew = value; })
+              TextInput({ placeholder: '再次输入新密码', text: this.pwdConfirm })
+                .type(InputType.Password).height(44).fontSize(14).enabled(!this.pwdBusy)
+                .onChange((value: string) => { this.pwdConfirm = value; })
+              Button(this.pwdBusy ? '提交中…' : '确认修改')
+                .width('100%').height(44).fontSize(14).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
+                .backgroundColor(this.pwdBusy ? '#93C5FD' : '#3B82F6').borderRadius(12)
+                .enabled(!this.pwdBusy)
+                .onClick(() => { this.doChangePassword(); })
+              // 结果如实展示：成功/失败都用服务端或客户端给出的**真实原因**，
+              // 不自己编一句"修改成功"。
+              if (this.pwdMsg.length > 0) {
+                Text(this.pwdMsg).fontSize(12).lineHeight(18).width('100%')
+                  .fontColor(this.pwdOk ? '#1E6B3A' : '#EF4444')
+              }
+            }
+            .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(14)
+            .border({ width: 1, color: '#E2E8F0' })
           }
+
+          // ---------- 身份出口（★ 本页唯一一个） ----------
+          //
+          // 原先这里是**两个**按钮：上面那个常驻的「返回登录页」，和这个仅登录后出现的
+          // 「退出登录」。功能重叠但去向不同 —— 后者退出后**留在 App 内**变成游客的「我的」，
+          // 实测反馈：「有两个功能重复的按钮…点击后返回的是小明的游客登录的我的界面，
+          // 不是登录界面，相当于多了一个不必要的过程」。现在合并为一个：
+          // 点击 → 二次确认 → 确定后真正退出并**直接回到登录页**。
+          Button(this.busy ? '处理中…' : (this.signedIn ? '退出登录' : '返回登录页'))
+            .width('100%').height(48).fontSize(15).fontWeight(FontWeight.Bold)
+            .fontColor('#2563EB')
+            .backgroundColor('#FFFFFF').border({ width: 1, color: '#BFDBFE' }).borderRadius(12)
+            .enabled(!this.busy)
+            .onClick(() => this.showSignOutConfirm = true)
+          Text(this.signedIn
+            ? '退出后会回到登录页；账号数据仍保留在服务端。'
+            : '返回登录页可以改用昵称建立账号，或以演示身份重新进入。')
+            .fontSize(11).fontColor('#98A2B3').lineHeight(17).width('100%')
 
           // ---------- 注销账号 ----------
           if (this.signedIn) {

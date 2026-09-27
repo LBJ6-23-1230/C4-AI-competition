@@ -245,7 +245,9 @@ struct Login {
     // 关键分派
     let result: AuthResult;
     if (this.mode === 'register') {
-      result = await AuthClient.loginOrRegister(this.nickname, this.grade, phone, this.password);
+      // 真实账号固定从零开始；完整示例只属于“跳过登录”的游客模式。
+      result = await AuthClient.loginOrRegister(this.nickname, this.grade, phone,
+        this.password);
     } else if (phone.length > 0) {
       // 登录且填了手机号 → 按手机号登录（唯一、可验证，比昵称可靠）
       result = await AuthClient.loginByPhone(phone, this.password);
@@ -272,7 +274,10 @@ struct Login {
     }
     // 真实账号需要走联机数据源
     this.useOnlineSource();
-    appState.applyLogin(result.user, result.source);
+    // 建号成功时把"这次到底建了什么"带到首屏去说（登录页立刻被 replaceUrl 换掉，
+    // 留在这里的提示用户根本看不到）。登录已有账号时没有这句话可说。
+    appState.applyLogin(result.user, result.source,
+      result.createdAccount === true ? result.message : '');
     this.goHome();
   }
 
@@ -292,6 +297,7 @@ struct Login {
     }
     this.isHuaweiLoggingIn = true;
     this.message = '';
+    // 华为账号首次建号同样不载入任何课程、知识点或计划预置。
     const result: AuthResult = await AuthClient.loginWithHuaweiAccount();
     if (!this.isActive) {
       return;
@@ -303,7 +309,9 @@ struct Login {
       return;
     }
     this.useOnlineSource();
-    appState.applyLogin(result.user, result.source);
+    // 首次用华为账号登录会自动建号，同样把建号说明带到首屏（见 onSubmit）。
+    appState.applyLogin(result.user, result.source,
+      result.createdAccount === true ? result.message : '');
     this.goHome();
   }
 
@@ -369,6 +377,7 @@ struct Login {
     this.busy = true;
     this.message = '';
     // 昵称/年级只在"首次自动建号"时被后端采用；已注册手机号会忽略它们。
+    // 验证码首次建号固定为空数据，演示预置只保留给游客身份。
     const result: AuthResult = await AuthClient.verifyCode(
       this.normalizedPhone(), this.verifyCode.trim(),
       this.nickname.length > 0 ? this.nickname : undefined,
@@ -384,7 +393,9 @@ struct Login {
       return;
     }
     this.useOnlineSource();
-    appState.applyLogin(result.user, result.source);
+    // 验证码链路可能"顺手建了个号"，建号说明同样要带到首屏（见 onSubmit）。
+    appState.applyLogin(result.user, result.source,
+      result.createdAccount === true ? result.message : '');
     this.goHome();
   }
 
@@ -623,6 +634,15 @@ struct Login {
                   })
                 }.width('100%')
               }.width('100%')
+            }
+
+            if (this.mode === 'register') {
+              Text('新账号将从零开始：不预置课程、知识点或学习计划，内容由你导入的资料、练习和智能体操作逐步建立。')
+                .fontSize(11).fontColor('#1D4ED8').lineHeight(17).width('100%')
+              .width('100%').padding(12)
+              .backgroundColor('#F8FAFC')
+              .borderRadius(10)
+              .border({ width: 1, color: '#E2E8F0' })
             }
 
             // 记住我

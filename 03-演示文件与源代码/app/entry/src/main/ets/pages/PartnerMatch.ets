@@ -8,6 +8,10 @@ import { AgentApiClient } from '../api/AgentApiClient';
 import {
   PartnerCandidateBasicInfo,
   PartnerCandidateProfile,
+  PartnerContact,
+  PartnerInvitation,
+  PartnerInvitationListResponse,
+  PartnerInvitationResponse,
   PartnerMatchFactors,
   PartnerMatchResponse,
   PartnerRankedCandidate
@@ -47,13 +51,35 @@ struct PartnerMatch {
    */
   @State onlineBest: PartnerRankedCandidate | null = null;
   @State onlineOthers: PartnerRankedCandidate[] = [];
+  /**
+   * **收到的**搭子邀请（只含待处理的）。
+   *
+   * 用户实测反馈原话：「我想知道如果被邀请的用户能否接受到，并且以怎样的途径同意…
+   * 我的建议是如果有外来邀请消息可以在我的-搭子与协同页面上方弹出一个接受和
+   * 不接受的选项，并且这个消息可以叉掉代表无视」——本页上方那块横幅就是它。
+   *
+   * 在此之前，后端**没有任何邀请实体**，本页那个「发起邀请」按钮也不调接口，
+   * 只往本机周计划里插一条任务 —— 所谓邀请从来没有离开过发起人的手机。
+   */
+  @State incomingInvitations: PartnerInvitation[] = [];
+  /** 接受之后真正"联系起来"的搭子名（服务端双向登记）。 */
+  @State contactNames: string[] = [];
+  /** 正在处理的邀请 id（同时用来禁用按钮，避免连点重复处理）。 */
+  @State inviteBusy: string = '';
+  @State inviteError: string = '';
   private collaborativeTaskId: string = '';
+  /** 本页是否还在栈上（见 `onPageHide`）。 */
+  private pageActive: boolean = true;
 
   aboutToAppear(): void {
     if (AgentApiClient.getConfig().useFixture) {
       this.loadLocalFixtureMatch();
     } else {
       this.loadOnlineMatch();
+      // 收件箱与匹配结果互不依赖，但都必须在进页面时拉一次 ——
+      // 邀请是**别人**发起的状态变化，不主动拉就永远看不到。
+      this.loadInvitations();
+      this.loadContacts();
     }
   }
 
@@ -94,7 +120,7 @@ struct PartnerMatch {
         }
         this.onlineOthers = others;
       } else {
-        this.partnerError = PartnerMatch.describeFailure(result);
+        this.partnerError = PartnerMatch.describeFailure<PartnerMatchResponse>(result);
       }
     } catch (error) {
       this.partnerError = '匹配请求失败，请检查后端服务是否已启动。';
@@ -181,13 +207,115 @@ struct PartnerMatch {
     };
   }
 
-  /** 在线（真实后端）匹配结果的「发起学习邀请」。与离线走同一套协同任务流程。 */
-  private confirmOnlinePartner(): void {
+  /**
+   * 在线（真实后端）匹配结果的「发起学习邀请」。
+   *
+   * ⚠️ 与离线分支的关键差别：**必须先真的把邀请发到服务端**。
+   * 原实现两个分支都只调 `confirmPartnerWith`（写本机周计划），
+   * 于是"邀请"从来没有离开过发起人的手机 —— 用户实测反馈问的
+   * 「被邀请的用户能否接受到」，那时的答案是不能。
+   * 服务端失败时**如实报错并且不往下走**：本地协同任务照做毫无意义，
+   * 对方根本收不到，那正是本工程禁止的"静默假成功"。
+   */
+  private async confirmOnlinePartner(): Promise<void> {
     const partner: PartnerMatchType | null = this.onlineAsPartner();
-    if (partner === null) {
+    if (partner === null || this.onlineBest === null) {
       return;
     }
-    this.confirmPartnerWith(partner);
+    const targetId: string = this.onlineBest.candidate.userId;
+    const targetName: string = partner.matchName;
+    // 后端如实标注对方是真实账号还是演示同学（见 ApiModels 的 PartnerInvitation 注释）。
+    const isDemoTarget: boolean = this.onlineBest.candidate.accountKind !== 'account';
+
+    this.inviteError = '';
+    this.inviteBusy = targetId;
+    const result: ApiResult<PartnerInvitationResponse> =
+      await AgentApiClient.createPartnerInvitation({
+        toUserId: targetId,
+        message: '一起学数据结构吧'
+      });
+    this.inviteBusy = '';
+
+    if (!result.ok) {
+      this.inviteError = `邀请没有发出去：${PartnerMatch.describeFailure<PartnerInvitationResponse>(result)}`;
+      return;
+    }
+    // 邀请真实送达 / 记为演示对象 —— 两种情况的说法**必须不同**，
+    // 不能让用户以为小红（演示同学，没有账号）会给他回消息。
+    const notice: string = isDemoTarget
+      ? `已记录向 ${targetName} 的邀请。注意：${targetName} 是演示同学（没有真实账号），不会真的回复。`
+      : `已向 ${targetName} 发出学习邀请。对方登录后会在「搭子与协同」页看到，并可选择接受或拒绝。`;
+    this.confirmPartnerWith(partner, notice);
+  }
+
+  /** 收件箱：只含**待处理**的邀请（处理过的由后端过滤掉）。 */
+  private async loadInvitations(): Promise<void> {
+    const result = await AgentApiClient.listPartnerInvitations('inbox');
+    if (!this.pageActive) {
+      return;
+    }
+    if (result.ok) {
+      this.incomingInvitations = result.data.invitations;
+      return;
+    }
+    // 拉不到收件箱不该把整页变成错误页，但也不能假装"没有邀请" —— 如实说一句。
+    this.inviteError = `暂时读不到邀请收件箱：${PartnerMatch.describeFailure<PartnerInvitationListResponse>(result)}`;
+  }
+
+  /** 接受之后真正"联系起来"的那份名单。 */
+  private async loadContacts(): Promise<void> {
+    const result = await AgentApiClient.listPartnerContacts();
+    if (result.ok) {
+      this.contactNames = result.data.contacts.map((item: PartnerContact) => item.partnerName);
+    }
+  }
+
+  /**
+   * 处理一条收到的邀请。
+   *
+   * 三个动作语义**刻意分开**，对应用户反馈里说的"接受/不接受"与"叉掉代表无视"：
+   *   accept  → 后端把双方互相登记为搭子（`contacts`），这才是"两个人联系起来"
+   *   decline → 明确回复对方不接受
+   *   dismiss → 只是自己不想再看到（无视），与"不接受"分开记状态
+   */
+  private async respondInvitation(item: PartnerInvitation, action: string): Promise<void> {
+    if (this.inviteBusy.length > 0) {
+      return;
+    }
+    this.inviteBusy = item.invitationId;
+    this.inviteError = '';
+    let result: ApiResult<PartnerInvitationResponse>;
+    if (action === 'accept') {
+      result = await AgentApiClient.acceptPartnerInvitation(item.invitationId);
+    } else if (action === 'decline') {
+      result = await AgentApiClient.declinePartnerInvitation(item.invitationId);
+    } else {
+      result = await AgentApiClient.dismissPartnerInvitation(item.invitationId);
+    }
+    this.inviteBusy = '';
+    if (!result.ok) {
+      this.inviteError = `处理失败：${PartnerMatch.describeFailure<PartnerInvitationResponse>(result)}`;
+      return;
+    }
+    // 重新拉一次，让界面与**服务端事实**一致 —— 而不是本地先删掉再等下次对账。
+    await this.loadInvitations();
+    if (action === 'accept') {
+      await this.loadContacts();
+    }
+  }
+
+  onPageShow(): void {
+    this.pageActive = true;
+  }
+
+  /**
+   * 离开页面时置位。
+   *
+   * 邀请是**异步**拉取的，用户完全可能在响应回来之前就退出本页 ——
+   * 那时再写 @State 没有意义，还会让下次进页面时闪一下过期数据。
+   */
+  onPageHide(): void {
+    this.pageActive = false;
   }
 
   private confirmPartner(): void {
@@ -197,8 +325,14 @@ struct PartnerMatch {
     this.confirmPartnerWith(generatedPartner);
   }
 
-  /** 共用的协同任务落地流程（离线/在线两个入口都走这里，行为一致）。 */
-  private confirmPartnerWith(partner: PartnerMatchType): void {
+  /**
+   * 共用的协同任务落地流程（离线/在线两个入口都走这里，行为一致）。
+   *
+   * `serverNotice` 非空时**覆盖**默认那句"已发出邀请"—— 联机分支用它如实区分
+   * "对方是真实账号（登录后会看到）"与"对方是演示同学（不会真的回复）"，
+   * 不能让两种情况共用一句"已发出邀请"。
+   */
+  private confirmPartnerWith(partner: PartnerMatchType, serverNotice: string = ''): void {
     if (appState.weeklyPlan === null) {
       appState.setWeeklyPlan(LocalAgentService.generateWeeklyPlan(
         appState.courses, appState.homeworkDDLs, appState.currentUser
@@ -215,12 +349,63 @@ struct PartnerMatch {
     this.invitationSent = true;
     const name: string = partner.matchName;
     appState.completeChatTask(
-      added ? `已向 ${name} 发出学习邀请，并加入协同学习任务。` : `与 ${name} 的协同学习任务已经在计划中。`,
+      serverNotice.length > 0
+        ? serverNotice
+        : (added ? `已向 ${name} 发出学习邀请，并加入协同学习任务。`
+                 : `与 ${name} 的协同学习任务已经在计划中。`),
       '接下来可以确认协同任务并开始专注。',
       '查看本周计划',
       'pages/StudyPlan'
     );
     ChatNavigation.returnToChat();
+  }
+
+  /**
+   * 收到的邀请横幅 —— 放在页面**最上方**（用户反馈里明确要求的位置）。
+   *
+   * 三条操作刻意分开：接受 / 不接受 / ✕（无视）。✕ 与"不接受"不是一回事：
+   * 前者只是自己不想再看到，后者是明确回复对方；后端也分开记状态
+   * （`dismissed` vs `declined`），以后要接消息通知时不用改数据模型。
+   */
+  @Builder
+  InvitationBanner() {
+    Column({ space: 12 }) {
+      ForEach(this.incomingInvitations, (item: PartnerInvitation) => {
+        Column({ space: 10 }) {
+          Row({ space: 8 }) {
+            Text('🤝').fontSize(18)
+            Text(`${item.fromName} 想和你组成学习搭子`).fontSize(15)
+              .fontWeight(FontWeight.Bold).fontColor('#172033').layoutWeight(1)
+            // 叉掉 = 无视。放在右上角，符合用户对"消息可叉掉"的预期。
+            Text('✕').fontSize(16).fontColor('#94A3B8')
+              .onClick(() => { void this.respondInvitation(item, 'dismiss'); })
+          }.width('100%')
+
+          if (item.message.length > 0) {
+            Text(item.message).fontSize(13).fontColor('#5F7485').lineHeight(19).width('100%')
+          }
+          if (item.targetKind === 'demo') {
+            Text('（这是一位演示同学，没有真实账号）')
+              .fontSize(11).fontColor('#B45309').width('100%')
+          }
+
+          Row({ space: 10 }) {
+            Button(this.inviteBusy === item.invitationId ? '处理中…' : '接受')
+              .layoutWeight(1).height(40).fontSize(14).fontWeight(FontWeight.Bold)
+              .fontColor('#FFFFFF').backgroundColor('#2563EB').borderRadius(10)
+              .enabled(this.inviteBusy.length === 0)
+              .onClick(() => { void this.respondInvitation(item, 'accept'); })
+            Button('不接受')
+              .layoutWeight(1).height(40).fontSize(14).fontColor('#2563EB')
+              .backgroundColor('#EFF6FF').borderRadius(10)
+              .enabled(this.inviteBusy.length === 0)
+              .onClick(() => { void this.respondInvitation(item, 'decline'); })
+          }.width('100%')
+        }
+        .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
+        .border({ width: 1, color: '#BFDBFE' })
+      }, (item: PartnerInvitation) => item.invitationId)
+    }.width('100%')
   }
 
   @Builder
@@ -283,7 +468,17 @@ Text(`${generatedPartner.score}%`).fontSize(28).fontWeight(FontWeight.Bold).font
    *     Property 'error' does not exist on type 'ApiResult<...>'
    * 既有代码 `AuthClient.describe()` 用的就是这个 cast 写法，这里保持一致。
    */
-  private static describeFailure(result: ApiResult<PartnerMatchResponse>): string {
+  /**
+   * 把失败结果翻译成一句人话。
+   *
+   * ⚠️ 参数写成**泛型**而不是 `ApiResult<PartnerMatchResponse>`：本页现在还要处理
+   * 邀请的四个接口（发起 / 收件箱 / 接受 / 拒绝 / 无视），它们的响应类型不同，
+   * 写死成匹配响应会让 `describeFailure(邀请结果)` 直接编译不过
+   * （实测报 "Argument of type 'ApiResult<PartnerInvitationResponse>' is not
+   * assignable to parameter of type 'ApiResult<PartnerMatchResponse>'"）。
+   * 这个方法只读 `error` 字段，与业务数据类型无关，本来就不该被绑死。
+   */
+  private static describeFailure<T>(result: ApiResult<T>): string {
     const failure = result as ApiFailure;
     if (failure.error.code === 'NETWORK_ERROR') {
       return '连接不上后端服务。请确认后端已启动，并在「接口环境」里填对了地址。';
@@ -438,6 +633,26 @@ Text(`${generatedPartner.score}%`).fontSize(28).fontWeight(FontWeight.Bold).font
               .fontSize(12).fontColor('#5F7485').width('100%').padding(12)
               .backgroundColor('#EFF6FF').borderRadius(12)
 
+            // ★ 收到别人的邀请时，在**页面最上方**给出接受 / 不接受 / ✕（无视）。
+            // 位置与方法名都照用户实测反馈的要求来："如果有外来邀请消息可以在
+            // 我的-搭子与协同页面上方弹出一个接受和不接受的选项，并且这个消息
+            // 可以叉掉代表无视"。
+            if (this.incomingInvitations.length > 0) {
+              this.InvitationBanner()
+            }
+            // 邀请相关的问题**独立展示**，不并进上面的"匹配未能完成"错误卡 ——
+            // 匹配成功但收件箱拉不到，是两件事，混在一起会误导排查方向。
+            if (this.inviteError.length > 0) {
+              Text(this.inviteError).fontSize(12).fontColor('#B91C1C').lineHeight(18)
+                .width('100%').padding(12).backgroundColor('#FEF2F2')
+                .border({ width: 1, color: '#FECACA' }).borderRadius(10)
+            }
+            if (this.contactNames.length > 0) {
+              Text(`已建立学习搭子：${this.contactNames.join('、')}`)
+                .fontSize(12).fontColor('#0F766E').width('100%').padding(12)
+                .backgroundColor('#ECFDF5').borderRadius(10)
+            }
+
             if (this.partnerLoading) {
               Column({ space: 10 }) {
                 LoadingProgress().width(40).height(40).color('#2563EB')
@@ -489,14 +704,18 @@ Text(`${generatedPartner.score}%`).fontSize(28).fontWeight(FontWeight.Bold).font
               Column({ space: 8 }) {
                 Text('确认后将回到对话，由知学Mate继续安排共同学习。')
                   .fontSize(12).fontColor('#667085').lineHeight(18).width('100%')
-                Button(this.invitationSent ? '查看协同任务' : '向该搭子发起学习邀请')
+                Button(this.inviteBusy === this.onlineBest.candidate.userId
+                  ? '正在发送邀请…' : (this.invitationSent ? '查看协同任务' : '向该搭子发起学习邀请'))
                   .width('100%').height(46).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#FFFFFF')
                   .backgroundColor('#2563EB').borderRadius(14)
+                  .enabled(this.inviteBusy.length === 0)
                   .onClick(() => {
                     if (this.invitationSent) {
                       router.pushUrl({ url: 'pages/StudyPlan' });
                     } else {
-                      this.confirmOnlinePartner();
+                      // 这条路径现在是**真的**发一个服务端邀请（见 confirmOnlinePartner）：
+                      // 失败会如实报错并停在这里，不再"本机假装已发出"。
+                      void this.confirmOnlinePartner();
                     }
                   })
               }

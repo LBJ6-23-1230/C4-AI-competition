@@ -3,7 +3,7 @@ import { AgentApiClient } from './AgentApiClient';
 import { ApiFailure, ApiResult } from './ApiResult';
 import { AuthResult } from './AuthResult';
 import { AuthStore } from './AuthStore';
-import { AuthUser, NICKNAME_MAX_LENGTH, NICKNAME_MIN_LENGTH, StoredSession, VERIFICATION_CODE_MESSAGES, AuthVerifyCodeRequest } from './AuthModels';
+import { AuthUser, ChangePasswordResult, NICKNAME_MAX_LENGTH, NICKNAME_MIN_LENGTH, StoredSession, VERIFICATION_CODE_MESSAGES, AuthChangePasswordRequest, AuthVerifyCodeRequest } from './AuthModels';
 import { HuaweiAccountService, HuaweiAuthOutcome } from '../services/HuaweiAccountService';
 
 /**
@@ -92,6 +92,31 @@ export class AuthClient {
   }
 
   // ---------------------------------------------------------------- 注册
+  /**
+   * 建号结果的统一文案 —— **按服务端事实说话**。
+   *
+   * 为什么必须分三种：注册页允许用户选「载入演示数据（二叉树等示例）」或
+   * 「从零开始」。两条路径下系统"知道"的东西完全不同，若文案一律写成
+   * "已为你建立学习画像"，就等于暗示系统已经了解他 —— 用户实测反馈里的
+   * 「会给用户一种虚假的感觉」正是指这个。
+   *
+   * ⚠️ 判据只能用服务端返回的 `created` / `demoDataSeeded`，
+   * **不能拿用户勾选框的状态去猜**：勾了"载入演示数据"但账号已存在时，
+   * 本次只是登录，什么数据都没载入。
+   */
+  private static registerMessage(nickname: string, created: boolean,
+    demoDataSeeded: boolean): string {
+    if (!created) {
+      return `欢迎回来，${nickname}。`;
+    }
+    if (demoDataSeeded) {
+      return `已为你建立账号，${nickname}。本次载入了演示数据（二叉树后序遍历等示例知识点与计划）`
+        + `—— 它们是示例，不是你自己的记录；你的真实练习会逐步覆盖它们。`;
+    }
+    return `已为你建立账号，${nickname}。当前画像是空的（未载入任何演示数据）：`
+      + `你的知识点掌握度与学习计划，将从你自己的练习与智能体对话中建立。`;
+  }
+
   /** 校验昵称，返回中文错误消息；通过则返回空串。与后端规则保持一致。 */
   static validateNickname(nickname: string): string {
     const trimmed: string = nickname.trim();
@@ -116,6 +141,8 @@ export class AuthClient {
    * `400 VALIDATION_ERROR 手机号不能为空`。因为当时没有调用点，
    * 它是一颗休眠炸弹：谁按注释去用它就会踩。
    * 现在类型层面挡住了这条路。
+   *
+   * 真实账号固定从零开始；演示数据只属于游客 `demo-user`。
    */
   static async register(nickname: string, phone: string, grade?: string): Promise<AuthResult> {
     if (AgentApiClient.getConfig().useFixture) {
@@ -129,18 +156,23 @@ export class AuthClient {
     const result = await AgentApiClient.authRegister({
       nickname: nickname.trim(),
       phone: phone.trim(),
-      grade: grade !== undefined && grade.length > 0 ? grade : undefined
+      grade: grade !== undefined && grade.length > 0 ? grade : undefined,
+      seedDemoData: false
     });
     if (!result.ok) {
       return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
     }
 
     AuthStore.save(result.data.user, result.data.token, result.data.expiresAt);
+    const seeded: boolean = result.data.demoDataSeeded === true;
     return {
       ok: true,
       user: result.data.user,
       source: 'local',
-      message: `欢迎，${result.data.user.nickname}。已为你建立独立的学习画像。`
+      // 本接口只会建新号，故 created 恒为 true
+      message: AuthClient.registerMessage(result.data.user.nickname, true, seeded),
+      createdAccount: true,
+      demoDataSeeded: seeded
     };
   }
 
@@ -153,6 +185,8 @@ export class AuthClient {
    *
    * 现在由服务端判定：昵称已存在就登录、不存在才建号，响应里的 `created`
    * 用于区分文案。
+   *
+   * 新建真实账号一律不载入演示数据。
    */
   static async loginOrRegister(nickname: string, grade: string, phone?: string,
     password?: string): Promise<AuthResult> {
@@ -168,20 +202,25 @@ export class AuthClient {
       nickname: nickname.trim(),
       grade: grade.length > 0 ? grade : undefined,
       phone: phone !== undefined && phone.length > 0 ? phone : undefined,
-      password: password !== undefined && password.length > 0 ? password : undefined
+      password: password !== undefined && password.length > 0 ? password : undefined,
+      seedDemoData: false
     });
     if (!result.ok) {
       return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
     }
 
     AuthStore.save(result.data.user, result.data.token, result.data.expiresAt);
+    const created: boolean = result.data.created === true;
+    // ⚠️ 只有"确实建了号"才可能载入演示数据：服务端对已有账号的登录
+    // 根本不会走预置逻辑，响应里也不会带 demoDataSeeded（undefined）。
+    const seeded: boolean = created && result.data.demoDataSeeded === true;
     return {
       ok: true,
       user: result.data.user,
       source: 'local',
-      message: result.data.created
-        ? `已为你建立账号，${result.data.user.nickname}。`
-        : `欢迎回来，${result.data.user.nickname}。`
+      message: AuthClient.registerMessage(result.data.user.nickname, created, seeded),
+      createdAccount: created,
+      demoDataSeeded: seeded
     };
   }
 
@@ -294,19 +333,23 @@ export class AuthClient {
     if (grade !== undefined && grade.length > 0) {
       request.grade = grade;
     }
+    // 验证码链路对未注册手机号会自动建号，但真实账号仍固定从零开始。
+    request.seedDemoData = false;
 
     const result = await AgentApiClient.authVerifyCode(request);
     if (!result.ok) {
       return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
     }
     AuthStore.save(result.data.user, result.data.token, result.data.expiresAt);
+    const created: boolean = result.data.created === true;
+    const seeded: boolean = created && result.data.demoDataSeeded === true;
     return {
       ok: true,
       user: result.data.user,
       source: 'local',
-      message: result.data.created
-        ? `已为你建立账号，${result.data.user.nickname}。`
-        : `欢迎回来，${result.data.user.nickname}。`
+      message: AuthClient.registerMessage(result.data.user.nickname, created, seeded),
+      createdAccount: created,
+      demoDataSeeded: seeded
     };
   }
 
@@ -343,19 +386,23 @@ export class AuthClient {
     const result = await AgentApiClient.authLoginWithHuawei({
       openId: outcome.openId,
       unionId: outcome.unionId,
-      nickname: outcome.nickname
+      nickname: outcome.nickname,
+      // 首次用华为账号登录时会自动建号，但演示预置只属于游客模式。
+      seedDemoData: false
     });
     if (!result.ok) {
       return { ok: false, user: null, source: 'local', message: AuthClient.describe(result) };
     }
     AuthStore.save(result.data.user, result.data.token, result.data.expiresAt);
+    const created: boolean = result.data.created === true;
+    const seeded: boolean = created && result.data.demoDataSeeded === true;
     return {
       ok: true,
       user: result.data.user,
       source: 'local',
-      message: result.data.created
-        ? `已用华为账号建立账号，${result.data.user.nickname}。`
-        : `欢迎回来，${result.data.user.nickname}。`
+      message: AuthClient.registerMessage(result.data.user.nickname, created, seeded),
+      createdAccount: created,
+      demoDataSeeded: seeded
     };
   }
 
@@ -460,6 +507,45 @@ export class AuthClient {
       message: offlineLike
         ? '当前处于离线状态，正在使用本地保存的登录信息。'
         : `服务端校验返回 HTTP ${statusCode}，已按本地保存的登录信息继续。`
+    };
+  }
+
+  /**
+   * 修改 / 首次设置密码。
+   *
+   * 「我的 → 账号与密码管理」这个入口一直存在，但此前**没有任何密码管理能力**；
+   * 而且验证码建出来的账号是无密码的，没有这个接口就永远补不上密码。
+   */
+  static async changePassword(oldPassword: string, newPassword: string): Promise<ChangePasswordResult> {
+    if (!AuthStore.isSignedIn()) {
+      return { ok: false, message: '请先登录后再修改密码。' };
+    }
+    // 离线 Fixture 联系不上服务端，改不了服务器上的密码 —— 如实拒绝，不假装成功。
+    if (AgentApiClient.getConfig().useFixture) {
+      return { ok: false,
+        message: '当前是「离线 Fixture」模式，修改密码需要联机。'
+          + '请先到「我的 → 接口环境」切回联机模式。' };
+    }
+    // 先行校验（与后端同口径），省一次必然失败的往返。
+    if (newPassword.length < 6) {
+      return { ok: false, message: '新密码至少 6 位。' };
+    }
+    if (newPassword.length > 72) {
+      return { ok: false, message: '新密码不能超过 72 位。' };
+    }
+    const request: AuthChangePasswordRequest = { newPassword: newPassword };
+    if (oldPassword.length > 0) {
+      request.oldPassword = oldPassword;
+    }
+    const result = await AgentApiClient.authChangePassword(request);
+    if (!result.ok) {
+      return { ok: false, message: AuthClient.describe(result) };
+    }
+    return {
+      ok: true,
+      message: result.data.wasFirstTime
+        ? '密码已设置。下次可以用手机号（或昵称）+ 密码登录。'
+        : '密码已修改。'
     };
   }
 

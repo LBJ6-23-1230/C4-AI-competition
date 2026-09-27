@@ -48,6 +48,14 @@ _HISTORY_LOCK = threading.RLock()
 #: 供回复文案如实说明"改了什么"。未注册时按"无法落盘"处理（不再谎称成功）。
 _PROFILE_UPDATE_HOOK: Any = None
 
+# 对话式画像修改采用“两步确认”：第一轮只暂存模型解析出的结构化改动，
+# 用户明确回复“确认更新”后才落盘。这样既防止模型误解一句自然语言就改档案，
+# 也给用户一次核对机会。暂存只含普通业务字段，不含口令等敏感信息。
+_PENDING_PROFILE_UPDATES: dict[str, dict[str, Any]] = {}
+_PENDING_PROFILE_LOCK = threading.RLock()
+_PROFILE_CONFIRM_WORDS = {"确认", "确认更新", "确认修改", "同意更新", "可以更新"}
+_PROFILE_CANCEL_WORDS = {"取消", "取消更新", "不要改", "不更新", "算了"}
+
 
 def set_profile_update_hook(hook: Any) -> None:
     """注册画像落盘钩子（由 api 层在 create_app 时调用）。"""
@@ -732,12 +740,40 @@ def _handle_update_profile(message: str, data: dict[str, Any],
     （`repository.json` 里根本没有 `courses` 集合，前端通过 `user_data` 传进来）。
     所以"课程/任务类更新"后端接不住，硬写只会写到一个没人读的地方。
 
-    因此这里分两步：
-      1. 用 `_apply_profile_updates()` 把**后端确实拥有**的字段落盘
-      2. 其余（课程/任务）通过返回值交给**前端**去应用 —— 这也正是
-         prompt 设计"返回 updates 而不是最终文案"的本意
-    并把"实际改了什么"回传，让回复文案有据可依，而不是无条件宣称成功。
+    因此这里先把模型解析出的更新放进按用户隔离的待确认队列；只有用户明确
+    回复“确认更新”后，才把**后端确实拥有**的画像字段落盘。课程/任务由前端
+    本地管理，本接口不会假装已经覆盖，而是明确引导用户去相应页面确认导入。
     """
+    owner = (user_id or "").strip() or "demo-user"
+    command = (message or "").strip()
+    with _PENDING_PROFILE_LOCK:
+        pending = _PENDING_PROFILE_UPDATES.get(owner)
+
+    if pending is not None and command in _PROFILE_CANCEL_WORDS:
+        with _PENDING_PROFILE_LOCK:
+            _PENDING_PROFILE_UPDATES.pop(owner, None)
+        return "已取消，本次没有修改学习档案。", {}
+
+    if pending is not None and command in _PROFILE_CONFIRM_WORDS:
+        with _PENDING_PROFILE_LOCK:
+            confirmed = _PENDING_PROFILE_UPDATES.pop(owner, {})
+        applied: list[str] = []
+        if confirmed and _PROFILE_UPDATE_HOOK is not None:
+            try:
+                applied = _PROFILE_UPDATE_HOOK(owner, confirmed) or []
+            except Exception as error:  # noqa: BLE001 - 落盘失败不能打断对话
+                print(f"[chat] 画像更新落盘失败: {error}")
+        course_updates = confirmed.get("course") if isinstance(confirmed, dict) else None
+        has_course_updates = isinstance(course_updates, list) and len(course_updates) > 0
+        parts: list[str] = []
+        if applied:
+            parts.append(f"已更新学习档案：{'、'.join(applied)}。")
+        if has_course_updates:
+            parts.append("课程与任务修改需要在“课程与作业”页确认导入，本次未自动覆盖。")
+        if not parts:
+            parts.append("已确认，但这次没有识别到可写入的档案字段，因此没有修改。")
+        return "\n".join(parts), confirmed
+
     raw = _call_llm(_load_prompt("UpdateProfilePrompt.txt"), _context_prompt(message, data, user_id),
                     response_json=True)
     parsed = extract_json(raw) or {}
@@ -751,36 +787,18 @@ def _handle_update_profile(message: str, data: dict[str, Any],
     # 仍应正常生效，被拦下的只是"凭一句话就把知识点记成已掌握"这一件事。
     claim_reply = _mastery_claim_gate(message, data)
 
-    applied: list[str] = []
-    if updates and _PROFILE_UPDATE_HOOK is not None:
-        try:
-            applied = _PROFILE_UPDATE_HOOK(user_id, updates) or []
-        except Exception as error:  # noqa: BLE001 - 落盘失败不能打断对话
-            print(f"[chat] 画像更新落盘失败: {error}")
-
-    # 课程/任务类更新后端接不住 —— 必须如实说明，不能默认"都改好了"
-    course_updates = updates.get("course")
-    has_course_updates = isinstance(course_updates, list) and len(course_updates) > 0
-    user_updates = updates.get("user")
-    has_user_updates = isinstance(user_updates, dict) and len(user_updates) > 0
-
-    if applied:
-        reply = (reply or "已更新。") + f"\n\n（已写入学习档案：{'、'.join(applied)}。）"
-    elif has_user_updates and not has_course_updates:
-        # 模型给了用户档案更新，但没有一个字段是后端拥有的（例如只改了姓名/专业）。
-        # ⚠️ 原文案是"（这部分档案字段由 App 本地保存，服务端不持有。）" —— 那是
-        # **内部实现说明**，实测反馈明确要求「有的东西不要写给用户直接看」，改写成人话。
-        reply = (reply or "已记下。") + "\n\n这些信息只保存在本机 App 里。"
-    if has_course_updates:
-        reply += "\n\n课程与任务已同步到 App，请以 App 内显示为准。"
-
     if claim_reply is not None:
-        # 掌握度自述不采信：回复以闸门文案为准（它已如实说明），
-        # 并向用户交代同一句话里其它字段实际改了什么。
-        tail = f"\n\n（另外已更新：{'、'.join(applied)}。）" if applied else ""
-        return claim_reply + tail, updates
+        # 掌握度自述不采信：没有练习证据就不进入确认队列。
+        return claim_reply, {}
 
-    return reply or "我理解你想更新档案，但没解析出可写入的字段，能再说具体一点吗？", updates
+    if updates:
+        with _PENDING_PROFILE_LOCK:
+            _PENDING_PROFILE_UPDATES[owner] = updates
+        summary = reply or "我已理解你想修改学习档案。"
+        return (summary + "\n\n为避免误改，我还没有保存。请回复“确认更新”继续，"
+                "或回复“取消更新”放弃。"), {}
+
+    return reply or "我理解你想更新档案，但没解析出可写入的字段，能再说具体一点吗？", {}
 
 
 def _handle_analyze_wrong(message: str, data: dict[str, Any], image_base64: str | None,

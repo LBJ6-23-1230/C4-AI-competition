@@ -14,7 +14,9 @@ from app.model_adapters.llm import ModelAdapter, ModelAdapterError
 class QwenAdapter(ModelAdapter):
 	def __init__(self, completion: Callable[[Mapping[str, Any]], str] | None = None,
 				 timeout_seconds: float = 8, api_key: str | None = None,
-				 base_url: str | None = None, model: str | None = None) -> None:
+				 base_url: str | None = None, model: str | None = None,
+				 system_prompt: str | None = None) -> None:
+		self.system_prompt = system_prompt
 		self.completion = completion
 		self.timeout_seconds = timeout_seconds
 		self.api_key = api_key if api_key is not None else os.getenv("DASHSCOPE_API_KEY", "")
@@ -43,7 +45,7 @@ class QwenAdapter(ModelAdapter):
 		payload = {
 			"model": self.model,
 			"messages": [
-				{"role": "system", "content": (
+				{"role": "system", "content": self.system_prompt or (
 					"你是学习工作流决策器。只返回 JSON，不要 markdown。"
 					"JSON 必须包含 step，取值为 diagnosis、planner、exercise、assessment 或 finish。"
 				)},

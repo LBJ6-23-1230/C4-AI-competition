@@ -63,6 +63,17 @@ struct StudyTags {
     this.isPageActive = false;
     this.profileRequestVersion++;
     this.workflowRequestVersion++;
+    this.isStartingWorkflow = false;
+  }
+
+  onPageShow(): void {
+    this.isPageActive = true;
+  }
+
+  onPageHide(): void {
+    this.isPageActive = false;
+    this.workflowRequestVersion++;
+    this.isStartingWorkflow = false;
   }
 
   /**
@@ -113,11 +124,11 @@ struct StudyTags {
     this.isStartingWorkflow = true;
     this.workflowErrorMessage = '';
     const requestVersion: number = ++this.workflowRequestVersion;
+    try {
     const workflow = await this.workflowViewModel.start(this.goal, this.userId);
     if (!this.isPageActive || requestVersion !== this.workflowRequestVersion) {
       return;
     }
-    this.isStartingWorkflow = false;
     if (workflow === null) {
       this.workflowErrorMessage = this.workflowViewModel.getErrorMessage() || 'Agent 会话启动失败，请稍后重试。';
       return;
@@ -125,11 +136,20 @@ struct StudyTags {
     const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     // 带上归属身份：冷启动恢复时靠它判断这个会话是不是当前用户的。
     WorkflowSessionStore.save(context, workflow, appState.currentUser.userId);
-    await this.workflowViewModel.runUntilComplete(1);
+    const progress = await this.workflowViewModel.runUntilComplete(1);
+    if (progress === null || progress.status === 'failed' || progress.status === 'error') {
+      this.workflowErrorMessage = this.workflowViewModel.getErrorMessage() || 'Agent 会话推进失败，请重试。';
+      return;
+    }
     if (!this.isPageActive || requestVersion !== this.workflowRequestVersion) {
       return;
     }
     router.pushUrl({ url: 'pages/ExercisePractice' });
+    } catch (error) {
+      this.workflowErrorMessage = 'Agent 会话启动失败，请检查连接后重试。';
+    } finally {
+      if (requestVersion === this.workflowRequestVersion) this.isStartingWorkflow = false;
+    }
   }
 
   private buildChartData(): void {
@@ -214,6 +234,15 @@ struct StudyTags {
   }
 
   private evidenceValue(evidence: Evidence): string {
+    if (typeof evidence.value === 'number') {
+      const value: number = evidence.value as number;
+      // 正确率等指标通常是 0–1，小数原样展示会出现
+      // `0.6667000000000001` 这类浮点噪声；面向用户统一显示为百分比。
+      if (evidence.metric === 'accuracy' && value >= 0 && value <= 1) {
+        return `${Math.round(value * 100)}%`;
+      }
+      return `${Math.round(value * 100) / 100}`;
+    }
     return JSON.stringify(evidence.value);
   }
 
@@ -260,6 +289,13 @@ struct StudyTags {
                   .border({ width: 1, color: '#FDE68A' }).borderRadius(12)
               }
 
+              // 实测反馈：「学习画像和学情画像有什么区别？点开之后跳转的界面是一样的」。
+              // 它们确实是**同一页** —— 数据只有一份，差别只在"看"还是"改"。
+              // 与其让用户猜，不如在页面上直接讲清楚。
+              Text('本页同时是「学情画像」与「学习画像」：前者在对话里用来查看掌握度；'
+                + '后者在你更新学习档案（目标 / 掌握情况）之后回到这里核对结果。两者读的是同一份数据。')
+                .fontSize(11).fontColor('#98A2B3').lineHeight(17).width('100%')
+
               Column({ space: 8 }) {
                 Text('当前学习目标').fontSize(13).fontColor('#64748B')
                 Text(this.goal.length > 0 ? this.goal : '尚未建立学习目标')
@@ -287,7 +323,14 @@ struct StudyTags {
                 } else {
                   Column({ space: 10 }) {
                     Text('当前掌握度').fontSize(16).fontWeight(FontWeight.Bold).fontColor('#111827')
-                    Text('当前只有少量知识点，使用进度卡展示会比雷达图更清晰。')
+                    // 雷达图**不是没触发，而是维度不够**：至少要三个轴才成形，
+                    // 两个点连起来只是一条线。实测反馈「之前初赛版本在学情画像内有
+                    // 雷达图的，现在始终没有触发」—— 根因在这里（以及演示画像里
+                    // 原先只预置了 1 个知识点，见 server 的 `app/api/demo.py`）。
+                    // 与其让用户以为坏了，不如说清触发条件与达成路径。
+                    Text(`雷达图需要至少 3 个知识点才成形（当前 ${this.mastery.length} 个），`
+                      + '所以先用进度卡展示。做几轮其他知识点的专项练习、掌握度积累到 3 个以上后，'
+                      + '这里会自动切换成雷达图。')
                       .fontSize(13).fontColor('#6B7280')
                     ForEach(this.mastery, (item: KnowledgeMastery) => {
                       Column({ space: 8 }) {
@@ -320,7 +363,7 @@ struct StudyTags {
                       }.width('100%').alignItems(VerticalAlign.Top)
                       Progress({ value: item.masteryScore, total: 100, type: ProgressType.Linear })
                         .color('#2563EB').backgroundColor('#DBEAFE').height(8).borderRadius(8)
-                      Text(`关联学习证据 ${this.evidenceCount(item.knowledgePointId)} 条`)
+                      Text(`关联练习记录 ${this.evidenceCount(item.knowledgePointId)} 条`)
                         .fontSize(12).fontColor('#475467')
                     }
                     .width('100%').padding(14).backgroundColor('#F8FAFC')
@@ -343,7 +386,7 @@ struct StudyTags {
                       Row() {
                         Text(`${item.oldScore} → ${item.newScore} · 来源：${ApiDisplayFormatter.evidenceSource(item.source)}`)
                           .fontSize(14).fontColor('#1F2937').layoutWeight(1)
-                        Text(this.isHistoryExpanded(item) ? '收起 ↑' : '查看证据 ↓')
+                        Text(this.isHistoryExpanded(item) ? '收起 ↑' : '查看练习详情 ↓')
                           .fontSize(12).fontWeight(FontWeight.Medium).fontColor('#2563EB')
                       }.width('100%').onClick(() => this.toggleHistoryEvidence(item))
                       if (this.isHistoryExpanded(item)) {
@@ -358,23 +401,6 @@ struct StudyTags {
                       }
                     }.width('100%').padding(12).backgroundColor('#EFF6FF').borderRadius(10)
                   }, (item: MasteryHistory) => item.timestamp)
-                }
-                .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
-              }
-
-              if (this.evidence.length > 0) {
-                Column({ space: 10 }) {
-                  Text('Evidence 学习证据').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
-                  ForEach(this.evidence, (item: Evidence) => {
-                    Column({ space: 5 }) {
-                      Text(`${ApiDisplayFormatter.evidenceSource(item.sourceType)} · ${ApiDisplayFormatter.metric(item.metric)}`).fontSize(14).fontWeight(FontWeight.Medium).fontColor('#1F2937')
-                      Text(`知识点：${ApiDisplayFormatter.knowledgePoint(item.knowledgePointId)} · 数值：${this.evidenceValue(item)}`)
-                        .fontSize(12).fontColor('#475467')
-                      Text(ApiDisplayFormatter.timestamp(item.timestamp)).fontSize(11).fontColor('#98A2B3')
-                    }
-                    .width('100%').padding(13).backgroundColor('#F8FAFC')
-                    .border({ width: 1, color: '#E2E8F0' }).borderRadius(12)
-                  }, (item: Evidence) => item.id)
                 }
                 .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
               }

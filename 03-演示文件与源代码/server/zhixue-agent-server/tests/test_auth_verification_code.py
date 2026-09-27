@@ -53,11 +53,14 @@ def test_verify_code_auto_registers_and_is_single_use(tmp_path):
     phone = _phone()
     code = _send(client, phone).get_json()["devCode"]
 
+    # `seedDemoData: true` —— 本用例断言的是"载入演示数据"那条路径下的画像
+    # （见 test_verify_code_new_account_defaults_to_empty_profile）。
     response = client.post("/api/v1/auth/verify-code", json={
         "phone": phone,
         "code": code,
         "nickname": "验证码新用户",
         "grade": "大二",
+        "seedDemoData": True,
     })
     body = response.get_json()
 
@@ -80,6 +83,28 @@ def test_verify_code_auto_registers_and_is_single_use(tmp_path):
     })
     assert replay.status_code == 400
     assert replay.get_json()["errorCode"] == "CODE_NOT_FOUND"
+
+
+def test_verify_code_new_account_defaults_to_empty_profile(tmp_path):
+    """验证码建号同样尊重"载不载入演示数据"：不传 = 空画像，且响应如实标注。
+
+    验证码链路是**顺手建号**（用户只是登录，手机号恰好没注册过），
+    所以它更需要这条默认值 —— 不能让用户一进门就被塞一份写死的二叉树画像。
+    """
+    client, _path = _client(tmp_path, "verify-empty.json")
+    phone = _phone()
+    code = _send(client, phone).get_json()["devCode"]
+
+    response = client.post("/api/v1/auth/verify-code", json={
+        "phone": phone, "code": code, "nickname": "验证码从零",
+    })
+    body = response.get_json()
+
+    assert response.status_code == 201
+    assert body["created"] is True
+    assert body["demoDataSeeded"] is False
+    profile = client.get(f"/api/v1/profile/{body['user']['userId']}").get_json()
+    assert profile["mastery"] == []
 
 
 def test_verify_code_logs_existing_phone_into_same_account(tmp_path):

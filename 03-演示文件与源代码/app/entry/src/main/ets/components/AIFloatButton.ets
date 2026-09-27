@@ -130,7 +130,7 @@ export struct AIFloatButton {
                 .fontWeight(FontWeight.Bold)
                 .fontColor('#FFFFFF')
             }
-            Blank()
+            Blank().hitTestBehavior(HitTestMode.None)
             Text('✕')
               .fontSize(18)
               .fontColor('#FFFFFF')
@@ -151,7 +151,7 @@ export struct AIFloatButton {
                 if (msg.role === 'user') {
                   // 用户消息（右对齐，蓝色气泡）
                   Row() {
-                    Blank()
+                    Blank().hitTestBehavior(HitTestMode.None)
                     Text(msg.text)
                       .fontSize(13)
                       .fontColor('#FFFFFF')
@@ -173,7 +173,7 @@ export struct AIFloatButton {
                         .borderRadius({ topLeft: 12, topRight: 12, bottomLeft: 4, bottomRight: 12 })
                         .padding({ left: 12, right: 12, top: 8, bottom: 8 })
                         .constraintSize({ maxWidth: '80%' })
-                      Blank()
+                      Blank().hitTestBehavior(HitTestMode.None)
                     }
                     .width('100%')
                     .padding({ left: 4, right: 40 })
@@ -238,13 +238,13 @@ export struct AIFloatButton {
       // ==========================================
       // 空白弹性空间 → 把浮标推到底部
       // ==========================================
-      Blank()
+      Blank().hitTestBehavior(HitTestMode.None)
 
       // ==========================================
       // 可拖拽 AI 浮标按钮
       // ==========================================
       Row() {
-        Blank()
+        Blank().hitTestBehavior(HitTestMode.None)
         Button() {
           Row({ space: 5 }) {
             Text('💬')

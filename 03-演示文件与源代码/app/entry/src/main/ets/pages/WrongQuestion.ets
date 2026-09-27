@@ -346,10 +346,12 @@ Text('✅ 分析完成')
 
       Divider().color('#EFF6FF')
 
+      if (result.course.trim().length > 0) {
       Row({ space: 8 }) {
         Text('课程').fontSize(13).fontColor('#667085').width(60)
         Text(result.course).fontSize(15).fontWeight(FontWeight.Bold).fontColor('#2563EB')
       }.width('100%')
+      }
 
       Row({ space: 8 }) {
         Text('知识点').fontSize(13).fontColor('#667085').width(60)
@@ -468,7 +470,7 @@ Text('✅ 分析完成')
           Text(appState.getChatTaskContext()).fontSize(12).fontColor('#2563EB')
             .width('100%').padding(10).backgroundColor('#EFF6FF').borderRadius(10)
 
-          Text('当前课程：数据结构 · 选择题目—识别内容—生成补强任务')
+          Text('选择题目—识别内容—生成补强任务')
             .fontSize(12).fontColor('#2563EB').width('100%').padding(12).backgroundColor('#EFF6FF').borderRadius(12)
 
           /* 上传区域 */

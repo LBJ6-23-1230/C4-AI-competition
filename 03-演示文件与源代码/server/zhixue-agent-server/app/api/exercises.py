@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import uuid
 import json
 import threading
 from pathlib import Path
@@ -36,7 +37,8 @@ _repository: JsonRepository | None = None
 #
 # 这里用一把进程内锁把整段串行化。同一进程内的提交本来就不需要并行
 # （判分是纯计算，微秒级），串行化的吞吐代价可忽略，换来的是幂等语义真正成立。
-_SUBMIT_LOCK = threading.RLock()
+from app.tools.profile_merge import PROFILE_LOCK
+_SUBMIT_LOCK = PROFILE_LOCK
 
 _EXERCISE_BANK = [
 	{"exerciseId": "exercise-preorder-001", "knowledgePointId": "binary-tree-postorder",
@@ -225,11 +227,38 @@ def get_exercise_set(set_id: str):
 		# 覆盖面从 6 个知识点扩到**任意**知识点。
 		# 判定依据是 `knowledge_point_id is None`（解析不出 = 题库里没有），
 		# 而不是"select 返回空" —— 后者在无过滤时会返回题库前 N 题，永远不为空。
-		if raw_point and knowledge_point_id is None and generate_requested:
+		generation_attempted = bool(raw_point and knowledge_point_id is None and generate_requested)
+		if generation_attempted:
 			exercises = _generate_and_store(raw_point, count)
 		if not exercises:
+			if generation_attempted:
+				# ⚠️ 已经为这个知识点尝试过现场出题、但一道都没拿到时，**绝不能回落**到
+				# `select_exercises(_EXERCISE_BANK, None, ...)`：不带知识点过滤的它
+				# 返回的是**题库前 N 题**（正是二叉树那几道），等于把**另一个知识点**
+				# 的题冒充成本次请求的题 —— 前端拿不到任何异常信号，用户看到的是
+				# "换了个知识点，题却没变"。实测反馈的
+				# 「第三次加载十几秒后依旧是第二次的题目和做题结果」就出在这条静默替换上
+				# （模型出题失败 / 校验不过 → 被悄悄换成默认题）。
+				# 如实返回空列表 + 明确标记，让前端提示"出题失败，请重试"，
+				# 而不是给一份答非所问的题。
+				return jsonify({
+					"setId": set_id,
+					"exercises": [],
+					"generationFailed": True,
+					"message": "针对该知识点现场出题失败，请重试。",
+				})
 			exercises = select_exercises(_EXERCISE_BANK, knowledge_point_id, difficulty, count, excluded_ids)
-	return jsonify({"setId": set_id, "exercises": exercises})
+	response = {"setId": set_id, "exercises": exercises}
+	if _repository and exercises and any(item.get("source") == "llm" for item in exercises):
+		trace_id = f"trace-select-{uuid.uuid4().hex}"
+		_repository.save("traces", trace_id, {"traceId": trace_id,
+			"userId": resolve_user_id(request.args.get("userId")), "events": [{
+				"agent": "exercise", "toolCalls": ["select_exercises"],
+				"inputSummary": f"请求知识点 {raw_point}", "outputSummary": f"生成并入库 {len(exercises)} 道题",
+				"evidenceIds": [], "stateVersion": 1, "timestamp": datetime.now(timezone.utc).isoformat(),
+				"status": "completed", "stepId": "step-1", "inputStateVersion": 1, "outputStateVersion": 1}]})
+		response["traceId"] = trace_id
+	return jsonify(response)
 
 
 @exercises_api.post("/api/v1/exercises/<set_id>/submit")
@@ -286,12 +315,24 @@ def submit_exercises(set_id: str):
 						  for a in answers if isinstance(a, dict)}
 		covered_points.discard("")
 		lead_point = sorted(covered_points)[0] if covered_points else "binary-tree-postorder"
-		old_mastery = 42
+		# 画像里**没有这个知识点**时起点分取 0（"还没有记录"是事实）。
+		#
+		# ⚠️ 原先这里是写死的 `old_mastery = 42` —— 而 42 是 demo-user 的演示基线值。
+		# 后果：一个"从零开始"的新账号（注册时不载入演示数据，画像 mastery 为空）
+		# 做完第一次练习，响应与**画像 history** 里都会出现一条凭空的
+		# "掌握度 42 → 58"，正是用户反馈的那种"虚假的感觉"
+		# （「创建一个新账号最好不直接给出已经写死的数据」）。
+		# demo-user 的主链不受影响：它画像里本来就有 binary-tree-postorder=42，
+		# 循环会读到真实值（实测见 tests/test_domain_models.py 的
+		# masteryUpdate == {binary-tree-postorder, 42, 58} 断言）。
+		old_mastery = 0
 		for mastery in profile_model.mastery:
 			if mastery.knowledge_point_id == lead_point:
 				old_mastery = mastery.mastery_score
 
-		assessment = grade_exercise(answers, answer_keys, knowledge_points, old_mastery, result_id)
+		names = {item["exerciseId"]: item.get("knowledgePointName", "知识点理解")
+			for item in [*_EXERCISE_BANK, *_repository.list("exercises")]}
+		assessment = grade_exercise(answers, answer_keys, knowledge_points, old_mastery, result_id, names)
 		score = assessment.score
 		new_mastery = assessment.suggested_new_mastery
 		# 本次提交真正主要练的知识点（按被判分题量，并列取字典序）
@@ -358,7 +399,7 @@ def submit_exercises(set_id: str):
 						response["plan"] = new_plan.to_dict()
 						response["planDiff"] = {"planId": new_plan.plan_id, **history}
 			events: list[dict] = [{
-				"agent": "assessment", "toolCalls": ["grade_exercise"],
+				"agent": "assessment", "toolCalls": ["grade_exercise"] + (["update_mastery"] if profile_model_dict else []),
 				"inputSummary": f"提交题集 {set_id}", "outputSummary": f"得分 {score}",
 				"evidenceIds": [evidence_id], "stateVersion": 1, "timestamp": timestamp.isoformat(),
 				"status": "completed", "sessionId": data.get("sessionId"), "stepId": "step-1",

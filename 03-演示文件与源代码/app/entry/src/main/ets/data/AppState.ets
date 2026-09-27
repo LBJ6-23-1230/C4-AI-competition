@@ -21,6 +21,7 @@ import {
   PlanTaskStatus
 } from '../models/AgentModels';
 import { ChatHandoff } from '../models/ChatModels';
+import { AgentApiClient } from '../api/AgentApiClient';
 import { ApiDefaults } from '../api/ApiDefaults';
 import { AuthSource, AuthUser } from '../api/AuthModels';
 // 契约形状的「用户看得见的那份计划」。用别名避免与 AgentModels 里的本地模型撞名 ——
@@ -49,6 +50,43 @@ import { ClientCache } from '../cache/ClientCache';
  */
 export class AppState {
   private static instance: AppState;
+  private knowledgeSyncVersion: number = 0;
+
+  public notifyLearningDataChanged(): void {
+    AppStorage.setOrCreate('learningDataRevision', (AppStorage.get<number>('learningDataRevision') ?? 0) + 1);
+  }
+
+  private async syncImportedKnowledge(): Promise<void> {
+    this.notifyLearningDataChanged();
+    const version: number = ++this.knowledgeSyncVersion;
+    const userId: string = this.currentUser.userId;
+    const courses: string[] = [];
+    this.courses.forEach((item: CourseInfo) => {
+      if (item.courseName.trim().length > 0 && courses.indexOf(item.courseName) < 0) courses.push(item.courseName);
+    });
+    this.homeworkDDLs.forEach((item: HomeworkDDL) => {
+      if (item.courseName.trim().length > 0 && courses.indexOf(item.courseName) < 0) courses.push(item.courseName);
+    });
+    if (courses.length === 0) return;
+    AppStorage.setOrCreate('knowledgeSyncMessage', '本地导入已完成，正在同步知识点…');
+    try {
+      const result = await AgentApiClient.importKnowledgePoints(userId, courses);
+      if (userId !== this.currentUser.userId || version !== this.knowledgeSyncVersion) return;
+      if (result.ok) {
+        ClientCache.cacheProfile(result.data);
+        ClientCache.invalidateCurrentPlan();
+        AppStorage.setOrCreate('knowledgeSyncMessage', `已为你的 ${courses.length} 门课准备 ${result.data.mastery.length} 个知识点，点“开始诊断”即可练习。`);
+        this.notifyLearningDataChanged();
+      } else {
+        console.warn('课程知识点同步失败，本地导入数据已保留');
+        AppStorage.setOrCreate('knowledgeSyncMessage', '本地导入成功，知识点同步失败，请检查连接后重新导入。');
+      }
+    } catch (error) {
+      if (userId === this.currentUser.userId && version === this.knowledgeSyncVersion) {
+        AppStorage.setOrCreate('knowledgeSyncMessage', '本地导入成功，知识点同步失败，请稍后重新导入。');
+      }
+    }
+  }
 
   /* ========== 用户 & 课程数据 ========== */
   public currentUser: UserProfile = mockCurrentUser;
@@ -77,6 +115,18 @@ export class AppState {
   public authSource: AuthSource = 'guest';
   /** 当前展示用的昵称（游客态为演示昵称）。 */
   public authNickname: string = ApiDefaults.DEMO_USER_NAME;
+  /**
+   * 登录 / 注册成功后要在首屏如实告知用户的一句话（没有则为空串）。
+   *
+   * 为什么需要它：注册页让用户选「载入演示数据」或「从零开始」，而登录成功是
+   * `router.replaceUrl` 直接跳走的 —— 那句说明在登录页上根本来不及被看到。
+   * 于是落到对话页由欢迎区呈现，否则用户永远不知道系统"知道"他什么、
+   * 更不知道画像里是空是满（用户实测反馈：「会让用户有一种虚假的感觉」）。
+   *
+   * 文案由 `AuthClient` 按**服务端事实**生成（见 `AuthClient.registerMessage`），
+   * 这里只负责传递，不在这里拼文案。
+   */
+  public loginNotice: string = '';
 
   /* ========== 对话持久化 ========== */
   public chatMessages: string = '';  // JSON 序列化的消息列表
@@ -141,8 +191,11 @@ export class AppState {
    *
    * `user` 允许为 null（防御式）：调用方若因异常拿到空用户，这里直接退化为体验身份，
    * 而不是把 null 写进 `currentUser` 引发后续一连串空指针。
+   *
+   * `notice` 可选：本次登录 / 注册要说给用户听的一句话（见 `loginNotice`）。
+   * 不传即清空 —— 冷启动恢复登录态时不该再重复弹上次注册的说明。
    */
-  public applyLogin(user: AuthUser | null, source: AuthSource): void {
+  public applyLogin(user: AuthUser | null, source: AuthSource, notice: string = ''): void {
     if (user === null) {
       this.applyLogout();
       return;
@@ -179,6 +232,9 @@ export class AppState {
     if (identityChanged) {
       this.resetAccountScopedState();
     }
+    // ⚠️ 必须放在 `resetAccountScopedState()` **之后**：那里面会把 loginNotice 清空
+    // （它也是账号维度的状态，不能串给下一个登录的人）。
+    this.loginNotice = notice;
   }
 
   /**
@@ -257,6 +313,7 @@ export class AppState {
     this.importedCourseCount = newCourses.length;
     this.isDataImported = true;
     this.advanceStage('input', '导入课程表数据');
+    this.syncImportedKnowledge();
   }
 
   /**
@@ -267,6 +324,7 @@ export class AppState {
     this.importedDDLCount = newDDLs.length;
     this.isDataImported = true;
     this.advanceStage('input', '导入作业DDL数据');
+    this.syncImportedKnowledge();
   }
 
   /** 删除指定课程 */
@@ -279,6 +337,7 @@ export class AppState {
     }
     this.courses = filtered;
     this.importedCourseCount = filtered.length;
+    this.notifyLearningDataChanged();
   }
 
   /** 删除指定DDL */
@@ -291,6 +350,7 @@ export class AppState {
     }
     this.homeworkDDLs = filtered;
     this.importedDDLCount = filtered.length;
+    this.notifyLearningDataChanged();
   }
 
   /**
@@ -302,6 +362,7 @@ export class AppState {
     }
     this.importedCourseCount += newCourses.length;
     this.isDataImported = true;
+    this.syncImportedKnowledge();
   }
 
   /**
@@ -313,6 +374,7 @@ export class AppState {
     }
     this.importedDDLCount += newDDLs.length;
     this.isDataImported = true;
+    this.syncImportedKnowledge();
   }
 
   /**
@@ -365,6 +427,22 @@ export class AppState {
 
   public getUrgentDDLs(): HomeworkDDL[] {
     return this.homeworkDDLs.filter((ddl: HomeworkDDL) => ddl.daysLeft <= 7);
+  }
+
+  /**
+   * **全部**待处理作业（= 导入进来的每一条，不做天数过滤）。
+   *
+   * 为什么要与 `getUrgentDDLs()` 分开：两者含义不同，此前却被混用了 ——
+   * 「我的」与账号页那块「待处理作业」统计用的是 `getUrgentDDLs().length`
+   * （只数 7 天内到期的）。于是用户导入 4 条、其中 1 条在 8 天以后，
+   * 界面只显示 3 条。实测反馈：「待处理作业明明上传了4个…这里只显示3个，
+   * 始终少一个，数字对不上」—— 不是算错，是**标签与口径不一致**。
+   *
+   * 现在的分工：文案说「待处理作业」用本方法（全量）；
+   * 文案说「紧急 / 临近」才用 `getUrgentDDLs()`（7 天内）。
+   */
+  public getPendingDDLs(): HomeworkDDL[] {
+    return this.homeworkDDLs;
   }
 
   public getDDLsByCourse(courseName: string): HomeworkDDL[] {
@@ -831,9 +909,14 @@ export class AppState {
    * 这是可复现的跨账号数据泄露。
    */
   public resetAccountScopedState(): void {
+    this.knowledgeSyncVersion++;
+    AppStorage.setOrCreate('knowledgeSyncMessage', '');
     this.chatMessages = '';
     this.hasActiveChat = false;
     this.pendingChatPrompt = '';
+    // 登录提示语同理：它描述的是"上一个身份注册时发生了什么"，
+    // 换身份后继续显示等于对新用户说别人的事。
+    this.loginNotice = '';
     this.focusSessions = [];
     this.activeFocusTask = null;
     this.clearFocusResultDraft();
@@ -844,6 +927,7 @@ export class AppState {
     // 会让账号看到游客导入的内容（反之亦然），形成明显的跨身份串数据。
     this.courses = [];
     this.homeworkDDLs = [];
+    this.notifyLearningDataChanged();
     this.isDataImported = false;
     this.importedCourseCount = 0;
     this.importedDDLCount = 0;

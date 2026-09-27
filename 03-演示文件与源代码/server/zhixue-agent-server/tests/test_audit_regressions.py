@@ -479,16 +479,12 @@ def test_chat_layer_hook_is_wired_by_create_app(tmp_path):
     assert profile["goal"] == "接线验证目标", "钩子被调用但没有落盘"
 
 
-def test_update_profile_handler_returns_updates_for_frontend(tmp_path):
-    """`_handle_update_profile` 必须把 updates 交给调用方，而不是丢掉。
-
-    原缺陷：该函数只 `return reply`，把整份 updates 丢弃 ——
-    于是 prompt 里"返回 updates 让调用方应用"的设计完全落空，
-    课程/任务类改动永远无法生效。
-    这里不调真实 LLM（会需要网络与配额），改为验证**返回值契约**：
-    正常路径返回 `(reply, updates)` 二元组，且 updates 是 dict。
-    """
+def test_update_profile_handler_requires_confirmation_before_writing(tmp_path):
+    """画像更新必须先进入待确认队列，明确确认后才允许落盘。"""
     from app.agent import chat_llm
+
+    create_app(tmp_path / "profile-confirm.json")
+    owner = "demo-user"
 
     original = chat_llm._call_llm
     try:
@@ -498,21 +494,23 @@ def test_update_profile_handler_returns_updates_for_frontend(tmp_path):
             '"updates":{"user":{"learningGoal":{"goal":"数据结构 90+"}},'
             '"course":[{"courseName":"数据结构","tasks":[]}]}}'
         )
-        reply, updates = chat_llm._handle_update_profile("把目标改成 90+", {}, "demo-user")
+        reply, updates = chat_llm._handle_update_profile("把目标改成 90+", {}, owner)
     finally:
         chat_llm._call_llm = original
 
-    assert isinstance(updates, dict), "updates 没有被返回给调用方"
-    assert updates.get("user"), "updates.user 丢失"
-    assert updates.get("course"), "updates.course 丢失（前端无法应用课程改动）"
-    # 课程类改动后端接不住，回复里必须**如实说明去向**，不能默默假装成功了。
-    #
-    # ⚠️ 这条断言随文案更新（保证不变，措辞变了）：原文案是内部口吻的
-    #   "（课程与任务由 App 本地维护，已随本次结果一并下发，请以 App 内显示为准。）"，
-    #   实测反馈明确要求「有的东西不要写给用户直接看」，已改写成
-    #   "课程与任务已同步到 App，请以 App 内显示为准。"
-    assert "App" in reply and "显示为准" in reply, \
-        f"回复没有如实说明课程改动的去向：{reply!r}"
+    assert updates == {}, "未确认时不应把待写数据交给调用方"
+    assert "还没有保存" in reply and "确认更新" in reply
+
+    confirmed_reply, confirmed = chat_llm._handle_update_profile("确认更新", {}, owner)
+    assert confirmed.get("user"), "确认后 updates.user 丢失"
+    assert confirmed.get("course"), "确认后 updates.course 丢失"
+    assert "已更新学习档案" in confirmed_reply
+    assert "本次未自动覆盖" in confirmed_reply, "课程改动不能伪装成已落盘"
+
+    import app.api.chat as chat_module
+
+    profile = chat_module._repository.get("profiles", owner)
+    assert profile["goal"] == "数据结构 90+", "确认后学习目标没有落盘"
 
 
 def test_mastery_self_report_is_verified_not_trusted():

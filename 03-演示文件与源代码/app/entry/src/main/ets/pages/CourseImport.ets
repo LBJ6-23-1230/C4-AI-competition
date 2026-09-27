@@ -7,11 +7,21 @@ import { CourseInfo, HomeworkDDL } from '../models/AgentModels';
 import { FileParserService } from '../services/FileParserService';
 import { LocalAgentService } from '../services/LocalAgentService';
 import { AIFloatButton } from '../components/AIFloatButton';
+import { AgentApiClient } from '../api/AgentApiClient';
+import { ScheduleRecognitionResponse } from '../api/ApiModels';
+import { ApiFailure } from '../api/ApiResult';
+import { ImageEncoder } from '../utils/ImageEncoder';
 
 @Entry
 @Component
 struct CourseImport {
+  @StorageLink('knowledgeSyncMessage') knowledgeSyncMessage: string = '';
   @State activeTab: string = 'courses';
+
+  aboutToAppear(): void {
+    const params = router.getParams() as Record<string, string>;
+    if (params && params['initialTab'] === 'import') this.activeTab = 'import';
+  }
   @State jsonInputText: string = '';
   @State importType: string = 'course';
   @State showJsonInput: boolean = false;
@@ -19,9 +29,26 @@ struct CourseImport {
   @State importMessage: string = '';
   @State imageImportName: string = '';
   @State showImageReview: boolean = false;
+  @State recognizedCourses: CourseInfo[] = [];
+  @State recognitionModel: string = '';
   @State refreshKey: number = 0;
   @State courseList: CourseInfo[] = appState.courses;
   @State ddlList: HomeworkDDL[] = appState.homeworkDDLs;
+  /**
+   * 「N 项紧急」徽章的数字（7 天内到期的条数）。
+   *
+   * ⚠️ 必须缓存成 `@State`，**不能在 build 里直接写 `appState.getUrgentDDLs().length`**：
+   * `appState` 是普通类实例、不是 `@Observed`，ArkUI 不把它纳入依赖追踪。
+   * 实测（模拟器，2026-09-26）：删掉一条 DDL 后**列表已经刷新、这个徽章却还是旧数字**
+   * —— 截图里 4 条删成 3 条时，列表变了而右上角仍写着上一步的数。
+   * 所有会改 `ddlList` 的地方都调一次 `syncUrgentCount()`，两边才一致。
+   */
+  @State urgentDdlCount: number = appState.getUrgentDDLs().length;
+
+  /** 数据变了就同步刷新徽章数字（见 `urgentDdlCount` 的说明）。 */
+  private syncUrgentCount(): void {
+    this.urgentDdlCount = appState.getUrgentDDLs().length;
+  }
 
   private goBack(): void {
     try { router.back(); } catch (error) { console.error(`返回失败: ${JSON.stringify(error)}`); }
@@ -40,28 +67,39 @@ struct CourseImport {
 
       const uri: string = result[0];
       const file: fileIo.File = fileIo.openSync(uri, fileIo.OpenMode.READ_ONLY);
-      const stat: fileIo.Stat = fileIo.statSync(uri);
+      const stat: fileIo.Stat = fileIo.statSync(file.fd);
       const buffer: ArrayBuffer = new ArrayBuffer(stat.size);
-      fileIo.readSync(file.fd, buffer);
+      const read: number = fileIo.readSync(file.fd, buffer);
       fileIo.closeSync(file);
+      if (read !== stat.size) {
+        throw new Error('文件没有读取完整');
+      }
 
       const content: string = FileParserService.arrayBufferToString(buffer);
+      const detected: string = FileParserService.detectImportType(content);
+      const intended: string = this.activeTab === 'ddls' ? 'ddl' : 'course';
+      const actual: string = detected.length > 0 ? detected : intended;
 
-      if (this.activeTab === 'courses' || this.activeTab === 'import') {
+      if (actual === 'course') {
         const courses: CourseInfo[] = FileParserService.autoParseCourses(content);
         appState.importCourses(courses);
         this.courseList = appState.courses;
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
-        this.importMessage = `上传成功：已导入 ${courses.length} 门课程`;
+        this.importMessage = detected === 'course' && intended !== detected
+          ? `已自动识别为课程表并导入 ${courses.length} 门课程`
+          : `上传成功：已导入 ${courses.length} 门课程`;
         this.activeTab = 'courses';
       } else {
         const ddls: HomeworkDDL[] = FileParserService.autoParseDDLs(content);
         appState.importDDLs(ddls);
         this.ddlList = appState.homeworkDDLs;
+        this.syncUrgentCount();
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
-        this.importMessage = `上传成功：已导入 ${ddls.length} 项作业`;
+        this.importMessage = detected === 'ddl' && intended !== detected
+          ? `已自动识别为作业 DDL 并导入 ${ddls.length} 项作业`
+          : `上传成功：已导入 ${ddls.length} 项作业`;
         this.activeTab = 'ddls';
       }
     } catch (err) {
@@ -81,21 +119,28 @@ struct CourseImport {
     }
 
     try {
-      if (this.importType === 'course') {
+      const detected: string = FileParserService.detectImportType(this.jsonInputText);
+      const actual: string = detected.length > 0 ? detected : this.importType;
+      if (actual === 'course') {
         const courses: CourseInfo[] = FileParserService.autoParseCourses(this.jsonInputText);
         appState.importCourses(courses);
         this.courseList = appState.courses;
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
-        this.importMessage = `成功导入 ${courses.length} 门课程`;
+        this.importMessage = detected === 'course' && this.importType !== detected
+          ? `已自动识别为课程表并导入 ${courses.length} 门课程`
+          : `成功导入 ${courses.length} 门课程`;
         this.activeTab = 'courses';
       } else {
         const ddls: HomeworkDDL[] = FileParserService.autoParseDDLs(this.jsonInputText);
         appState.importDDLs(ddls);
         this.ddlList = appState.homeworkDDLs;
+        this.syncUrgentCount();
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
-        this.importMessage = `成功导入 ${ddls.length} 项作业`;
+        this.importMessage = detected === 'ddl' && this.importType !== detected
+          ? `已自动识别为作业 DDL 并导入 ${ddls.length} 项作业`
+          : `成功导入 ${ddls.length} 项作业`;
         this.activeTab = 'ddls';
       }
       this.jsonInputText = '';
@@ -149,9 +194,27 @@ struct CourseImport {
         return;
       }
       this.imageImportName = `课表图片_${Date.now()}.jpg`;
-      this.showImageReview = true;
       this.importStatus = 'processing';
-      this.importMessage = 'Agent 已读取课表图片，正在生成可确认的课程预览。';
+      this.importMessage = '正在读取课表图片并调用识别服务…';
+      const encoded: string = await ImageEncoder.toBase64(result.photoUris[0]);
+      if (encoded.length === 0) {
+        this.importStatus = 'error';
+        this.importMessage = ImageEncoder.describeFailure();
+        return;
+      }
+      const recognized = await AgentApiClient.recognizeScheduleImage({ imageBase64: encoded });
+      if (!recognized.ok) {
+        this.importStatus = 'error';
+        this.importMessage = (recognized as ApiFailure).error.message;
+        this.showImageReview = false;
+        return;
+      }
+      const payload: ScheduleRecognitionResponse = recognized.data;
+      this.recognizedCourses = payload.courses;
+      this.recognitionModel = payload.model;
+      this.showImageReview = true;
+      this.importStatus = 'success';
+      this.importMessage = `已识别 ${payload.recognizedCount} 门课程，请核对后确认导入。`;
     } catch (error) {
       this.importStatus = 'error';
       this.importMessage = '图片选择失败，请重试或改用文件导入。';
@@ -159,16 +222,19 @@ struct CourseImport {
   }
 
   private confirmImageImport(): void {
-    const recognizedCourses: CourseInfo[] = FileParserService.autoParseCourses(
-      FileParserService.generateCourseJSONTemplate()
-    );
-    appState.importCourses(recognizedCourses);
+    if (this.recognizedCourses.length === 0) {
+      this.importStatus = 'error';
+      this.importMessage = '没有可导入的识别结果，请重新选择图片。';
+      return;
+    }
+    appState.importCourses(this.recognizedCourses);
     this.courseList = appState.courses;
     appState.clearWeeklyPlan();
     this.activeTab = 'courses';
     this.showImageReview = false;
     this.importStatus = 'success';
-    this.importMessage = `已确认导入 ${recognizedCourses.length} 门课程，Agent 将据此更新学习计划。`;
+    this.importMessage = `已确认导入 ${this.recognizedCourses.length} 门课程。`;
+    this.recognizedCourses = [];
   }
 
   /* ==================== 构建器 ==================== */
@@ -249,7 +315,12 @@ struct CourseImport {
         Text('删除').fontSize(10).fontColor('#DC2626').fontWeight(FontWeight.Medium)
           .backgroundColor('#FEF2F2').borderRadius(6)
           .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-          .onClick(() => { appState.removeDDL(ddl.id); this.ddlList = appState.homeworkDDLs; })
+          .onClick(() => {
+            appState.removeDDL(ddl.id);
+            this.ddlList = appState.homeworkDDLs;
+            // 徽章数字也一起刷新 —— 少了这一句，删完列表变了、右上角还挂着旧数字（实测）。
+            this.syncUrgentCount();
+          })
       }.alignItems(HorizontalAlign.End)
     }
     .width('100%').padding(14).backgroundColor('#FFFFFF').borderRadius(14)
@@ -279,8 +350,15 @@ struct CourseImport {
         if (this.showImageReview) {
           Column({ space: 8 }) {
             Text('识别预览').fontSize(13).fontWeight(FontWeight.Bold).fontColor('#202522').width('100%')
-            Text(`${this.imageImportName} · 已提取课程名称、考试时间与优先级`).fontSize(12).fontColor('#64748B').width('100%')
-            Text('演示模式会使用本地 Agent 识别样例生成预览；接入 OCR 服务后将替换为真实图片识别结果。')
+            Text(`${this.imageImportName} · ${this.recognizedCourses.length} 门课程 · ${this.recognitionModel}`)
+              .fontSize(12).fontColor('#64748B').width('100%')
+            ForEach(this.recognizedCourses, (course: CourseInfo) => {
+              Text(`${course.courseName} · 考试 ${course.exam.date} · 优先级 ${course.priority}`)
+                .fontSize(12).fontColor('#334155').width('100%').lineHeight(18)
+            }, (course: CourseInfo) => course.courseId)
+            Text(this.recognitionModel === 'fixture-schedule-sample'
+              ? '当前为离线演示识别样例；切换到真实后端后会读取你选择的图片。'
+              : '以上内容来自课表图片识别，请核对课程名与日期后再导入。')
               .fontSize(11).fontColor('#7A5B2B').lineHeight(16).width('100%')
             Button('确认导入并更新计划').width('100%').height(40).fontSize(13).fontWeight(FontWeight.Medium)
               .fontColor('#FFFFFF').backgroundColor('#2563EB').borderRadius(10).onClick(() => this.confirmImageImport())
@@ -423,6 +501,9 @@ struct CourseImport {
       .backgroundColor('#FFFFFF').shadow({ radius: 4, color: '#08000000', offsetX: 0, offsetY: 2 })
 
       // 导入状态条
+      if (this.knowledgeSyncMessage.length > 0) {
+        Text(this.knowledgeSyncMessage).fontSize(13).fontColor('#2563EB').padding(12)
+      }
       if (this.importStatus.length > 0) {
         Row() {
           Text(this.importStatus === 'success' ? '✅' : (this.importStatus === 'processing' ? '⏳' : '❌')).fontSize(14)
@@ -493,7 +574,8 @@ struct CourseImport {
             Column({ space: 4 }) {
               Row() {
                 Text('作业 DDL').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#202522').layoutWeight(1)
-                Text(`${appState.getUrgentDDLs().length} 项紧急`).fontSize(12).fontColor('#DC2626').fontWeight(FontWeight.Medium)
+                // 读 @State 而不是直接调 appState（后者不在 ArkUI 依赖追踪里，删完不刷新）。
+                Text(`${this.urgentDdlCount} 项紧急`).fontSize(12).fontColor('#DC2626').fontWeight(FontWeight.Medium)
                   .backgroundColor('#FEF2F2').borderRadius(10).padding({ left: 10, right: 10, top: 4, bottom: 4 })
               }.width('100%').margin({ bottom: 8 })
 

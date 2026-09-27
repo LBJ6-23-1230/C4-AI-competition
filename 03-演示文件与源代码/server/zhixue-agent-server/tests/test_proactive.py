@@ -122,6 +122,22 @@ def test_proactive_handles_missing_profile_context_gracefully():
     assert result["channel"] == "silent"
 
 
+def test_empty_profile_context_does_not_fabricate_a_learning_task():
+    """空账号只能得到引导态，不能回落到 58 分 / 5 天或任何演示知识点。"""
+    result = proactive_decision({
+        "userId": "u-empty",
+        "context": {"now": "2026-09-27T13:30:00+08:00", "foreground": False},
+    })
+
+    assert result["shouldNotify"] is False
+    assert result["action"]["type"] == "none"
+    assert result["cardData"]["taskName"] == ""
+    assert result["cardData"]["knowledgePointId"] == ""
+    assert result["factors"] == []
+    assert "5 天" not in result["reason"]
+    assert "二叉树" not in result["reason"]
+
+
 def test_proactive_uses_location_tag_when_present():
     result = proactive_decision(
         {

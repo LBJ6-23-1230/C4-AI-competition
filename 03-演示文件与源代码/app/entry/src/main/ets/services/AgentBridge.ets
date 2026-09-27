@@ -357,6 +357,7 @@ export class AgentBridge {
       return targetPage;
     }
     if (cardType === 'weakness') return 'pages/StudyTags';
+    if (cardType === 'profile') return 'pages/StudyTags';
     if (cardType === 'partner') return 'pages/PartnerMatch';
     if (cardType === 'wrong') return 'pages/WrongQuestion';
     if (cardType === 'tasks') return 'pages/StudyPlan';
@@ -366,6 +367,8 @@ export class AgentBridge {
   /** 卡片底部按钮文案：统一说"查看哪个页面"，与 chip 名称同一套口径。 */
   static getActionLabel(cardType: string): string {
     if (cardType === 'weakness') { return '查看学情画像'; }
+    // 与 `weakness` 说不同的话 —— 这一步是"改完了回看"，不是"第一次去看"。
+    if (cardType === 'profile') { return '查看更新后的画像'; }
     if (cardType === 'partner') { return '查看学习搭子'; }
     if (cardType === 'tasks') { return '查看今日任务'; }
     if (cardType === 'wrong') { return '查看错题诊断'; }
@@ -453,8 +456,12 @@ export class AgentBridge {
         '查看近期学习任务和优先级安排。', 'pages/StudyPlan');
     }
     if (intent === 'update_profile') {
-      return AgentBridge.createLocalCard('weakness', '学习画像',
-        '更新掌握情况后，画像与后续推荐会同步重算。', 'pages/StudyTags');
+      // 卡片类型从 `weakness` 改成 `profile`：原先两条意图共用同一个类型，
+      // 标题、按钮文案、图标全部一样，用户实测反馈「学习画像和学情画像…
+      // 点开之后跳转的界面是一样的」——从卡片上根本分不出刚才是"看"还是"改"。
+      return AgentBridge.createLocalCard('profile', '学习画像已更新',
+        '你说明的情况已按**真实练习记录**核对后写入学习档案；画像与后续推荐已按新数据重算。',
+        'pages/StudyTags');
     }
     if (intent === 'free_chat' || intent === 'unknown') {
       // 兜底意图也必须有"接下来"，否则用户说完一句无法归类的话后**无路可走**。

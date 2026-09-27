@@ -151,13 +151,31 @@ def _purge_demo_owned(profile_user_id: str) -> dict[str, int]:
 
 def _demo_state() -> tuple[LearnerProfile, LearningPlan, dict[str, object]]:
 	timestamp = datetime(2026, 9, 2, 9, 0, tzinfo=timezone.utc)
+	# ⚠️ 知识点**必须多于两个**，否则知识画像页画不出雷达图。
+	#
+	# 前端 `StudyTags.ets` 的判据是 `mastery.length >= 3`（雷达图至少要三个轴才成形，
+	# 两个点只是一条线），原先这里只有「二叉树后序遍历」一条 —— 于是画像页永远走
+	# "知识点太少，改用进度卡" 那个分支，用户反馈「之前初赛版本在学情画像内有雷达图的，
+	# 现在始终没有触发」，根因就在这里，而不是雷达图组件坏了。
+	#
+	# ⚠️ 除「二叉树后序遍历」外的分数**必须全部高于 42**：
+	# 后端的"最薄弱知识点"取的是 `min(masteryScore)`（见 `app/api/proactive.py`
+	# 的 `_weakest_knowledge`），一旦有别的知识点低于 42，演示主线就会从
+	# 二叉树漂到别处（"建议先练二叉树"那条叙事、以及 42→58 的掌握度曲线都会对不上）。
+	# 这里全部取 50 以上，保证 42 仍然是最低的那个。
 	profile = LearnerProfile(
 		"demo-user",
 		"数据结构考试80+",
 		"2026-09-30",
 		["20:00-22:00"],
 		1,
-		[KnowledgeMastery("binary-tree-postorder", 42, 0.7, timestamp, "二叉树后序遍历")],
+		[
+			KnowledgeMastery("binary-tree-postorder", 42, 0.7, timestamp, "二叉树后序遍历"),
+			KnowledgeMastery("graph-algorithm", 55, 0.5, timestamp, "图算法"),
+			KnowledgeMastery("哈希冲突", 63, 0.5, timestamp, "哈希冲突"),
+			KnowledgeMastery("algorithm-complexity", 68, 0.6, timestamp, "算法复杂度先修"),
+			KnowledgeMastery("recursion-basics", 74, 0.6, timestamp, "递归基础先修"),
+		],
 	)
 	plan = LearningPlan(
 		"plan-demo-001",
