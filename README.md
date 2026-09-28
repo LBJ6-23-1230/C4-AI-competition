@@ -39,7 +39,7 @@ HarmonyOS 原生应用 · ArkTS 前端 + Python Agent 后端
 >
 > 三轮独立 Bug 审计报告：[`项目文档/28-全项目Bug审计报告.md`](项目文档/28-全项目Bug审计报告.md)
 >
-> 已验证：**`pytest 342 passed`** + **联调 98/98** + **演示基线零漂移**
+> 已验证：**`pytest 388 passed`** + **联调 98/98** + **演示基线零漂移**
 > （66.67 / 全错 0.0 / 42→58 / [30,30]→[45,15]）
 
 ---
@@ -50,16 +50,16 @@ HarmonyOS 原生应用 · ArkTS 前端 + Python Agent 后端
 
 | 路径 | 内容 |
 |---|---|
-| `知学Mate+暗影骑士王们.zip` | **打包好的提交压缩包**（349 条目） |
+| `知学Mate+暗影骑士王们.zip` | **打包好的提交压缩包**（353 条目） |
 | `hap/知学Mate-signed.hap` | 签名 HAP 副本（release，有效至 2029-09-21） |
 | `01-作品说明文档/` `02-演示视频/` | 必交材料 |
-| `app/` | **HarmonyOS ArkTS 前端**（19 页面 / 5 智能体 / 服务卡片 / 意图框架 / 分布式接续） |
+| `app/` | **HarmonyOS ArkTS 前端**（20 页面 / 5 智能体 / 服务卡片 / 意图框架 / 分布式接续） |
 | `server/zhixue-agent-server/` | **Python Agent 后端**（单进程同时提供自然语言层与工作流层） |
 | `contracts/openapi.json` | 契约真源（`app/contracts/` 下是逐字节一致的镜像） |
 | `integration/run_liantiao5.py` | 一键联调（契约闸门 + 测试 + 98 项 HTTP + 归档） |
 | `tools/` | 构建、契约校验、大屏布局检查、运行态数据检查等脚本 |
 | `03-演示文件与源代码/` | 开发工作区里源码的原样副本（与根目录内容相同） |
-| `项目文档/` | 28 份技术文档（含审计报告、分布式报告、真机说明） |
+| `项目文档/` | 29 份技术文档（含审计报告、分布式报告、真机说明） |
 | `实证材料/` | 46 份实跑证据（联调汇总、界面截图、大屏布局证据） |
 
 **想跑起来：**
@@ -79,11 +79,11 @@ git clone https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
 
 | 项 | 结果 |
 |---|---|
-| 契约一致性闸门 | ✅ **逐字节一致**（`api-contract-v0.3`，**111,253 B** / 33 端点 / 51 schema / 15 错误码） |
-| 后端单元测试 | ✅ **342 项全绿** |
+| 契约一致性闸门 | ✅ **逐字节一致**（`api-contract-v0.3`，**130,417 B** / 39 端点 / 64 schema / 15 错误码） |
+| 后端单元测试 | ✅ **388 项全绿** |
 | HTTP 实跑联调 | ✅ **98 / 98（100%）**，退出码 **0** |
 | 演示基线 | ✅ **零漂移**（66.67 / 全错 0.0 / 42→58 / [30,30]→[45,15] / [1,2]） |
-| ArkTS 编译 | ✅ **全量重编 0 编译错误**，产物 2.48 MB |
+| ArkTS 编译 | ✅ **全量重编 0 编译错误**，产物 2.81 MB |
 | 签名 HAP | ✅ `verify-app success`，AGC 指纹已对齐 |
 | 安装运行 | ✅ 模拟器 `install bundle successfully` |
 | 全场景分布式 | ✅ 双端 `joined session` 实测建立 |
@@ -150,7 +150,7 @@ git clone https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
 
 ---
 
-## 界面结构（19 页面 · 四标签）
+## 界面结构（20 页面 · 四标签）
 
 ### 设计原则：对话用于表达，能力页用于发现
 
@@ -215,7 +215,7 @@ git clone https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│              HarmonyOS ArkTS 前端（19 页面）                   │
+│              HarmonyOS ArkTS 前端（20 页面）                   │
 │   AgentBridge ──┐                                            │
 │   ViewModels  ──┼──► AgentApiClient（唯一 HTTP 入口）          │
 │   ProactiveVM ──┘                                            │
@@ -242,7 +242,7 @@ git clone https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
 
 | 层 | 选型 |
 |---|---|
-| 前端 | ArkTS / ArkUI 声明式 UI · HarmonyOS SDK **6.1.1(24)** · **19 页面** |
+| 前端 | ArkTS / ArkUI 声明式 UI · HarmonyOS SDK **6.1.1(24)** · **20 页面** |
 | 后端 | Python **3.12** + Flask 3.x · 单进程单端口 |
 | 大模型 | 通义千问 · 识图 `qwen-vl-max`（`qwen-vl-plus` 免费额度已实测耗尽）· 决策 `qwen-plus` |
 | 语义检索 | `text-embedding-v3` + 关键词/标签混合（`hybrid:semantic+keyword+tag`） |
@@ -410,8 +410,8 @@ python integration\run_liantiao5.py --port 5097
 
 | 环节 | 内容 |
 |---|---|
-| ⓪ 契约闸门 | 真源与镜像逐字节一致（`api-contract-v0.3`，111,253 B） |
-| ① 后端单元测试 | **342 passed / 0 failed** |
+| ⓪ 契约闸门 | 真源与镜像逐字节一致（`api-contract-v0.3`，130,417 B） |
+| ① 后端单元测试 | **388 passed / 0 failed** |
 | ② HTTP 实跑联调 | **98 / 98（100%）** |
 | ③ 演示基线 | 6 项数值全部命中，零漂移 |
 | ④ 数据洁净 | 三份数据文件前后**逐字节不变** |
@@ -443,8 +443,8 @@ python integration\run_liantiao5.py --port 5097 --llm-mode live
 | 范围 | 状态 |
 |---|---|
 | 后端逻辑、契约、判分、Agent 循环 | ✅ 真实 HTTP 实跑验证（98/98） |
-| 后端单元测试 | ✅ `342 passed` |
-| 契约一致性 | ✅ 逐字节一致（111,253 B） |
+| 后端单元测试 | ✅ `388 passed` |
+| 契约一致性 | ✅ 逐字节一致（130,417 B） |
 | 真模型 live 模式 | ✅ 连跑 11 次全部通过、基线零漂移（该轮断言集为 95 项，**现为 98 项**；证据见 `evidence/run_summary_2026-09-21_*.json`） |
 | 前端编译 | ✅ `BUILD SUCCESSFUL`，**`[ERROR]` 级 0 条 / ArkTS 编译错误 0 条** |
 | **签名 HAP** | ✅ **已产出并通过独立验签**（发布证书 + 发布 Profile，摘要校验 `true`，`SignHap` 耗时 4.6 s） |

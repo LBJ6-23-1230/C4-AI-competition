@@ -896,6 +896,15 @@ struct Index {
             // 去重原则：智能体能力（建议/计划/错题/画像）一律不在此重复，
             // 需要它们时去「智能体」页点对应智能体；这里只解决"任务从哪来、时间怎么安排"。
             if (this.activeTab === 2) {
+              Row() {
+                Blank()
+                Row({ space: 5 }) {
+                  Text('✎').fontSize(14).fontColor('#2563EB')
+                  Text('错题本').fontSize(12).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+                }.padding({ left: 11, right: 11, top: 7, bottom: 7 })
+                  .backgroundColor('#EFF6FF').borderRadius(16)
+                  .onClick(() => router.pushUrl({ url: 'pages/WrongBook' }))
+              }.width('100%')
               this.PrimaryActionCard()
               this.PanelCard('上传作业与 DDL',
                 '导入 CSV/JSON 课程表与作业截止时间。导入后，全部智能体的分析自动切换为你的真实数据。',
@@ -916,6 +925,9 @@ struct Index {
                 '上传课程讲义、题库或笔记（TXT / Markdown / CSV / JSON）。' +
                 'Agent 会从中提取知识点与易错点，回答时标注资料来源与章节。',
                 '进入我的知识库', 'pages/KnowledgeBase')
+              this.PanelCard('我的错题本',
+                '答错题自动收录并按课程整理；也可手动加入做过的题。每题累计答对 3 次后自动移出。',
+                '进入错题本刷题', 'pages/WrongBook')
             }
 
             // ================= 标签 3：我的（身份 / 数据 / 搭子） =================

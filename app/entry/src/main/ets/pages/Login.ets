@@ -82,6 +82,23 @@ struct Login {
 
   aboutToAppear(): void {
     this.isActive = true;
+    const params: Record<string, Object> = router.getParams() as Record<string, Object>;
+    // ⚠️ `router.getParams()` 在**没有路由参数**时返回 undefined —— 而"冷启动直接进登录页"
+    // 正是这种情况（App 未登录时的必经路径）。
+    // `as Record<string, Object>` 只是**编译期断言**，不会让运行时值变成非空对象，
+    // 少了下面这道判断就会抛 TypeError。实测后果是 jscrash：
+    //   Reason: TypeError / Cannot load property of null or undefined
+    //   at aboutToAppear entry (entry/src/main/ets/pages/Login.ets:86:47)
+    // —— **未登录状态下 App 一启动就崩**，表现为"应用打不开"。
+    // 另外三处同类用法（`Index` / `ExercisePractice` / `CourseImport`）都有这道判空，这里原来漏了。
+    if (params === undefined || params === null) {
+      return;
+    }
+    const notice: Object | undefined = params['notice'];
+    if (typeof notice === 'string' && notice.length > 0) {
+      this.message = notice;
+      this.messageIsError = false;
+    }
   }
 
   aboutToDisappear(): void {

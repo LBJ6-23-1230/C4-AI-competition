@@ -570,5 +570,183 @@
       ]
     },
     "createdAt": "2026-09-20T19:38:10.968025"
+  },
+  {
+    "questionId": "u-dc97fff47fbf_5e3a8b2c-1d4f-4a6b-9c7d-ef8a9b0c1d2e",
+    "userId": "u-dc97fff47fbf",
+    "input": {
+      "image": "已上传",
+      "myAnswer": null,
+      "correctAnswer": null
+    },
+    "AIAnalysis": {
+      "course": "未知",
+      "knowledge": [],
+      "wrongType": "其他",
+      "reason": "用户未提供具体题目内容、自己的答案或正确答案，无法进行有效分析。",
+      "Tag": [
+        "信息缺失"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "错题提交规范",
+          "task": "请补充题目内容、你的选择和正确答案，以便进行精准诊断。"
+        }
+      ]
+    },
+    "createdAt": "2026-09-28T10:02:58.671790"
+  },
+  {
+    "questionId": "u-dc97fff47fbf_UUID",
+    "userId": "u-dc97fff47fbf",
+    "input": {
+      "image": null,
+      "myAnswer": null,
+      "correctAnswer": null
+    },
+    "AIAnalysis": {
+      "course": "未知",
+      "knowledge": [],
+      "wrongType": "其他",
+      "reason": "用户未提供具体的题目内容、自己的答案或正确答案，无法进行有效分析。",
+      "Tag": [
+        "待补充信息"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "二叉树遍历基础",
+          "task": "请补充题目详情（如题目描述、选项、你的选择和正确答案），以便我为你精准诊断。"
+        }
+      ]
+    },
+    "createdAt": "2026-09-28T10:10:01.989938"
+  },
+  {
+    "questionId": "u-dc97fff47fbf_5e3a2b8c-1d4f-4a7b-9c2e-3f5d6e7f8a9b",
+    "userId": "u-dc97fff47fbf",
+    "input": {
+      "image": "已上传",
+      "myAnswer": null,
+      "correctAnswer": null
+    },
+    "AIAnalysis": {
+      "course": "未知",
+      "knowledge": [],
+      "wrongType": "其他",
+      "reason": "用户未提供具体的题目内容、自己的答案或正确答案，无法进行有效分析。",
+      "Tag": [
+        "错题信息缺失"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "错题分析方法",
+          "task": "请补充题目内容、你的选择和正确答案，以便小知为你精准诊断薄弱知识点。"
+        }
+      ]
+    },
+    "createdAt": "2026-09-28T10:10:34.680483"
+  },
+  {
+    "questionId": "u-dc97fff47fbf_6d3e8a1f-4b2c-4d5e-8f90-1a2b3c4d5e6f",
+    "userId": "u-dc97fff47fbf",
+    "input": {
+      "image": null,
+      "myAnswer": null,
+      "correctAnswer": null
+    },
+    "AIAnalysis": {
+      "course": "数据结构",
+      "knowledge": [
+        {
+          "name": "二叉树遍历基础",
+          "confidence": 0.95
+        },
+        {
+          "name": "二叉树",
+          "confidence": 0.85
+        }
+      ],
+      "wrongType": "其他",
+      "reason": "用户多次请求错题诊断，但未提供具体题目内容或答案，无法进行精确分析。结合用户学习画像，其在‘二叉树遍历基础’和‘二叉树’等知识点上存在明显薄弱，可能是导致错误的主要原因。",
+      "Tag": [
+        "二叉树遍历薄弱",
+        "数据结构基础不牢"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "二叉树遍历基础",
+          "task": "复习前序、中序、后序遍历的定义与实现逻辑，手动画出3棵不同结构的二叉树并写出三种遍历序列，巩固理解。"
+        },
+        {
+          "studyTag": "二叉树",
+          "task": "完成教材中关于二叉树基本操作的练习题（如插入、删除、查找），重点掌握递归与非递归实现方式。"
+        }
+      ]
+    },
+    "createdAt": "2026-09-28T10:12:36.403465"
+  },
+  {
+    "questionId": "u-dc97fff47fbf_6d3e8a1f-4b2c-4d5e-8f90-1a2b3c4d5e6f",
+    "userId": "u-dc97fff47fbf",
+    "input": {
+      "image": null,
+      "myAnswer": null,
+      "correctAnswer": null
+    },
+    "AIAnalysis": {
+      "course": "数据结构",
+      "knowledge": [
+        {
+          "name": "二叉树遍历基础",
+          "confidence": 0.95
+        },
+        {
+          "name": "二叉树",
+          "confidence": 0.9
+        }
+      ],
+      "wrongType": "其他",
+      "reason": "用户多次请求错题诊断，但未提供具体题目内容或答案，无法进行精确分析。结合用户学习画像，其在‘二叉树遍历基础’和‘二叉树’等知识点上存在明显薄弱，可能是导致错误的主要原因。",
+      "Tag": [
+        "二叉树遍历薄弱",
+        "非递归实现不熟"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "二叉树遍历基础",
+          "task": "重新学习前序、中序、后序遍历的定义与非递归实现方法，重点理解栈的使用逻辑，并完成一道非递归遍历练习题巩固。"
+        },
+        {
+          "studyTag": "二叉树",
+          "task": "复习二叉树的基本性质与常见操作，手动画出一棵二叉树并写出三种遍历序列，对比差异加深记忆。"
+        }
+      ]
+    },
+    "createdAt": "2026-09-28T10:40:42.594329"
+  },
+  {
+    "questionId": "u-1d8cccc70e98_UUID",
+    "userId": "u-1d8cccc70e98",
+    "input": {
+      "image": null,
+      "myAnswer": null,
+      "correctAnswer": null
+    },
+    "AIAnalysis": {
+      "course": "未知",
+      "knowledge": [],
+      "wrongType": "其他",
+      "reason": "用户未提供具体题目内容、答案或图片，无法判断错误类型与知识点。",
+      "Tag": [
+        "信息缺失"
+      ],
+      "suggestion": [
+        {
+          "studyTag": "错题诊断流程",
+          "task": "请提供题目内容或图片，并说明自己的答案和正确答案，以便进行精准分析。"
+        }
+      ]
+    },
+    "createdAt": "2026-09-28T10:41:39.220776"
   }
 ]

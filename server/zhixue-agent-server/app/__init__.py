@@ -24,6 +24,7 @@ from app.api.proactive import proactive_api
 from app.api.schedule_import import schedule_import_api
 from app.api.traces import traces_api
 from app.api.workflows import configure_workflows_repository, workflows_api
+from app.api.wrong_book import configure_wrong_book_repository, wrong_book_api
 from app.auth import service as auth_service
 from app.repositories.json_repository import JsonRepository
 
@@ -144,6 +145,7 @@ def create_app(repository_path: str | Path | None = None) -> Flask:
     # 对话层的画像落盘钩子：让"更新档案"意图真的写进 profiles
     # （此前 chat 层没有仓储，导致"已帮你更新信息"是无据可依的假成功）。
     configure_chat_repository(repository)
+    configure_wrong_book_repository(repository)
     # 搭子邀请：真正跨账号的"发起 → 收到 → 接受 / 不接受 / 无视"。
     # 原先后端没有任何邀请实体，前端那个按钮只写本机内存（见 partner_invite.py 的模块文档）。
     configure_partner_invite_repository(repository)
@@ -164,6 +166,7 @@ def create_app(repository_path: str | Path | None = None) -> Flask:
     app.register_blueprint(proactive_api)
     app.register_blueprint(knowledge_api)
     app.register_blueprint(schedule_import_api)
+    app.register_blueprint(wrong_book_api)
 
     @app.before_request
     def resolve_optional_identity():

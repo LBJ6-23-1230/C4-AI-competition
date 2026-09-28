@@ -2,7 +2,7 @@ import router from '@ohos.router';
 import { abilityAccessCtrl, common, Permissions } from '@kit.AbilityKit';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { appState } from '../data/AppState';
-import { ChatAction, ChatCard, ChatHandoff, ChatMessage, IntentChip } from '../models/ChatModels';
+import { ChatAction, ChatCard, ChatHandoff, ChatHistoryRecord, ChatMessage, IntentChip } from '../models/ChatModels';
 import { AgentBridge } from '../services/AgentBridge';
 import { ImageEncoder } from '../utils/ImageEncoder';
 import { ClientCache } from '../cache/ClientCache';
@@ -61,6 +61,9 @@ struct ChatMain {
   @State workflowMessage: string = '';
   @State isListening: boolean = false;
   @State voiceMessage: string = '';
+  @State showHistory: boolean = false;
+  @State historyLoading: boolean = false;
+  @State historyRecords: ChatHistoryRecord[] = [];
   /**
    * 注册 / 建号成功后要如实告知用户的那句话（没有则为空串）。
    *
@@ -69,6 +72,15 @@ struct ChatMain {
    * 用户得知道自己这次建号到底"带了什么数据进来"。
    */
   @State welcomeNotice: string = '';
+  /**
+   * 身份是否已判定完成。默认 false —— 冷启动时先显示**启动加载态**，
+   * 由 `EntryAbility.restoreIdentity()` 结束时翻成 true。
+   *
+   * 为什么不能直接渲染：冷启动顺序是「applyLogout → 加载对话页 → 异步恢复登录态」，
+   * 未登录时这一帧会以**游客身份**显示会话内容，看着像"已经用游客进去了"。
+   * 详见 `AppState.markIdentityPending()`。
+   */
+  @StorageLink('identityReady') identityReady: boolean = false;
   private messageScroller: Scroller = new Scroller();
   private workflowViewModel: WorkflowViewModel = new WorkflowViewModel();
   private workflowRequestVersion: number = 0;
@@ -125,20 +137,107 @@ struct ChatMain {
     appState.hasActiveChat = this.messages.length > 1;
   }
 
-  build() {
-    Column() {
-      this.Header()
-      if (this.workflowTitle.length > 0 || this.workflowMessage.length > 0) {
-        this.WorkflowStatusBar()
-      }
-      this.IntentBar()
-      this.MessageList()
-      this.InputBar()
-      this.TabBar()
+  /**
+   * 启动加载态：**身份判定完成前**显示，不渲染任何会话内容。
+   *
+   * 保留「先加载对话页、避免白屏」这个原设计，只把那一帧的内容
+   * 从"游客身份的会话"换成"正在启动"。见 `AppState.markIdentityPending()`。
+   */
+  @Builder
+  IdentityLoading() {
+    Column({ space: 16 }) {
+      Text('知学 Mate').fontSize(24).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+      LoadingProgress().width(36).height(36).color('#2563EB')
+      Text('正在恢复登录状态…').fontSize(13).fontColor('#667085')
     }
     .width('100%')
     .height('100%')
+    .justifyContent(FlexAlign.Center)
     .backgroundColor('#F3F6FA')
+  }
+
+  build() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      if (!this.identityReady) {
+        this.IdentityLoading()
+      } else {
+        Column() {
+          this.Header()
+          if (this.workflowTitle.length > 0 || this.workflowMessage.length > 0) {
+            this.WorkflowStatusBar()
+          }
+          this.IntentBar()
+          this.MessageList()
+          this.InputBar()
+          this.TabBar()
+        }
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#F3F6FA')
+        if (this.showHistory) {
+          Row() {}
+            .width('100%').height('100%').backgroundColor('#66000000')
+            .onClick(() => this.showHistory = false)
+          this.HistoryDrawer()
+        }
+      }
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  private async openHistory(): Promise<void> {
+    this.showHistory = true;
+    this.historyLoading = true;
+    this.historyRecords = await AgentBridge.loadHistory();
+    this.historyLoading = false;
+  }
+
+  private restoreHistory(record: ChatHistoryRecord): void {
+    const time: string = record.timestamp.length >= 16
+      ? record.timestamp.substring(11, 16) : this.formatTime();
+    this.messages = [
+      { id: `history-user-${Date.now()}`, role: 'user', text: record.userInput, time: time, status: 'done' },
+      { id: `history-agent-${Date.now()}`, role: 'agent', text: record.botResponse, time: time, status: 'done' }
+    ];
+    this.saveMessages();
+    this.showHistory = false;
+    this.scrollToLatestMessage();
+  }
+
+  @Builder
+  private HistoryDrawer() {
+    Column() {
+      Row() {
+        Text('历史会话').fontSize(19).fontWeight(FontWeight.Bold).fontColor('#111827')
+        Blank()
+        Text('关闭').fontSize(14).fontColor('#2563EB').onClick(() => this.showHistory = false)
+      }.width('100%').padding({ left: 18, right: 18, top: 20, bottom: 14 })
+      if (this.historyLoading) {
+        LoadingProgress().width(34).height(34).margin({ top: 48 })
+      } else if (this.historyRecords.length === 0) {
+        Text('暂无历史会话').fontSize(14).fontColor('#667085').margin({ top: 48 })
+      } else {
+        List({ space: 8 }) {
+          ForEach(this.historyRecords, (record: ChatHistoryRecord, index: number) => {
+            ListItem() {
+              Column({ space: 5 }) {
+                Text(record.userInput).fontSize(15).fontWeight(FontWeight.Medium)
+                  .fontColor('#1F2937').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+                  .width('100%')
+                Text(record.botResponse).fontSize(12).fontColor('#667085').maxLines(2)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
+                Text(record.timestamp.length >= 16 ? record.timestamp.substring(0, 16).replace('T', ' ') : '')
+                  .fontSize(11).fontColor('#98A2B3').width('100%')
+              }.width('100%').alignItems(HorizontalAlign.Start).padding(13)
+                .backgroundColor('#F8FAFC').borderRadius(10)
+                .onClick(() => this.restoreHistory(record))
+            }
+          }, (record: ChatHistoryRecord, index: number) => `${record.timestamp}-${index}`)
+        }.layoutWeight(1).width('100%').padding({ left: 14, right: 14, bottom: 20 })
+      }
+    }.width('82%').height('100%').backgroundColor('#FFFFFF')
+      .shadow({ radius: 16, color: '#33000000', offsetX: 4, offsetY: 0 })
   }
 
   /**
@@ -267,6 +366,10 @@ struct ChatMain {
   @Builder
   private Header() {
     Row() {
+      Button('☰')
+        .fontSize(20).fontColor('#334155').backgroundColor('#F1F5F9')
+        .width(38).height(38).borderRadius(10).margin({ right: 10 })
+        .onClick(() => this.openHistory())
       Column({ space: 4 }) {
         Text('知学 Mate')
           .fontSize(20)

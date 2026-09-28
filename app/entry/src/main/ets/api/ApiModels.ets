@@ -408,6 +408,54 @@ export interface ExerciseSubmissionResult {
   traceId?: string;
   evidenceIds?: string[];
   replanDecision?: Record<string, Object>;
+  review: ExerciseReview[];
+}
+
+export interface ExerciseReview {
+  exerciseId: string;
+  selectedAnswer: string;
+  correctAnswer: string;
+  correct: boolean;
+  explanation: string;
+  inWrongBook: boolean;
+}
+
+export interface WrongBookItem extends Exercise {
+  courseName: string;
+  explanation: string;
+  correctCount: number;
+  wrongCount: number;
+  addedAutomatically: boolean;
+  addedAt: string;
+  lastPracticedAt?: string;
+}
+
+export interface WrongBookCourse {
+  courseName: string;
+  items: WrongBookItem[];
+}
+
+export interface WrongBookResponse {
+  userId: string;
+  total: number;
+  courses: WrongBookCourse[];
+}
+
+export interface WrongBookToggleRequest { added: boolean; }
+export interface WrongBookToggleResponse {
+  exerciseId: string;
+  added: boolean;
+  removed: boolean;
+  item?: WrongBookItem;
+}
+export interface WrongBookAttemptRequest { answer: string; }
+export interface WrongBookAttemptResponse {
+  exerciseId: string;
+  correct: boolean;
+  correctAnswer: string;
+  explanation: string;
+  correctCount: number;
+  removed: boolean;
 }
 
 export interface TraceEvent {

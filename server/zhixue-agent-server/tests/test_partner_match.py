@@ -47,6 +47,45 @@ def test_real_accounts_replace_demo_people_when_available(tmp_path):
 	assert body["candidates"][0]["candidate"]["basicInfo"]["name"] == "真实测试同学"
 
 
+def test_target_course_comes_from_imported_courses(tmp_path, monkeypatch):
+	"""导入课程后「主攻课程」必须真的进 `learningGoal.course` —— 否则目标一致因子恒为 0。
+
+	回归的是什么：`_real_candidates` / `_real_user_profile` 里 course 原先**硬编码为空串**，
+	而 `score_partner` 的两个分档（30 / 20）**都先要求 course 非空** ——
+	结果两个课表重合的账号与一个从未导入课程的账号得分完全相同（实测都是 15 分），
+	同分排序下还可能选中那个陌生人。
+	"""
+	monkeypatch.delenv('DASHSCOPE_API_KEY', raising=False)   # 走规则表，课程来源确定
+	client = create_app(tmp_path / "partner-target-course.json").test_client()
+
+	def register(nick, phone):
+		return client.post("/api/v1/auth/register", json={
+			"nickname": nick, "grade": "大三", "phone": phone,
+			"seedDemoData": False}).get_json()
+
+	甲 = register("甲同学", "13800138201")
+	乙 = register("乙同学", "13800138202")
+	丙 = register("丙同学没课表", "13800138203")
+
+	for 人, courses in [(甲, ["数据结构", "操作系统"]), (乙, ["数据结构", "计算机网络"])]:
+		headers = {"Authorization": f"Bearer {人['token']}"}
+		client.post(f"/api/v1/profile/{人['user']['userId']}/knowledge-points",
+			json={"courses": courses}, headers=headers)
+
+	headers = {"Authorization": f"Bearer {甲['token']}"}
+	body = client.post("/api/v1/agent/partner-match", json={}, headers=headers).get_json()
+	by_name = {item["candidate"]["basicInfo"]["name"]: item for item in body["candidates"]}
+
+	# 两人都以「数据结构」为知识点贡献最多的课程 → course 相同 → 该因子拿到 20 分
+	assert by_name["乙同学"]["candidate"]["learningGoal"]["course"] == "数据结构"
+	assert by_name["乙同学"]["factors"]["goal"] == 20
+	# 丙没导入过任何课程 → course 为空 → 仍为 0，如实反映"没说过要主攻什么"
+	assert by_name["丙同学没课表"]["candidate"]["learningGoal"]["course"] == ""
+	assert by_name["丙同学没课表"]["factors"]["goal"] == 0
+	# 关键结论：课表重合的乙必须**严格高于**毫不相干的丙
+	assert by_name["乙同学"]["score"] > by_name["丙同学没课表"]["score"]
+
+
 def test_online_match_never_falls_back_to_demo_candidates(tmp_path):
 	client = create_app(tmp_path / "partner-no-demo-fallback.json").test_client()
 

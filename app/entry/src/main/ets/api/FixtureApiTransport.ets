@@ -1,5 +1,5 @@
 import { util } from '@kit.ArkTS';
-import { DecisionFactor, DemoResetResponse, Evidence, Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeChunkHit, KnowledgeDocument, KnowledgeDocumentChunk, KnowledgeDocumentDetail, KnowledgeDocumentListResponse, KnowledgeDocumentUploadRequest, KnowledgeMastery, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, ScheduleRecognitionResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
+import { DecisionFactor, DemoResetResponse, Evidence, Exercise, ExerciseAnswer, ExerciseReview, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeChunkHit, KnowledgeDocument, KnowledgeDocumentChunk, KnowledgeDocumentDetail, KnowledgeDocumentListResponse, KnowledgeDocumentUploadRequest, KnowledgeMastery, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, ScheduleRecognitionResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse, WrongBookAttemptRequest, WrongBookAttemptResponse, WrongBookItem, WrongBookResponse, WrongBookToggleRequest, WrongBookToggleResponse } from './ApiModels';
 import { ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { ApiDefaults } from './ApiDefaults';
 import { FixtureDemoStateStore } from './FixtureDemoStateStore';
@@ -68,6 +68,8 @@ export class FixtureApiTransport {
     'exercise-postorder-003': 'C',
     'exercise-postorder-004': 'C'
   };
+  private static wrongBookIds: string[] = [];
+  private static wrongBookCorrectCounts: Record<string, number> = {};
 
   static async request<T>(method: string, path: string, body?: Object): Promise<ApiResult<T>> {
     // 统一用去查询串的路径匹配：`?userId=` 之类不能再让精确比较失效。
@@ -85,6 +87,19 @@ export class FixtureApiTransport {
     }
     if (method === 'GET' && route.indexOf('/api/v1/plans/') === 0 && route.endsWith('/diff')) return apiSuccess<PlanDiff>(FixtureApiTransport.planDiff(), 'fixture') as ApiResult<T>;
     if (method === 'GET' && route.indexOf('/api/v1/traces/') === 0) return apiSuccess<TraceResponse>(FixtureApiTransport.trace(), 'fixture') as ApiResult<T>;
+
+    // ---- 离线错题本：保证一键体验时也能演示完整闭环 ----
+    if (method === 'GET' && route === '/api/v1/wrong-book') {
+      return apiSuccess<WrongBookResponse>(FixtureApiTransport.wrongBook(), 'fixture') as ApiResult<T>;
+    }
+    if (method === 'POST' && route.indexOf('/api/v1/wrong-book/') === 0 && route.endsWith('/attempt')) {
+      return apiSuccess<WrongBookAttemptResponse>(FixtureApiTransport.wrongBookAttempt(
+        FixtureApiTransport.segment(route, 4), body as WrongBookAttemptRequest), 'fixture') as ApiResult<T>;
+    }
+    if (method === 'POST' && route.indexOf('/api/v1/wrong-book/') === 0) {
+      return apiSuccess<WrongBookToggleResponse>(FixtureApiTransport.wrongBookToggle(
+        FixtureApiTransport.segment(route, 4), body as WrongBookToggleRequest), 'fixture') as ApiResult<T>;
+    }
 
     // ---- 知识库：与后端 app/api/knowledge.py 同一份契约 ----
     if (method === 'POST' && route === '/api/v1/knowledge-bases') {
@@ -126,6 +141,8 @@ export class FixtureApiTransport {
     if (method === 'POST' && route === '/api/v1/demo/reset') {
       FixtureDemoStateStore.reset();
       FixtureApiTransport.resetKnowledge();
+      FixtureApiTransport.wrongBookIds = [];
+      FixtureApiTransport.wrongBookCorrectCounts = {};
       return apiSuccess<DemoResetResponse>(FixtureApiTransport.reset(), 'fixture') as ApiResult<T>;
     }
     if (method === 'POST' && route === '/api/v1/import/schedule-image') {
@@ -296,7 +313,85 @@ export class FixtureApiTransport {
     FixtureDemoStateStore.setAssessmentResult(newMastery, score);
     const perKnowledge: Record<string, number> = {};
     perKnowledge['binary-tree-postorder'] = score;
-    return { userId: ApiDefaults.DEMO_USER_ID, submissionId: ApiDefaults.DEMO_USER_ID + ':set-demo-binary-tree-001:fixture-submission', assessment: { score: score, perKnowledgeAccuracy: perKnowledge, errorTypes: score < 100 ? ['后序遍历顺序混淆'] : [], oldMastery: 42, suggestedNewMastery: newMastery }, masteryUpdate: { knowledgePointId: 'binary-tree-postorder', oldScore: 42, newScore: newMastery }, needReplan: score < 80, plan: FixtureApiTransport.plan(), planDiff: FixtureApiTransport.planDiff() };
+    const review: ExerciseReview[] = [];
+    const submitted: ExerciseAnswer[] = answers ?? [];
+    for (let index: number = 0; index < submitted.length; index++) {
+      const row: ExerciseAnswer = submitted[index];
+      const correctAnswer: string | undefined = FixtureApiTransport.ANSWER_KEYS[row.exerciseId];
+      if (correctAnswer === undefined) continue;
+      const selectedAnswer: string = row.answer.trim().toUpperCase();
+      if (selectedAnswer !== correctAnswer && FixtureApiTransport.wrongBookIds.indexOf(row.exerciseId) < 0) {
+        FixtureApiTransport.wrongBookIds.push(row.exerciseId);
+      }
+      review.push({ exerciseId: row.exerciseId, selectedAnswer: selectedAnswer,
+        correctAnswer: correctAnswer, correct: selectedAnswer === correctAnswer,
+        explanation: `正确答案是 ${correctAnswer}。请结合题干与遍历顺序重新核对。`,
+        inWrongBook: FixtureApiTransport.wrongBookIds.indexOf(row.exerciseId) >= 0 });
+    }
+    return { userId: ApiDefaults.DEMO_USER_ID, submissionId: ApiDefaults.DEMO_USER_ID + ':set-demo-binary-tree-001:fixture-submission', assessment: { score: score, perKnowledgeAccuracy: perKnowledge, errorTypes: score < 100 ? ['后序遍历顺序混淆'] : [], oldMastery: 42, suggestedNewMastery: newMastery }, masteryUpdate: { knowledgePointId: 'binary-tree-postorder', oldScore: 42, newScore: newMastery }, needReplan: score < 80, plan: FixtureApiTransport.plan(), planDiff: FixtureApiTransport.planDiff(), review: review };
+  }
+
+  private static fixtureQuestion(exerciseId: string): Exercise | null {
+    const first: Exercise[] = FixtureApiTransport.exerciseSet('').exercises;
+    const next: Exercise[] = FixtureApiTransport.exerciseSet('?excludeExerciseId=exercise-preorder-001').exercises;
+    const all: Exercise[] = first.concat(next);
+    for (let index: number = 0; index < all.length; index++) {
+      if (all[index].exerciseId === exerciseId) return all[index];
+    }
+    return null;
+  }
+
+  private static wrongBookItem(exerciseId: string): WrongBookItem | null {
+    const question: Exercise | null = FixtureApiTransport.fixtureQuestion(exerciseId);
+    if (question === null) return null;
+    return { exerciseId: question.exerciseId, knowledgePointId: question.knowledgePointId,
+      knowledgePointName: question.knowledgePointName, difficulty: question.difficulty,
+      stem: question.stem, options: question.options, source: question.source,
+      courseName: '数据结构',
+      explanation: `正确答案是 ${FixtureApiTransport.ANSWER_KEYS[exerciseId]}。请结合题干与遍历顺序重新核对。`,
+      correctCount: FixtureApiTransport.wrongBookCorrectCounts[exerciseId] ?? 0,
+      wrongCount: 1, addedAutomatically: true, addedAt: new Date().toISOString() };
+  }
+
+  private static wrongBook(): WrongBookResponse {
+    const items: WrongBookItem[] = [];
+    for (let index: number = 0; index < FixtureApiTransport.wrongBookIds.length; index++) {
+      const item: WrongBookItem | null = FixtureApiTransport.wrongBookItem(
+        FixtureApiTransport.wrongBookIds[index]);
+      if (item !== null) items.push(item);
+    }
+    return { userId: ApiDefaults.DEMO_USER_ID, total: items.length,
+      courses: items.length > 0 ? [{ courseName: '数据结构', items: items }] : [] };
+  }
+
+  private static wrongBookToggle(exerciseId: string, request: WrongBookToggleRequest): WrongBookToggleResponse {
+    const position: number = FixtureApiTransport.wrongBookIds.indexOf(exerciseId);
+    if (request.added && position < 0) FixtureApiTransport.wrongBookIds.push(exerciseId);
+    if (!request.added && position >= 0) FixtureApiTransport.wrongBookIds.splice(position, 1);
+    const item: WrongBookItem | null = FixtureApiTransport.wrongBookItem(exerciseId);
+    if (request.added && item !== null) {
+      return { exerciseId: exerciseId, added: true, removed: false, item: item };
+    }
+    return { exerciseId: exerciseId, added: false, removed: true };
+  }
+
+  private static wrongBookAttempt(exerciseId: string, request: WrongBookAttemptRequest): WrongBookAttemptResponse {
+    const correctAnswer: string = FixtureApiTransport.ANSWER_KEYS[exerciseId] ?? '';
+    const correct: boolean = request.answer.trim().toUpperCase() === correctAnswer;
+    let count: number = FixtureApiTransport.wrongBookCorrectCounts[exerciseId] ?? 0;
+    let removed: boolean = false;
+    if (correct) {
+      count++;
+      FixtureApiTransport.wrongBookCorrectCounts[exerciseId] = count;
+      if (count >= 3) {
+        const position: number = FixtureApiTransport.wrongBookIds.indexOf(exerciseId);
+        if (position >= 0) FixtureApiTransport.wrongBookIds.splice(position, 1);
+        removed = true;
+      }
+    }
+    return { exerciseId: exerciseId, correct: correct, correctAnswer: correctAnswer,
+      explanation: `正确答案是 ${correctAnswer}。请结合题干与遍历顺序重新核对。`,
+      correctCount: count, removed: removed };
   }
 
   private static planDiff(): PlanDiff {

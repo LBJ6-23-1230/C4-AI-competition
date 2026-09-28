@@ -298,6 +298,15 @@ def submit_exercises(set_id: str):
 		profile_model = LearnerProfile.from_dict(profile)
 		# 判分表 = 题库常量 + 生成题（见 `_merged_grading_tables`）
 		answer_keys, knowledge_points = _merged_grading_tables()
+		question_records = list(_EXERCISE_BANK)
+		if _repository:
+			question_records.extend(item for item in _repository.list("exercises") if isinstance(item, dict))
+		questions_by_id = {str(item.get("exerciseId")): item for item in question_records
+			if isinstance(item.get("exerciseId"), str)}
+		submitted_answers = {str(item.get("exerciseId")): str(item.get("answer") or "").strip().upper()
+			for item in answers}
+		correct_ids = {exercise_id for exercise_id, answer in submitted_answers.items()
+			if exercise_id in answer_keys and answer == answer_keys[exercise_id]}
 
 		# ⚠️ `old_mastery` 必须取自**本次作答覆盖的那个知识点**，不能写死
 		# `binary-tree-postorder`。
@@ -349,6 +358,14 @@ def submit_exercises(set_id: str):
 			"masteryUpdate": {"knowledgePointId": report_point, "oldScore": report_old,
 				"newScore": report_new},
 			"needReplan": False,
+			"review": [{
+				"exerciseId": exercise_id,
+				"selectedAnswer": submitted_answers[exercise_id],
+				"correctAnswer": answer_keys[exercise_id],
+				"correct": exercise_id in correct_ids,
+				"explanation": questions_by_id.get(exercise_id, {}).get("explanation")
+					or f"正确答案是 {answer_keys[exercise_id]}。请结合题干与选项重新核对概念。",
+			} for exercise_id in submitted_answers if exercise_id in answer_keys],
 		}
 		response["replanDecision"] = should_replan({"masteryScore": report_new,
 			"knowledgePointId": report_point, "repeatedError": score < 80})
@@ -363,6 +380,14 @@ def submit_exercises(set_id: str):
 			replanned: bool = False
 			profile_model_dict = persist_mastery(_repository, user_id, assessment,
 					evidence_id, result_id, timestamp)
+			from app.api.wrong_book import record_submission
+			record_submission(_repository, user_id,
+				[questions_by_id[key] for key in submitted_answers if key in questions_by_id],
+				submitted_answers, correct_ids)
+			wrong_ids = {item.get("exerciseId") for item in _repository.list("wrong_book")
+				if isinstance(item, dict) and item.get("userId") == user_id}
+			for item in response["review"]:
+				item["inWrongBook"] = item["exerciseId"] in wrong_ids
 			if profile_model_dict:
 				if response["needReplan"]:
 					plans = [item for item in _repository.list("plans")

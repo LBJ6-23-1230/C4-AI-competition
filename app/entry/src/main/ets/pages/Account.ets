@@ -152,10 +152,16 @@ struct Account {
     this.pwdOk = result.ok;
     this.pwdMsg = result.message;
     if (result.ok) {
-      // 成功才清空输入框（失败时保留用户已填内容，便于改完重试）。
+      // 密码已变化，当前会话不再继续沿用：立即吊销 token、清理账号态并回登录页。
+      // 这样用户能立刻用新密码重新验证，也避免旧会话继续操作造成安全误解。
       this.pwdOld = '';
       this.pwdNew = '';
       this.pwdConfirm = '';
+      await AuthClient.signOut();
+      appState.applyLogout();
+      this.clearLocalCaches();
+      AgentApiClient.setUseFixture(false);
+      router.replaceUrl({ url: 'pages/Login', params: { notice: '密码已修改，请使用新密码重新登录。' } });
     }
   }
 

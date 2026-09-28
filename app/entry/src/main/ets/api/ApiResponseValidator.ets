@@ -69,7 +69,23 @@ export class ApiResponseValidator {
     if (method === 'POST' && route.indexOf('/api/v1/exercises/') === 0 && route.endsWith('/submit')) {
       return ApiResponseValidator.isRecordField(data, 'assessment') &&
         ApiResponseValidator.hasBoolean(data, 'needReplan') &&
-        ApiResponseValidator.isNullableRecord(data, 'masteryUpdate');
+        ApiResponseValidator.isNullableRecord(data, 'masteryUpdate') &&
+        ApiResponseValidator.hasArray(data, 'review');
+    }
+    if (method === 'GET' && route === '/api/v1/wrong-book') {
+      return ApiResponseValidator.hasString(data, 'userId') &&
+        ApiResponseValidator.hasNumber(data, 'total') && ApiResponseValidator.hasArray(data, 'courses');
+    }
+    if (method === 'POST' && route.indexOf('/api/v1/wrong-book/') === 0 && route.endsWith('/attempt')) {
+      return ApiResponseValidator.hasString(data, 'exerciseId') &&
+        ApiResponseValidator.hasBoolean(data, 'correct') &&
+        ApiResponseValidator.hasNumber(data, 'correctCount') &&
+        ApiResponseValidator.hasBoolean(data, 'removed');
+    }
+    if (method === 'POST' && route.indexOf('/api/v1/wrong-book/') === 0) {
+      return ApiResponseValidator.hasString(data, 'exerciseId') &&
+        ApiResponseValidator.hasBoolean(data, 'added') &&
+        ApiResponseValidator.hasBoolean(data, 'removed');
     }
     if (method === 'GET' && route.indexOf('/api/v1/plans/') === 0 && route.endsWith('/diff')) {
       return ApiResponseValidator.hasNumber(data, 'oldVersion') &&

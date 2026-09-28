@@ -9,9 +9,11 @@ import json
 import os
 import sys
 import tempfile
+from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-sys.path.insert(0, r"E:\C4-liantiao\liantiao5\server\zhixue-agent-server")
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "server" / "zhixue-agent-server"))
 
 tmp = tempfile.mkdtemp(prefix="contractverify-")
 os.environ["ZHIXUE_CHAT_DIR"] = tmp
@@ -19,7 +21,7 @@ os.environ.pop("ZHIXUE_REPOSITORY", None)
 
 from app import create_app  # noqa: E402
 
-CONTRACT = r"E:\C4-liantiao\liantiao5\contracts\openapi.json"
+CONTRACT = str(ROOT / "contracts" / "openapi.json")
 spec = json.loads(open(CONTRACT, "rb").read().decode("utf-8-sig"))
 
 app = create_app(os.path.join(tmp, "repo.json"))
@@ -110,7 +112,7 @@ check("errorCode 枚举不含 LLM_FALLBACK", "LLM_FALLBACK" not in enum, "共 %d
 detail = spec["components"]["schemas"]["KnowledgeBaseDetailResponse"]
 has_docs = any("documents" in (p.get("properties") or {}) for p in detail.get("allOf", []))
 check("KnowledgeBaseDetailResponse 声明了 documents", has_docs)
-check("paths 数量为 33", len(spec["paths"]) == 33, "实际 %d" % len(spec["paths"]))
+check("paths 数量为 39", len(spec["paths"]) == 39, "实际 %d" % len(spec["paths"]))
 
 print()
 print("=" * 78)
