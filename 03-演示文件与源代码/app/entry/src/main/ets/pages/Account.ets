@@ -13,6 +13,21 @@ import { ProactiveSettingsStore } from '../services/ProactiveSettingsStore';
 import { ProactiveSurfaceService } from '../services/ProactiveSurfaceService';
 
 /**
+ * 「关于」里的版本号要**连点这么多次**才进入「接口环境」（开发联调入口）。
+ *
+ * 为什么不放按钮/文案：`pages/ApiEnvironment` 是**开发联调**用的（改后端地址、
+ * 切离线 Fixture），面向评委的正式版不该把它摆在明面上；但完全拿掉又会让真机联调
+ * 没有入口。折中是"评委看不见、开发者知道怎么进"——见 `onAboutVersionTap()`。
+ */
+const ABOUT_TAP_REQUIRED: number = 5;
+
+/** 连点判定窗口（毫秒）：相邻两次点击间隔超过它就重新计数，避免"分几次点够数"误进入。 */
+const ABOUT_TAP_WINDOW_MS: number = 1500;
+
+/** 展示用版本号，**必须与 `AppScope/app.json5` 的 `versionName` 一致**。 */
+const APP_VERSION_NAME: string = '1.0.0';
+
+/**
  * 账号与隐私页（「我的」）。
  *
  * 承载四件事：
@@ -58,6 +73,9 @@ struct Account {
   @State pwdMsg: string = '';
   @State pwdOk: boolean = false;
   @State pwdBusy: boolean = false;
+  // ---- 「关于」版本号的连点计数（开发联调入口，见 onAboutVersionTap）----
+  @State aboutTapCount: number = 0;
+  @State aboutLastTapMs: number = 0;
 
   aboutToAppear(): void {
     this.refresh();
@@ -152,10 +170,16 @@ struct Account {
     this.pwdOk = result.ok;
     this.pwdMsg = result.message;
     if (result.ok) {
-      // 成功才清空输入框（失败时保留用户已填内容，便于改完重试）。
+      // 密码已变化，当前会话不再继续沿用：立即吊销 token、清理账号态并回登录页。
+      // 这样用户能立刻用新密码重新验证，也避免旧会话继续操作造成安全误解。
       this.pwdOld = '';
       this.pwdNew = '';
       this.pwdConfirm = '';
+      await AuthClient.signOut();
+      appState.applyLogout();
+      this.clearLocalCaches();
+      AgentApiClient.setUseFixture(false);
+      router.replaceUrl({ url: 'pages/Login', params: { notice: '密码已修改，请使用新密码重新登录。' } });
     }
   }
 
@@ -542,6 +566,24 @@ struct Account {
           }
           .width('100%').padding(16).backgroundColor('#F8FAFC').borderRadius(14)
 
+          // ---------- 关于 / 版本号（★ 开发联调入口，别加可见提示） ----------
+          //
+          // 这一块**故意做得像一句普通的页脚**：默认情形下它就是"关于本应用"，
+          // 评委不会去点；开发/联调同学**连点版本号 5 次**即可进入「接口环境」
+          // （改后端地址、切离线 Fixture）。逻辑见 `onAboutVersionTap()`。
+          //
+          // 为什么不恢复原来的「开发调试：数据源设置 → 配置」卡片：那张卡片在
+          // 「我的」页最显眼的位置，等于把 Fixture 开关摆在评委面前；而正式版
+          // 应当固定走真实后端（`ApiDefaults.DEFAULT_USE_FIXTURE = false`）。
+          Column({ space: 3 }) {
+            Text('知学 Mate').fontSize(12).fontColor('#B6BFCB').width('100%')
+              .textAlign(TextAlign.Center)
+            Text(`版本 ${APP_VERSION_NAME}`).fontSize(11).fontColor('#B6BFCB').width('100%')
+              .textAlign(TextAlign.Center)
+              .onClick(() => { this.onAboutVersionTap(); })
+          }
+          .width('100%').padding({ top: 14, bottom: 2 })
+
           Blank().height(20)
         }
         .width('100%').padding(16)
@@ -550,6 +592,27 @@ struct Account {
       .scrollBar(BarState.Off)
     }
     .width('100%').height('100%').backgroundColor('#F1F5F9')
+  }
+
+  /**
+   * 「关于」版本号的连点处理器 —— 连点 {@link ABOUT_TAP_REQUIRED} 次进入「接口环境」。
+   *
+   * 为什么用连点而不是按钮：那条路径只服务于**开发联调**（改后端地址 / 切 Fixture），
+   * 面向评委时不该出现在界面上，所以不给任何可见提示。
+   *
+   * 计数放在 `@State` 里而不是普通成员，是因为 ArkTS 组件只有在状态变化时才会重绘，
+   * 普通成员改了界面不刷新——虽然这里不需要界面反馈，但保持"状态即真相"更不容易出岔子。
+   */
+  private onAboutVersionTap(): void {
+    const now: number = Date.now();
+    const withinWindow: boolean = now - this.aboutLastTapMs <= ABOUT_TAP_WINDOW_MS;
+    this.aboutTapCount = withinWindow ? this.aboutTapCount + 1 : 1;
+    this.aboutLastTapMs = now;
+    if (this.aboutTapCount >= ABOUT_TAP_REQUIRED) {
+      this.aboutTapCount = 0;
+      this.aboutLastTapMs = 0;
+      router.pushUrl({ url: 'pages/ApiEnvironment' });
+    }
   }
 
   /** 学习数据统计块（任务完成度 / 专注记录等）。 */

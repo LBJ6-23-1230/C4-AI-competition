@@ -31,6 +31,11 @@ struct CourseImport {
   @State showImageReview: boolean = false;
   @State recognizedCourses: CourseInfo[] = [];
   @State recognitionModel: string = '';
+  @State editingCourseId: string = '';
+  @State editCourseName: string = '';
+  @State editExamDate: string = '';
+  @State editPriority: string = '中';
+  @State editCourseError: string = '';
   @State refreshKey: number = 0;
   @State courseList: CourseInfo[] = appState.courses;
   @State ddlList: HomeworkDDL[] = appState.homeworkDDLs;
@@ -237,6 +242,79 @@ struct CourseImport {
     this.recognizedCourses = [];
   }
 
+  /* ==================== 单门课程校正 ==================== */
+
+  private beginCourseEdit(course: CourseInfo): void {
+    this.editingCourseId = course.courseId;
+    this.editCourseName = course.courseName;
+    this.editExamDate = course.exam.date === '未设置' ? '' : course.exam.date;
+    this.editPriority = course.priority === '高' || course.priority === '低' ? course.priority : '中';
+    this.editCourseError = '';
+  }
+
+  private cancelCourseEdit(): void {
+    this.editingCourseId = '';
+    this.editCourseName = '';
+    this.editExamDate = '';
+    this.editCourseError = '';
+  }
+
+  /** 校验 YYYY-MM-DD，并同时返回需要展示的倒计时天数；-1 表示日期无效。 */
+  private calculateDaysLeft(dateText: string): number {
+    const parts: string[] = dateText.split('-');
+    if (parts.length !== 3 || parts[0].length !== 4 || parts[1].length !== 2 || parts[2].length !== 2) return -1;
+    const year: number = Number(parts[0]);
+    const month: number = Number(parts[1]);
+    const day: number = Number(parts[2]);
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return -1;
+    const target: Date = new Date(year, month - 1, day);
+    if (target.getFullYear() !== year || target.getMonth() !== month - 1 || target.getDate() !== day) return -1;
+    const today: Date = new Date();
+    const todayStart: Date = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const oneDay: number = 24 * 60 * 60 * 1000;
+    return Math.max(0, Math.ceil((target.getTime() - todayStart.getTime()) / oneDay));
+  }
+
+  private saveCourseEdit(course: CourseInfo): void {
+    const name: string = this.editCourseName.trim();
+    const dateText: string = this.editExamDate.trim();
+    if (name.length === 0) {
+      this.editCourseError = '课程名称不能为空';
+      return;
+    }
+    if (name.length > 80) {
+      this.editCourseError = '课程名称不能超过 80 个字符';
+      return;
+    }
+    let daysLeft: number = 30;
+    if (dateText.length > 0) {
+      daysLeft = this.calculateDaysLeft(dateText);
+      if (daysLeft < 0) {
+        this.editCourseError = '考试日期请按 YYYY-MM-DD 填写，例如 2026-12-20';
+        return;
+      }
+    }
+    const updated: CourseInfo = {
+      courseId: course.courseId,
+      courseName: name,
+      exam: {
+        date: dateText.length > 0 ? dateText : '未设置',
+        daysLeft: daysLeft
+      },
+      priority: this.editPriority,
+      recentStatus: course.recentStatus
+    };
+    if (!appState.updateCourse(course.courseId, updated)) {
+      this.editCourseError = '课程已不存在，请刷新后重试';
+      return;
+    }
+    this.courseList = appState.courses;
+    appState.clearWeeklyPlan();
+    this.cancelCourseEdit();
+    this.importStatus = 'success';
+    this.importMessage = `已保存“${name}”的修改，学习计划将在下次打开时重新生成。`;
+  }
+
   /* ==================== 构建器 ==================== */
 
   @Builder
@@ -270,18 +348,81 @@ struct CourseImport {
         Text(course.recentStatus.status === '近期复习不足' ? '建议增加复习时间' : '评估状态正常')
           .fontSize(11).fontColor(course.recentStatus.status === '近期复习不足' ? '#DC2626' : '#3B82F6')
       }.width('100%')
+      if (this.editingCourseId === course.courseId) {
+        Column({ space: 9 }) {
+          Text('校正识别结果').fontSize(13).fontWeight(FontWeight.Bold).fontColor('#202522').width('100%')
+          Text('课程名称').fontSize(11).fontColor('#64748B').width('100%')
+          TextInput({ text: this.editCourseName, placeholder: '请输入课程名称' })
+            .width('100%').height(40).fontSize(13).fontColor('#202522')
+            .backgroundColor('#FFFFFF').border({ width: 1, color: '#CBD5E1' }).borderRadius(9)
+            .padding({ left: 10, right: 10 }).maxLength(80)
+            .onChange((value: string) => {
+              this.editCourseName = value;
+              this.editCourseError = '';
+            })
+          Text('考试日期（可留空）').fontSize(11).fontColor('#64748B').width('100%')
+          TextInput({ text: this.editExamDate, placeholder: 'YYYY-MM-DD' })
+            .width('100%').height(40).fontSize(13).fontColor('#202522')
+            .backgroundColor('#FFFFFF').border({ width: 1, color: '#CBD5E1' }).borderRadius(9)
+            .padding({ left: 10, right: 10 }).maxLength(10)
+            .onChange((value: string) => {
+              this.editExamDate = value;
+              this.editCourseError = '';
+            })
+          Text('优先级').fontSize(11).fontColor('#64748B').width('100%')
+          Row({ space: 8 }) {
+            Button('高').layoutWeight(1).height(34).fontSize(12)
+              .fontColor(this.editPriority === '高' ? '#FFFFFF' : '#DC2626')
+              .backgroundColor(this.editPriority === '高' ? '#DC2626' : '#FFFFFF')
+              .border({ width: 1, color: '#FCA5A5' }).borderRadius(8)
+              .onClick(() => this.editPriority = '高')
+            Button('中').layoutWeight(1).height(34).fontSize(12)
+              .fontColor(this.editPriority === '中' ? '#FFFFFF' : '#D97706')
+              .backgroundColor(this.editPriority === '中' ? '#F59E0B' : '#FFFFFF')
+              .border({ width: 1, color: '#FCD34D' }).borderRadius(8)
+              .onClick(() => this.editPriority = '中')
+            Button('低').layoutWeight(1).height(34).fontSize(12)
+              .fontColor(this.editPriority === '低' ? '#FFFFFF' : '#2563EB')
+              .backgroundColor(this.editPriority === '低' ? '#3B82F6' : '#FFFFFF')
+              .border({ width: 1, color: '#93C5FD' }).borderRadius(8)
+              .onClick(() => this.editPriority = '低')
+          }.width('100%')
+          if (this.editCourseError.length > 0) {
+            Text(this.editCourseError).fontSize(11).fontColor('#DC2626').width('100%')
+          }
+          Row({ space: 8 }) {
+            Button('取消').layoutWeight(1).height(36).fontSize(12).fontColor('#64748B')
+              .backgroundColor('#FFFFFF').border({ width: 1, color: '#CBD5E1' }).borderRadius(8)
+              .onClick(() => this.cancelCourseEdit())
+            Button('保存修改').layoutWeight(1).height(36).fontSize(12).fontWeight(FontWeight.Medium)
+              .fontColor('#FFFFFF').backgroundColor('#2563EB').borderRadius(8)
+              .onClick(() => this.saveCourseEdit(course))
+          }.width('100%')
+        }
+        .width('100%').padding(12).margin({ top: 10 })
+        .backgroundColor('#F8FAFC').border({ width: 1, color: '#E2E8F0' }).borderRadius(12)
+      }
       Row() {
         Text('查看课程计划 →').fontSize(12).fontColor('#2563EB').fontWeight(FontWeight.Medium)
           .onClick(() => this.openPlan())
         Blank()
-        Text('删除').fontSize(11).fontColor('#DC2626').fontWeight(FontWeight.Medium)
-          .backgroundColor('#FEF2F2').borderRadius(8)
-          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-          .onClick(() => {
-            appState.removeCourse(course.courseId);
-            this.courseList = appState.courses;
-            appState.clearWeeklyPlan();
-          })
+        Row({ space: 8 }) {
+          if (this.editingCourseId !== course.courseId) {
+            Text('编辑').fontSize(11).fontColor('#2563EB').fontWeight(FontWeight.Medium)
+              .backgroundColor('#EFF6FF').borderRadius(8)
+              .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+              .onClick(() => this.beginCourseEdit(course))
+          }
+          Text('删除').fontSize(11).fontColor('#DC2626').fontWeight(FontWeight.Medium)
+            .backgroundColor('#FEF2F2').borderRadius(8)
+            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+            .onClick(() => {
+              if (this.editingCourseId === course.courseId) this.cancelCourseEdit();
+              appState.removeCourse(course.courseId);
+              this.courseList = appState.courses;
+              appState.clearWeeklyPlan();
+            })
+        }
       }.width('100%').margin({ top: 8 })
     }
     .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)

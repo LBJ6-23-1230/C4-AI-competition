@@ -618,8 +618,14 @@ def main():
             "basicInfo": {"grade": "大二", "major": "计算机科学与技术"},
         },
     })
+    # ⚠️ 取值必须用 `(x or {})` 串起来，**不能用 `dict.get(k, {})`** ——
+    # `get` 的默认值只在**键缺失**时生效；这里 `matchedCandidate` 是**存在但值为 None**
+    # （联机模式下没有其他真实账号时就是这种情况），默认值 `{}` 根本不会生效，
+    # 接着对 None 调 `.get` 会抛 `AttributeError: 'NoneType' object has no attribute 'get'`
+    # —— 实测让整个联调脚本在这一步直接崩掉（2026-09-28）。
+    _matched = ((partner or {}).get("matchedCandidate") or {}).get("candidate") or {}
     record("POST /api/v1/agent/partner-match 可用（后端确定性算分）", status == 200,
-           f"HTTP {status} matched={partner.get('matchedCandidate', {}).get('candidate', {}).get('userId') if isinstance(partner, dict) else '?'}",
+           f"HTTP {status} matched={_matched.get('userId') or '（无候选，如实返回空）'}",
            expected=200, actual=str(status))
 
     # ---- 11. 聊天层（与工作流层同进程） ---------------------------------

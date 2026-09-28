@@ -1,5 +1,5 @@
 import { http } from '@kit.NetworkKit';
-import { API_CONTRACT_VERSION, DemoResetResponse, PartnerContactListResponse, PartnerInvitationCreateRequest, PartnerInvitationListResponse, PartnerInvitationResponse, PartnerMatchRequest, PartnerMatchResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeDocument, KnowledgeDocumentDetail, KnowledgeDocumentUploadRequest, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, ScheduleRecognitionRequest, ScheduleRecognitionResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse } from './ApiModels';
+import { API_CONTRACT_VERSION, DemoResetResponse, PartnerContactListResponse, PartnerInvitationCreateRequest, PartnerInvitationListResponse, PartnerInvitationResponse, PartnerMatchRequest, PartnerMatchResponse, ExerciseQuery, ExerciseSetResponse, ExerciseSubmission, ExerciseSubmissionResult, KnowledgeBase, KnowledgeBaseCreateRequest, KnowledgeBaseDetail, KnowledgeBaseListResponse, KnowledgeDocument, KnowledgeDocumentDetail, KnowledgeDocumentUploadRequest, KnowledgeSearchRequest, KnowledgeSearchResponse, LearningPlan, PlanDiff, ProactiveRequest, ProactiveResponse, ProfileResponse, ScheduleRecognitionRequest, ScheduleRecognitionResponse, TraceResponse, WorkflowCreateRequest, WorkflowResponse, WorkflowRunRequest, WorkflowRunResponse, WorkflowStatusResponse, WrongBookAttemptRequest, WrongBookAttemptResponse, WrongBookResponse, WrongBookToggleRequest, WrongBookToggleResponse } from './ApiModels';
 import { ApiFailure, ApiResult, apiFailure, apiSuccess } from './ApiResult';
 import { ApiDefaults } from './ApiDefaults';
 import { AuthChangePasswordRequest, AuthChangePasswordResponse, AuthHuaweiLoginRequest, AuthLoginOrRegisterRequest, AuthLoginOrRegisterResponse, AuthLoginRequest, AuthRegisterRequest, AuthSendCodeRequest, AuthSendCodeResponse, AuthSessionResponse, AuthStatusResponse, AuthUserResponse, AuthVerifyCodeRequest } from './AuthModels';
@@ -112,7 +112,33 @@ export class AgentApiClient {
   }
 
   static async submitExercise(setId: string, submission: ExerciseSubmission): Promise<ApiResult<ExerciseSubmissionResult>> {
-    return AgentApiClient.request<ExerciseSubmissionResult>(http.RequestMethod.POST, `/api/v1/exercises/${encodeURIComponent(setId)}/submit`, submission);
+    // ⚠️ 必须放宽读超时：这条接口在服务端**同步调大模型**生成逐题解析
+    // （`exercises.py` 的 `generate_review_explanations` → `chat_llm._call_llm`），
+    // 实测 3 道题耗时 **13.9 秒**，而默认读超时只有 8 秒 —— 表现为
+    // "后端 200、前端报连接超时"，**且批改其实已在服务端落盘**（幂等键不变时重试可秒回）。
+    // 判分本身仍是确定性算式，慢的只是解析生成。
+    // 同类问题在 `runWorkflow` / `getExerciseSet(generate=1)` / 聊天上已经踩过三次
+    // （见 `ApiDefaults.LLM_BOUND_READ_TIMEOUT_MS` 的注释）。
+    // `connectTimeout` 仍用配置值：连不上要快速失败，不能陪着一起等。
+    return AgentApiClient.request<ExerciseSubmissionResult>(http.RequestMethod.POST,
+      `/api/v1/exercises/${encodeURIComponent(setId)}/submit`, submission,
+      ApiDefaults.LLM_BOUND_READ_TIMEOUT_MS);
+  }
+
+  static async getWrongBook(): Promise<ApiResult<WrongBookResponse>> {
+    return AgentApiClient.request<WrongBookResponse>(http.RequestMethod.GET, '/api/v1/wrong-book');
+  }
+
+  static async toggleWrongBook(exerciseId: string, added: boolean): Promise<ApiResult<WrongBookToggleResponse>> {
+    const request: WrongBookToggleRequest = { added: added };
+    return AgentApiClient.request<WrongBookToggleResponse>(http.RequestMethod.POST,
+      `/api/v1/wrong-book/${encodeURIComponent(exerciseId)}`, request);
+  }
+
+  static async attemptWrongBook(exerciseId: string, answer: string): Promise<ApiResult<WrongBookAttemptResponse>> {
+    const request: WrongBookAttemptRequest = { answer: answer };
+    return AgentApiClient.request<WrongBookAttemptResponse>(http.RequestMethod.POST,
+      `/api/v1/wrong-book/${encodeURIComponent(exerciseId)}/attempt`, request);
   }
 
   static async getPlanDiff(planId: string): Promise<ApiResult<PlanDiff>> {

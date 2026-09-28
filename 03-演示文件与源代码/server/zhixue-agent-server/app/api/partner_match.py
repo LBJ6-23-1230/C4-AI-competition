@@ -61,6 +61,35 @@ def _mastery_names(profile: dict[str, Any], weak: bool) -> list[str]:
 	return names
 
 
+def _target_course(profile: dict[str, Any]) -> str:
+	"""从画像反推「主攻课程」—— 贡献知识点最多的那门课。
+
+	为什么需要它：`learningGoal.course` 是搭子匹配「学习目标一致」30/20 分档的
+	**必要条件**（见 `app/agent/partner_match.py::score_partner`，两个分档都先要求
+	course 非空）。而它原先在这两个转换函数里都被写成空串 ——
+	于是该因子对**真实账号恒为 0**：实测两个课表重合的账号与一个从未导入课程的账号
+	得分完全相同（都是 15 分），同分排序下还可能选中那个陌生人。
+
+	取值口径：画像 `mastery` 的每一条都带 `sourceCourse`（导入课程时写入，
+	见 `app/tools/profile_merge.py`），取出现次数最多的那门课。
+	次数相同时按课程名升序 —— **完全确定，不依赖字典遍历顺序**（可复现是硬要求）。
+	从未导入过任何课程 → 返回空串，该因子仍为 0，如实反映"没说过要主攻什么"。
+	"""
+	rows = profile.get("mastery")
+	if not isinstance(rows, list):
+		return ""
+	counts: dict[str, int] = {}
+	for row in rows:
+		if not isinstance(row, dict):
+			continue
+		course = str(row.get("sourceCourse") or "").strip()
+		if course:
+			counts[course] = counts.get(course, 0) + 1
+	if not counts:
+		return ""
+	return sorted(counts.items(), key=lambda item: (-item[1], item[0]))[0][0]
+
+
 def _real_candidates(exclude: str) -> list[dict[str, Any]]:
 	"""把**真实注册账号**转成与 `mock_candidates.json` 同构的候选人结构。"""
 	if _repository is None:
@@ -85,7 +114,7 @@ def _real_candidates(exclude: str) -> list[dict[str, Any]]:
 				"major": str(record.get("major") or ""),
 			},
 			"learningGoal": {
-				"course": "",
+				"course": _target_course(profile),
 				"goal": str(profile.get("goal") or ""),
 			},
 			"time": {"freeTime": slots if isinstance(slots, list) else []},
@@ -117,7 +146,7 @@ def _real_user_profile(user_id: str) -> dict[str, Any] | None:
 			"grade": str(record.get("grade") or ""),
 			"major": str(record.get("major") or ""),
 		},
-		"learningGoal": {"course": "", "goal": str(profile.get("goal") or "")},
+		"learningGoal": {"course": _target_course(profile), "goal": str(profile.get("goal") or "")},
 		"time": {"freeTime": slots if isinstance(slots, list) else []},
 		"knowledge": {
 			"weakness": _mastery_names(profile, weak=True),
@@ -147,12 +176,15 @@ def post_partner_match():
 
 	# 已登录时忽略请求体里的 userId，避免"带甲的 token 拿到乙的匹配结果"。
 	me = resolve_user_id(data.get("userId"))
+	# 真实登录账号必须使用仓储画像，不能信任前端临时对象；否则聊天与详情页
+	# 即使候选池相同，也会因“当前用户画像”不同而算出不同排名。
 	user = _real_user_profile(me) or data.get("user") or {"userId": me}
 	candidates = data.get("candidates")
 	if not isinstance(user, dict) or (candidates is not None and not isinstance(candidates, list)):
 		return bad_request("user/candidates 格式错误")
 	if candidates is None:
-		# 联机模式只匹配真实注册账号；没有其他账号就返回空候选。
+		# 联机模式只匹配真实注册账号。没有其他账号就返回空候选，绝不再回退
+		# “小红/小刚”等预置人物；离线演示由前端 Fixture 自己负责。
 		candidates = _real_candidates(me)
 	valid = [item for item in candidates if isinstance(item, dict)]
 	result = match_partners(user, valid)

@@ -2171,6 +2171,117 @@
           }
         }
       }
+    },
+    "/api/v1/wrong-book": {
+      "get": {
+        "summary": "按课程读取当前身份的错题本",
+        "operationId": "listWrongBook",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "错题本",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WrongBookResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wrong-book/{exerciseId}": {
+      "post": {
+        "summary": "手动加入或移出错题本",
+        "operationId": "toggleWrongBook",
+        "parameters": [
+          {
+            "name": "exerciseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WrongBookToggleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WrongBookToggleResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/wrong-book/{exerciseId}/attempt": {
+      "post": {
+        "summary": "在错题本中作答；累计答对三次自动移出",
+        "operationId": "attemptWrongBook",
+        "parameters": [
+          {
+            "name": "exerciseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ContractVersionHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WrongBookAttemptRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "判题与移出状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WrongBookAttemptResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2906,7 +3017,8 @@
           "needReplan",
           "traceId",
           "evidenceIds",
-          "replanDecision"
+          "replanDecision",
+          "review"
         ],
         "properties": {
           "userId": {
@@ -2957,6 +3069,12 @@
           },
           "planDiff": {
             "$ref": "#/components/schemas/PlanDiffResponse"
+          },
+          "review": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExerciseReview"
+            }
           }
         }
       },
@@ -4201,6 +4319,200 @@
           "wasFirstTime": {
             "type": "boolean",
             "description": "本次是否为「首次设置密码」而非「修改已有密码」"
+          }
+        }
+      },
+      "ExerciseReview": {
+        "type": "object",
+        "required": [
+          "exerciseId",
+          "selectedAnswer",
+          "correctAnswer",
+          "correct",
+          "explanation",
+          "explanationSource",
+          "inWrongBook"
+        ],
+        "properties": {
+          "exerciseId": {
+            "type": "string"
+          },
+          "selectedAnswer": {
+            "type": "string"
+          },
+          "correctAnswer": {
+            "type": "string"
+          },
+          "correct": {
+            "type": "boolean"
+          },
+          "explanation": {
+            "type": "string"
+          },
+          "explanationSource": {
+            "type": "string",
+            "enum": ["llm", "fallback"],
+            "description": "llm 表示解析由大模型依据题干与全部选项生成；fallback 表示模型未配置或暂不可用时的本地兜底。"
+          },
+          "inWrongBook": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WrongBookItem": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Exercise"
+          },
+          {
+            "type": "object",
+            "required": [
+              "courseName",
+              "explanation",
+              "correctCount",
+              "wrongCount",
+              "addedAutomatically",
+              "addedAt"
+            ],
+            "properties": {
+              "courseName": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              },
+              "correctCount": {
+                "type": "integer"
+              },
+              "wrongCount": {
+                "type": "integer"
+              },
+              "addedAutomatically": {
+                "type": "boolean"
+              },
+              "addedAt": {
+                "type": "string"
+              },
+              "lastPracticedAt": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        ]
+      },
+      "WrongBookCourse": {
+        "type": "object",
+        "required": [
+          "courseName",
+          "items"
+        ],
+        "properties": {
+          "courseName": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WrongBookItem"
+            }
+          }
+        }
+      },
+      "WrongBookResponse": {
+        "type": "object",
+        "required": [
+          "userId",
+          "total",
+          "courses"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "courses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WrongBookCourse"
+            }
+          }
+        }
+      },
+      "WrongBookToggleRequest": {
+        "type": "object",
+        "required": [
+          "added"
+        ],
+        "properties": {
+          "added": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WrongBookToggleResponse": {
+        "type": "object",
+        "required": [
+          "exerciseId",
+          "added",
+          "removed"
+        ],
+        "properties": {
+          "exerciseId": {
+            "type": "string"
+          },
+          "added": {
+            "type": "boolean"
+          },
+          "removed": {
+            "type": "boolean"
+          },
+          "item": {
+            "$ref": "#/components/schemas/WrongBookItem"
+          }
+        }
+      },
+      "WrongBookAttemptRequest": {
+        "type": "object",
+        "required": [
+          "answer"
+        ],
+        "properties": {
+          "answer": {
+            "type": "string"
+          }
+        }
+      },
+      "WrongBookAttemptResponse": {
+        "type": "object",
+        "required": [
+          "exerciseId",
+          "correct",
+          "correctAnswer",
+          "explanation",
+          "correctCount",
+          "removed"
+        ],
+        "properties": {
+          "exerciseId": {
+            "type": "string"
+          },
+          "correct": {
+            "type": "boolean"
+          },
+          "correctAnswer": {
+            "type": "string"
+          },
+          "explanation": {
+            "type": "string"
+          },
+          "correctCount": {
+            "type": "integer"
+          },
+          "removed": {
+            "type": "boolean"
           }
         }
       }

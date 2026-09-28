@@ -1,4 +1,4 @@
-import { AgentHistoryItem, AgentRequest, AgentResponse, ChatAction, ChatCard, ChatCardType, ChatIntent, ChatMessage, WrongAnalysis } from '../models/ChatModels';
+import { AgentHistoryItem, AgentRequest, AgentResponse, ChatAction, ChatCard, ChatCardType, ChatHistoryRecord, ChatIntent, ChatMessage, WrongAnalysis } from '../models/ChatModels';
 import { http } from '@kit.NetworkKit';
 import { appState } from '../data/AppState';
 import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
@@ -55,6 +55,51 @@ const CODE_SEPARATOR: string = '::';
 const CHAT_MIN_READ_TIMEOUT_MS: number = ApiDefaults.LLM_BOUND_READ_TIMEOUT_MS;
 
 export class AgentBridge {
+  /** 读取当前登录身份的服务端历史，供对话页左上角会话抽屉使用。 */
+  static async loadHistory(): Promise<ChatHistoryRecord[]> {
+    const apiConfig: ApiClientConfig = AgentApiClient.getConfig();
+    if (apiConfig.useFixture) return [];
+    const requestInstance: http.HttpRequest = http.createHttp();
+    try {
+      const header: Record<string, string> = {
+        'Accept': 'application/json',
+        'X-API-Contract-Version': API_CONTRACT_VERSION
+      };
+      const token: string = AuthStore.getToken();
+      if (token.length > 0) header['Authorization'] = `Bearer ${token}`;
+      const userId: string = encodeURIComponent(appState.currentUser.userId);
+      const response: http.HttpResponse = await requestInstance.request(
+        `${apiConfig.baseUrl}/api/agent/history?userId=${userId}`, {
+          method: http.RequestMethod.GET,
+          header: header,
+          expectDataType: http.HttpDataType.STRING,
+          connectTimeout: apiConfig.timeoutMs,
+          readTimeout: apiConfig.timeoutMs
+        });
+      if (response.responseCode < 200 || response.responseCode >= 300) return [];
+      const root: Record<string, Object> = JSON.parse(response.result as string) as Record<string, Object>;
+      const rawHistory: Object | undefined = root['history'];
+      if (!Array.isArray(rawHistory)) return [];
+      const records: ChatHistoryRecord[] = [];
+      for (let i: number = 0; i < rawHistory.length; i++) {
+        const raw: Object = rawHistory[i] as Object;
+        if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) continue;
+        const row: Record<string, Object> = raw as Record<string, Object>;
+        const userInput: string = AgentBridge.stringField(row, 'user_input');
+        const botResponse: string = AgentBridge.stringField(row, 'bot_response');
+        const timestamp: string = AgentBridge.stringField(row, 'timestamp');
+        if (userInput.length > 0 && botResponse.length > 0) {
+          records.push({ userInput: userInput, botResponse: botResponse, timestamp: timestamp });
+        }
+      }
+      return records.reverse();
+    } catch (error) {
+      return [];
+    } finally {
+      requestInstance.destroy();
+    }
+  }
+
   static matchIntentLocal(message: string): ChatIntent {
     const normalized: string = message.trim().toLowerCase();
     for (let i: number = 0; i < INTENT_RULES.length; i++) {

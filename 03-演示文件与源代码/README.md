@@ -11,7 +11,7 @@ HarmonyOS 原生应用 · ArkTS 前端 + Python Agent 后端
 [![Frontend](https://img.shields.io/badge/Frontend-ArkTS-10B981?style=flat-square)]()
 [![Backend](https://img.shields.io/badge/Backend-Python%203.12%20%2B%20Flask-B45309?style=flat-square)]()
 [![Contract](https://img.shields.io/badge/Contract-api--contract--v0.3-0F766E?style=flat-square)]()
-[![Tests](https://img.shields.io/badge/Tests-342%20passed-16A34A?style=flat-square)]()
+[![Tests](https://img.shields.io/badge/Tests-388%20passed-16A34A?style=flat-square)]()
 [![Integration](https://img.shields.io/badge/Integration-98%2F98-16A34A?style=flat-square)]()
 
 **2026 中国高校计算机大赛 · 人工智能创意赛 · 鸿蒙赛道 · Agent 创新方向**
@@ -79,11 +79,11 @@ git clone https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
 
 | 项 | 结果 |
 |---|---|
-| 契约一致性闸门 | ✅ **逐字节一致**（`api-contract-v0.3`，**130,417 B** / 39 端点 / 64 schema / 15 错误码） |
+| 契约一致性闸门 | ✅ **逐字节一致**（`api-contract-v0.3`，**130,731 B** / 39 端点 / 64 schema / 15 错误码） |
 | 后端单元测试 | ✅ **388 项全绿** |
 | HTTP 实跑联调 | ✅ **98 / 98（100%）**，退出码 **0** |
 | 演示基线 | ✅ **零漂移**（66.67 / 全错 0.0 / 42→58 / [30,30]→[45,15] / [1,2]） |
-| ArkTS 编译 | ✅ **全量重编 0 编译错误**，产物 2.81 MB |
+| ArkTS 编译 | ✅ **全量重编 0 编译错误**，产物 2.86 MB |
 | 签名 HAP | ✅ `verify-app success`，AGC 指纹已对齐 |
 | 安装运行 | ✅ 模拟器 `install bundle successfully` |
 | 全场景分布式 | ✅ 双端 `joined session` 实测建立 |
@@ -164,15 +164,19 @@ git clone https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
 | **学习** | 我要处理什么 | 上传作业与 DDL · 任务安排（开始专注 / 课程与作业清单） |
 | **我的** | 我是谁 / 我学得怎么样 | 账号卡 · 学习数据 · 学习复盘 · 搭子与协同 · 开发调试 |
 
-### 完整页面清单（19 个）
+### 完整页面清单（20 个）
 
 | 分类 | 页面 |
 |---|---|
 | **入口** | `Login` 登录 · `Index` 工作台 · `ChatMain` 对话 · `Account` 我的 |
-| **学习闭环** | `StudySuggestion` → `WrongQuestion` → `ExercisePractice` → `StudyTags` → `StudyPlan` |
+| **学习闭环** | `StudySuggestion` → `WrongQuestion` → `ExercisePractice` → `StudyTags` → `StudyPlan` · `WrongBook` 错题本 |
 | **专注** | `FocusSetup` → `FocusTimer` → `FocusResult` · `LearningHistory` |
 | **社交 / 复盘** | `PartnerMatch` 学习搭子 · `ReviewSummary` 学习复盘 |
 | **知识库 / 审计** | `KnowledgeBase` 知识库 · `AgentTrace` 决策轨迹 · `ApiEnvironment` 接口环境 · `CourseImport` 课程与作业 |
+
+> `ApiEnvironment`（接口环境）**不在常规界面里露出入口** —— 它是给开发联调用的
+> （改后端地址、切离线 Fixture），在「我的」页底部**连点版本号 5 次**才进入，避免
+> 评委误触。正式版默认走真实后端（`ApiDefaults.DEFAULT_USE_FIXTURE = false`）。
 
 > **每个终点页都有「接下来」卡**（`FollowUpCard` 组件）：错题诊断完 → 做同类专项题；
 > 练习判分完 → 再练一组或看更新后的画像；看完画像 → 按薄弱点开始练习。
@@ -249,7 +253,7 @@ git clone https://github.com/LBJ6-23-1230/C4-AI-competition.git zhixue-mate
 | 契约 | `api-contract-v0.3`（前后端 `openapi.json` **逐字节一致**） |
 | 持久化 | 仓储层已抽象（`Repository` 协议）· JSON 单文件 **或 SQLite**（环境变量一行切换） |
 | 登录 | 免密昵称 + 长期 token · **验证码登录** · **华为账号一键登录** · 鉴权可选不做门禁 |
-| 测试 | 后端 **342** 个单元测试 · 联调自检 **98** 项断言 · 前端 14 个单测文件 |
+| 测试 | 后端 **388** 个单元测试 · 联调自检 **98** 项断言 · 前端 14 个单测文件 |
 
 ---
 
@@ -410,7 +414,7 @@ python integration\run_liantiao5.py --port 5097
 
 | 环节 | 内容 |
 |---|---|
-| ⓪ 契约闸门 | 真源与镜像逐字节一致（`api-contract-v0.3`，130,417 B） |
+| ⓪ 契约闸门 | 真源与镜像逐字节一致（`api-contract-v0.3`，130,731 B） |
 | ① 后端单元测试 | **388 passed / 0 failed** |
 | ② HTTP 实跑联调 | **98 / 98（100%）** |
 | ③ 演示基线 | 6 项数值全部命中，零漂移 |
@@ -444,7 +448,7 @@ python integration\run_liantiao5.py --port 5097 --llm-mode live
 |---|---|
 | 后端逻辑、契约、判分、Agent 循环 | ✅ 真实 HTTP 实跑验证（98/98） |
 | 后端单元测试 | ✅ `388 passed` |
-| 契约一致性 | ✅ 逐字节一致（130,417 B） |
+| 契约一致性 | ✅ 逐字节一致（130,731 B） |
 | 真模型 live 模式 | ✅ 连跑 11 次全部通过、基线零漂移（该轮断言集为 95 项，**现为 98 项**；证据见 `evidence/run_summary_2026-09-21_*.json`） |
 | 前端编译 | ✅ `BUILD SUCCESSFUL`，**`[ERROR]` 级 0 条 / ArkTS 编译错误 0 条** |
 | **签名 HAP** | ✅ **已产出并通过独立验签**（发布证书 + 发布 Profile，摘要校验 `true`，`SignHap` 耗时 4.6 s） |

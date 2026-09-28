@@ -735,11 +735,6 @@ struct Index {
       (this.proactiveDecision!.cardData.taskName ?? '').trim().length > 0;
   }
 
-  /** 窄入口：只在用户主动想"全面看看"时才铺开，不再默认铺开。 */
-  private openApiEnvironment(): void {
-    router.pushUrl({ url: 'pages/ApiEnvironment' });
-  }
-
   private openAccount(): void {
     router.pushUrl({ url: 'pages/Account' });
   }
@@ -896,6 +891,15 @@ struct Index {
             // 去重原则：智能体能力（建议/计划/错题/画像）一律不在此重复，
             // 需要它们时去「智能体」页点对应智能体；这里只解决"任务从哪来、时间怎么安排"。
             if (this.activeTab === 2) {
+              Row() {
+                Blank()
+                Row({ space: 5 }) {
+                  Text('✎').fontSize(14).fontColor('#2563EB')
+                  Text('错题本').fontSize(12).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+                }.padding({ left: 11, right: 11, top: 7, bottom: 7 })
+                  .backgroundColor('#EFF6FF').borderRadius(16)
+                  .onClick(() => router.pushUrl({ url: 'pages/WrongBook' }))
+              }.width('100%')
               this.PrimaryActionCard()
               this.PanelCard('上传作业与 DDL',
                 '导入 CSV/JSON 课程表与作业截止时间。导入后，全部智能体的分析自动切换为你的真实数据。',
@@ -916,6 +920,9 @@ struct Index {
                 '上传课程讲义、题库或笔记（TXT / Markdown / CSV / JSON）。' +
                 'Agent 会从中提取知识点与易错点，回答时标注资料来源与章节。',
                 '进入我的知识库', 'pages/KnowledgeBase')
+              this.PanelCard('我的错题本',
+                '答错题自动收录并按课程整理；也可手动加入做过的题。每题累计答对 3 次后自动移出。',
+                '进入错题本刷题', 'pages/WrongBook')
             }
 
             // ================= 标签 3：我的（身份 / 数据 / 搭子） =================
@@ -986,12 +993,6 @@ struct Index {
 
               this.PanelRow('◑', '搭子与协同', '查看匹配结果与协同学习计划', 'pages/PartnerMatch')
 
-              Row() {
-                Text('开发调试：数据源设置').fontSize(12).fontColor('#98A2B3')
-                Blank()
-                Text('配置 →').fontSize(12).fontWeight(FontWeight.Medium).fontColor('#98A2B3')
-              }.width('100%').padding(12).backgroundColor('#FFFFFF').borderRadius(12)
-              .border({ width: 1, color: '#EAECF0' }).onClick(() => this.openApiEnvironment())
             }
 
             Blank().height(12)

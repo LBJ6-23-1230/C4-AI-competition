@@ -56,10 +56,15 @@ export default class EntryAbility extends UIAbility {
       hilog.warn(DOMAIN, 'testTag', '%{public}s', 'Failed to restore proactive notification settings.');
     }
 
+    // 课程与 DDL 是账号维度的本地数据。必须先绑定 context，随后 applyLogout/applyLogin
+    // 才能分别恢复 demo-user 或真实 userId 对应的快照。
     LearningDataStore.initialize(this.context);
 
     // 启动时先把 AppState 对齐到已知身份，避免首页在异步校验完成前读到空身份。
     appState.applyLogout();
+    // 同时标记「身份尚未判定」：对话页据此显示启动加载态，
+    // 而不是先渲染一帧**游客身份**的会话内容（见 `AppState.markIdentityPending()`）。
+    appState.markIdentityPending();
 
     // ★ 启动进入**对话页**（而不是工作台）。
     // 产品定位是"对话式学习秘书"：进来就能直接说话，不用先读一遍功能清单。
@@ -209,6 +214,9 @@ export default class EntryAbility extends UIAbility {
       hilog.error(DOMAIN, 'testTag', 'restoreIdentity failed: %{public}s', JSON.stringify(error));
       appState.applyLogout();
     } finally {
+      // 无论走哪条分支（含上面几处提前 return 与 catch），身份判定都已结束 ——
+      // 放在 finally 里才能保证对话页的加载态一定被解除。
+      appState.markIdentityReady();
       // ★ 卡片任务兜底（文档 P0-3）。
       //
       // 上面三条规则里的每一条、以及 catch 分支，都会直接或间接调用

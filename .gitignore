@@ -59,3 +59,13 @@ Thumbs.db
 desktop.ini
 ~$*
 *.log
+
+# ---- 打包 / 暂存目录（不该入库）----
+# `tools/package_handoff.py` 用 .packaging/ 做暂存；
+# `_stage*/_tmp/_test_*` 是本机开发时留下的中间目录 —— 仓库内目前没有，
+# 但开发机上确实存在（如 E:\C4-liantiao\_stage6 有 41 MB），
+# 补上规则以免哪天被挪进来后裸奔。
+.packaging/
+_stage*/
+_tmp/
+_test_*/

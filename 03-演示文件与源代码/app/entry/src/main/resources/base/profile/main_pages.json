@@ -18,6 +18,7 @@
     "pages/FocusTimer",
     "pages/FocusResult",
     "pages/LearningHistory",
-    "pages/KnowledgeBase"
+    "pages/KnowledgeBase",
+    "pages/WrongBook"
   ]
 }

@@ -30,6 +30,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import uuid
 from typing import Any
@@ -126,6 +127,91 @@ _USER_PROMPT = """请针对知识点「{point}」出 {count} 道**单项选择�
 
 只输出如下 JSON（不要 markdown 代码块）：
 {{"exercises":[{{"stem":"题干","options":["A. ...","B. ...","C. ...","D. ..."],"answer":"A","explanation":"..."}}]}}"""
+
+_REVIEW_SYSTEM_PROMPT = (
+	"你是严谨的高校课程助教。只输出 JSON；必须依据题干、全部选项与标准答案讲解，"
+	"不得更改标准答案，不得省略错误选项分析。"
+)
+
+_REVIEW_USER_PROMPT = """请为下面这组已经判分的单项选择题生成详细解析。
+
+每题解析必须包含：
+1. 正确选项为什么正确，给出关键概念或推导过程；
+2. 其余每个选项为什么不成立；
+3. 结合用户选择指出容易混淆之处和一个可操作的记忆/检查方法。
+不要只写“正确答案是 X”，也不要重新判分。每题建议 120—260 个汉字。
+
+题目 JSON：
+{questions}
+
+只输出如下 JSON（不要 markdown 代码块）：
+{{"reviews":[{{"exerciseId":"题目ID","explanation":"详细解析"}}]}}"""
+
+
+def _fallback_review_explanation(question: dict[str, Any], selected_answer: str,
+								 correct_answer: str) -> str:
+	"""LLM 暂不可用时的可核对兜底；不再返回“请重新核对概念”式空话。"""
+	options = [str(item).strip() for item in question.get("options", []) if str(item).strip()]
+	correct_option = next((item for item in options if item[:1] == correct_answer), correct_answer)
+	other_options = [item for item in options if item[:1] != correct_answer]
+	selected_note = (f"你选择了 {selected_answer}，应重点比较它与 {correct_answer} 在定义、"
+		"适用条件和执行顺序上的差别。" if selected_answer and selected_answer != correct_answer
+		else "你的选择与标准答案一致，仍建议用定义逐项排除，避免只靠记忆字母。")
+	return (f"标准答案是 {correct_option}。判断这道题时，应先锁定题干考查的核心定义，再把选项逐一代入；"
+		f"其余选项（{'；'.join(other_options) or '无'}）至少有一处不符合题干限定，不能作为标准答案。"
+		f"{selected_note}复习时请用“定义—条件—结论”三步重新验证，并说明每个错误选项错在哪里。")
+
+
+def generate_review_explanations(questions: list[dict[str, Any]],
+								 submitted_answers: dict[str, str],
+								 answer_keys: dict[str, str]) -> tuple[dict[str, str], set[str]]:
+	"""一次 LLM 调用批量生成逐题详解，失败时返回信息完整、且不冒充 AI 的兜底解析。"""
+	requested: list[dict[str, Any]] = []
+	by_id: dict[str, dict[str, Any]] = {}
+	for question in questions:
+		exercise_id = str(question.get("exerciseId") or "")
+		if exercise_id not in submitted_answers or exercise_id not in answer_keys:
+			continue
+		by_id[exercise_id] = question
+		requested.append({
+			"exerciseId": exercise_id,
+			"stem": question.get("stem", ""),
+			"options": question.get("options", []),
+			"selectedAnswer": submitted_answers[exercise_id],
+			"correctAnswer": answer_keys[exercise_id],
+		})
+
+	result: dict[str, str] = {}
+	llm_ids: set[str] = set()
+	if requested and generation_available():
+		try:
+			content = chat_llm._call_llm(
+				_REVIEW_SYSTEM_PROMPT,
+				_REVIEW_USER_PROMPT.format(
+					questions=json.dumps(requested, ensure_ascii=False, separators=(",", ":"))),
+				temperature=0.2,
+				max_tokens=min(4000, 900 + len(requested) * 650),
+				response_json=True,
+			)
+			parsed = chat_llm.extract_json(content)
+			rows = parsed.get("reviews") if isinstance(parsed, dict) else None
+			if isinstance(rows, list):
+				for row in rows:
+					if not isinstance(row, dict):
+						continue
+					exercise_id = str(row.get("exerciseId") or "")
+					explanation = str(row.get("explanation") or "").strip()
+					if exercise_id in by_id and len(explanation) >= 40:
+						result[exercise_id] = explanation
+						llm_ids.add(exercise_id)
+		except Exception:  # noqa: BLE001 -- 解析失败不能让确定性判分与交卷失败
+			pass
+
+	for exercise_id, question in by_id.items():
+		if exercise_id not in result:
+			result[exercise_id] = _fallback_review_explanation(
+				question, submitted_answers[exercise_id], answer_keys[exercise_id])
+	return result, llm_ids
 
 
 def generate_exercises(knowledge_point_name: str, count: int) -> list[dict[str, Any]] | None:

@@ -1,6 +1,7 @@
 import router from '@ohos.router';
 import { AIFloatButton } from '../components/AIFloatButton';
-import { Exercise, ExerciseAnswer, ExerciseSetResponse, ExerciseSubmissionResult, KnowledgeMastery } from '../api/ApiModels';
+import { Exercise, ExerciseAnswer, ExerciseReview, ExerciseSetResponse, ExerciseSubmissionResult, KnowledgeMastery } from '../api/ApiModels';
+import { AgentApiClient } from '../api/AgentApiClient';
 import { DemoSnapshot } from '../cache/DemoSnapshot';
 import { PlanDiffCard } from '../components/PlanDiffCard';
 import { FollowUpCard } from '../components/FollowUpCard';
@@ -23,6 +24,9 @@ struct ExercisePractice {
   @State exercises: Exercise[] = [];
   @State answers: string[] = [];
   @State result: ExerciseSubmissionResult | null = null;
+  @State showReview: boolean = false;
+  @State wrongBookFlags: boolean[] = [];
+  @State wrongBookMessage: string = '';
   /**
    * 知识点选择器。
    *
@@ -186,6 +190,7 @@ struct ExercisePractice {
    */
   private restartPractice(): void {
     this.result = null;
+    this.showReview = false;
     this.warningMessage = '';
     this.loadExercises(true);
   }
@@ -307,6 +312,8 @@ struct ExercisePractice {
     }
     this.warningMessage = this.viewModel.getWarningMessage();
     this.result = submissionResult;
+    this.wrongBookFlags = submissionResult.review.map((item: ExerciseReview): boolean => item.inWrongBook);
+    this.showReview = false;
     this.scrollToTop();
   }
 
@@ -357,6 +364,81 @@ struct ExercisePractice {
     return names.length > 0 ? names.join('、') : '暂无明确错误类型';
   }
 
+  private async toggleReviewWrongBook(index: number): Promise<void> {
+    if (this.result === null || index < 0 || index >= this.result.review.length) return;
+    const next: boolean = !this.wrongBookFlags[index];
+    const review: ExerciseReview = this.result.review[index];
+    const response = await AgentApiClient.toggleWrongBook(review.exerciseId, next);
+    if (!response.ok) {
+      this.wrongBookMessage = '错题本更新失败，请稍后重试。';
+      return;
+    }
+    const flags: boolean[] = this.wrongBookFlags.slice();
+    flags[index] = response.data.added;
+    this.wrongBookFlags = flags;
+    this.wrongBookMessage = response.data.added ? '已加入错题本。' : '已从错题本移除。';
+  }
+
+  @Builder
+  ReviewPanel(value: ExerciseSubmissionResult) {
+    Column({ space: 16 }) {
+      Row() {
+        Text('逐题解析').fontSize(23).fontWeight(FontWeight.Bold).fontColor('#111827')
+        Blank()
+        Text('返回结果').fontSize(13).fontColor('#2563EB').onClick(() => this.showReview = false)
+      }.width('100%')
+      Text('答错题已自动加入错题本。每道做过的题也可以由你自行加入或移除。')
+        .fontSize(13).fontColor('#667085').lineHeight(19).width('100%')
+      if (this.wrongBookMessage.length > 0) {
+        Text(this.wrongBookMessage).fontSize(13).fontColor('#0F766E').width('100%')
+          .padding(10).backgroundColor('#ECFDF5').borderRadius(10)
+      }
+      ForEach(this.exercises, (item: Exercise, index: number) => {
+        Column({ space: 10 }) {
+          Row() {
+            Text(`第 ${index + 1} 题 · ${item.knowledgePointName}`).fontSize(13)
+              .fontWeight(FontWeight.Bold).fontColor('#2563EB').layoutWeight(1)
+            Text(value.review[index].correct ? '回答正确' : '回答错误')
+              .fontSize(12).fontColor(value.review[index].correct ? '#0F766E' : '#DC2626')
+          }.width('100%')
+          Text(item.stem).fontSize(16).fontWeight(FontWeight.Medium).fontColor('#1F2937').lineHeight(23)
+          Column({ space: 8 }) {
+            ForEach(item.options, (option: string) => {
+              Row({ space: 8 }) {
+                Text(option).fontSize(14).fontColor('#344054').layoutWeight(1).lineHeight(20)
+                if (option.substring(0, 1) === value.review[index].correctAnswer) {
+                  Text('正确答案').fontSize(11).fontColor('#0F766E')
+                    .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+                    .backgroundColor('#ECFDF5').borderRadius(6)
+                } else if (option.substring(0, 1) === value.review[index].selectedAnswer) {
+                  Text('你的选择').fontSize(11).fontColor('#B42318')
+                    .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+                    .backgroundColor('#FEF3F2').borderRadius(6)
+                }
+              }.width('100%').padding(10).backgroundColor('#F8FAFC').borderRadius(8)
+            }, (option: string) => option)
+          }.width('100%')
+          Text(`你的答案：${value.review[index].selectedAnswer}　正确答案：${value.review[index].correctAnswer}`)
+            .fontSize(13).fontColor('#475467').width('100%')
+          Column({ space: 6 }) {
+            Text(value.review[index].explanationSource === 'llm' ? 'AI 详细解析' : '详细解析（离线兜底）')
+              .fontSize(13).fontWeight(FontWeight.Bold).fontColor('#2563EB').width('100%')
+            Text(value.review[index].explanation).fontSize(14).fontColor('#344054').lineHeight(22).width('100%')
+          }.width('100%').padding(12).backgroundColor('#EFF6FF').borderRadius(10)
+          Button(this.wrongBookFlags[index] ? '移出错题本' : '加入错题本')
+            .width('100%').height(40).fontSize(13)
+            .fontColor(this.wrongBookFlags[index] ? '#B42318' : '#2563EB')
+            .backgroundColor(this.wrongBookFlags[index] ? '#FEF3F2' : '#EFF6FF')
+            .borderRadius(10).onClick(() => this.toggleReviewWrongBook(index))
+        }.width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
+          .border({ width: 1, color: value.review[index].correct ? '#A7F3D0' : '#FECACA' })
+      }, (item: Exercise) => item.exerciseId)
+      Button('进入错题本刷题').width('100%').height(46).fontSize(15).fontColor('#FFFFFF')
+        .backgroundColor('#2563EB').borderRadius(12)
+        .onClick(() => router.pushUrl({ url: 'pages/WrongBook' }))
+    }.width('100%')
+  }
+
   @Builder
   ResultPanel(value: ExerciseSubmissionResult) {
     Column({ space: 16 }) {
@@ -394,6 +476,11 @@ struct ExercisePractice {
       }.width('100%').padding(13).backgroundColor('#FFFBEB').borderRadius(12)
 
       Text(`薄弱知识点：${this.weakPointText(value)}`).fontSize(14).fontColor('#475467')
+
+      Button('查看题目与逐题解析')
+        .width('100%').height(46).fontSize(15).fontWeight(FontWeight.Bold)
+        .fontColor('#FFFFFF').backgroundColor('#2563EB').borderRadius(12)
+        .onClick(() => { this.showReview = true; this.scrollToTop(); })
 
       if (value.needReplan && value.planDiff !== undefined) {
         PlanDiffCard({ value: value.planDiff })
@@ -526,6 +613,8 @@ struct ExercisePractice {
               this.KnowledgePointPicker()
             } else if (this.isLoading) {
               LoadingProgress().width(36).height(36).margin({ top: 40 })
+            } else if (this.result !== null && this.showReview) {
+              this.ReviewPanel(this.result)
             } else if (this.result !== null) {
               this.ResultPanel(this.result)
             } else if (this.exercises.length === 0) {

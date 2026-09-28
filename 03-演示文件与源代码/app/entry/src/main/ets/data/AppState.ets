@@ -57,6 +57,35 @@ export class AppState {
     AppStorage.setOrCreate('learningDataRevision', (AppStorage.get<number>('learningDataRevision') ?? 0) + 1);
   }
 
+  /**
+   * 身份是否已判定完成。**冷启动期间为 false**，由 `EntryAbility.restoreIdentity()`
+   * 结束时置 true。
+   *
+   * 为什么需要它
+   * ------------
+   * `EntryAbility.onWindowStageCreate()` 的顺序是：
+   *   ① `applyLogout()`（AppState 先变成**游客**）
+   *   ② `loadContent('pages/ChatMain')`（**先渲染对话页**）
+   *   ③ 异步恢复登录态 → 未登录再跳登录页
+   *
+   * 实测时序：`onWindowStageCreate` 之后 **139 ms** 对话页就加载完成，之后才异步跳走。
+   * 于是**未登录冷启动时，用户会看到「游客身份下的会话」闪一下**，观感像是
+   * "怎么用游客进去了"，而不是"正在启动"。
+   *
+   * 「先加载对话页、再异步判断」本身是**刻意的取舍**（原注释：
+   * "这样即使校验慢也不会白屏"）—— 取舍合理，不必推翻；
+   * 但**那一帧不该显示游客内容**。所以改成：就绪前置 false，对话页据此显示加载态。
+   */
+  public markIdentityPending(): void {
+    AppStorage.setOrCreate('identityReady', false);
+  }
+
+  /** 身份判定完成。含"未登录→去登录页"与"校验异常"两条分支（见调用点的 finally）。 */
+  public markIdentityReady(): void {
+    AppStorage.setOrCreate('identityReady', true);
+  }
+
+  /** 把当前课程/DDL 快照保存到当前 userId 的独立命名空间。 */
   private persistLearningData(): void {
     const snapshot: StoredLearningData = {
       courses: this.courses,
@@ -68,6 +97,7 @@ export class AppState {
     }
   }
 
+  /** 身份切换完成后只恢复该账号自己的课程与 DDL。 */
   private restoreLearningData(userId: string): void {
     const saved: StoredLearningData = LearningDataStore.load(userId);
     this.courses = saved.courses;
@@ -366,6 +396,46 @@ export class AppState {
     this.isDataImported = this.courses.length > 0 || this.homeworkDDLs.length > 0;
     this.persistLearningData();
     this.notifyLearningDataChanged();
+  }
+
+  /**
+   * 只更新一门课程，供图片识别后的人工校正使用。
+   *
+   * 使用新对象和新数组替换旧值，保证 ArkUI 能观察到变化；如果课程名发生变化，
+   * 还要重新同步由课程名派生的知识点。课程 id 始终沿用原值，避免编辑后卡片身份变化。
+   */
+  public updateCourse(courseId: string, updatedCourse: CourseInfo): boolean {
+    const next: CourseInfo[] = [];
+    let found: boolean = false;
+    let courseNameChanged: boolean = false;
+    for (let i = 0; i < this.courses.length; i++) {
+      const current: CourseInfo = this.courses[i];
+      if (current.courseId === courseId) {
+        found = true;
+        courseNameChanged = current.courseName !== updatedCourse.courseName;
+        next.push({
+          courseId: current.courseId,
+          courseName: updatedCourse.courseName,
+          exam: {
+            date: updatedCourse.exam.date,
+            daysLeft: updatedCourse.exam.daysLeft
+          },
+          priority: updatedCourse.priority,
+          recentStatus: {
+            studyHours: current.recentStatus.studyHours,
+            status: current.recentStatus.status
+          }
+        });
+      } else {
+        next.push(current);
+      }
+    }
+    if (!found) return false;
+    this.courses = next;
+    this.persistLearningData();
+    this.notifyLearningDataChanged();
+    if (courseNameChanged) this.syncImportedKnowledge();
+    return true;
   }
 
   /** 删除指定DDL */

@@ -233,6 +233,8 @@ def _client():
 
 def _call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.7,
               max_tokens: int = 800, response_json: bool = False) -> str:
+    system_prompt = (system_prompt + "\n你是知学 Mate 学习助手，名字是小知。"
+                     "如需自称，只能使用‘小知’，不要使用‘小艺’或其他名字。")
     kwargs: dict[str, Any] = {
         "model": llm_model(),
         "messages": [
@@ -271,6 +273,8 @@ def _call_llm_with_image(system_prompt: str, user_prompt: str, image_base64: str
     model = llm_vl_model()
     image_url = (
         f"data:{_image_mime_type(image_base64)};base64,{image_base64}")
+    system_prompt = (system_prompt + "\n你是知学 Mate 学习助手，名字是小知。"
+                     "如需自称，只能使用‘小知’，不要使用‘小艺’或其他名字。")
     kwargs: dict[str, Any] = {
         "model": model,
         "messages": [
@@ -351,7 +355,9 @@ def get_history(user_id: str | None = None) -> list[dict[str, Any]]:
     """读取**指定用户**的对话历史；`user_id` 缺省取演示身份。"""
     key = (user_id or DEFAULT_HISTORY_USER).strip() or DEFAULT_HISTORY_USER
     with _HISTORY_LOCK:
-        return _load_history_store().get(key, [])
+        # 旧版本已落盘的回复里可能仍有旧称呼，读取时一并迁移展示口径。
+        return [dict(item, bot_response=str(item.get("bot_response") or "").replace("小艺", "小知"))
+                for item in _load_history_store().get(key, [])]
 
 
 def clear_history(user_id: str | None = None) -> None:
@@ -415,6 +421,8 @@ def _format_frontend_courses(courses: list[Any], ddls: list[Any]) -> list[dict[s
             },
             "tasks": tasks,
         })
+    # 允许用户只导入 DDL，而没有先导入课表。原实现只遍历 courses，
+    # 这种情况下明明 homeworkDDLs 有数据，Prompt 里却仍是“暂无任务”。
     ddl_course_names = list(dict.fromkeys(
         str(item.get("courseName") or "").strip()
         for item in (ddls or []) if isinstance(item, dict)
@@ -688,7 +696,9 @@ def _handle_query_tasks(message: str, data: dict[str, Any],
 
 def _handle_analyze_weakness(message: str, data: dict[str, Any],
              user_id: str | None = None) -> str:
-    return _call_llm(_load_prompt("AnalyzeWeaknessPrompt.txt"), _context_prompt(message, data, user_id))
+    return _call_llm(
+        _load_prompt("AnalyzeWeaknessPrompt.txt"),
+        _context_prompt(message, data, user_id))
 
 
 def _handle_get_suggestion(message: str, data: dict[str, Any],
@@ -1110,6 +1120,9 @@ def chat(message: str, image_base64: str | None = None,
         reply += "\n\n（提示：本次大模型调用失败，已降级为本地确定性规则回复。）"
     elif not llm_ready():
         reply += _LOCAL_NOTICE
+
+    # 历史上下文或模型惯性仍可能带出旧称呼；在落盘和下发前统一为产品名“小知”。
+    reply = reply.replace("小艺", "小知")
 
     if message:
         try:

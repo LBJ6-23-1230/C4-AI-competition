@@ -19,6 +19,7 @@ import json
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -341,6 +342,20 @@ def main():
     leaked = [e.get("exerciseId") for e in exercises if "answerKey" in e]
     record("题集不泄漏 answerKey", not leaked, f"泄漏题目={leaked}", expected="[]", actual=str(leaked))
 
+    excluded = "&".join(
+        f"excludeExerciseId={urllib.parse.quote(str(item.get('exerciseId', '')))}"
+        for item in exercises)
+    status, refreshed_set, _ = http(
+        "GET", f"{base}/api/v1/exercises/set-demo-binary-tree-001"
+        f"?knowledgePointId=binary-tree-postorder&count=3&{excluded}")
+    refreshed = refreshed_set.get("exercises", []) if isinstance(refreshed_set, dict) else []
+    previous_ids = {item.get("exerciseId") for item in exercises}
+    refreshed_ids = {item.get("exerciseId") for item in refreshed}
+    record("再练一组会换成不同题目", status == 200 and len(refreshed) == 3
+           and previous_ids.isdisjoint(refreshed_ids),
+           f"上一组={sorted(previous_ids)} 新一组={sorted(refreshed_ids)}",
+           expected="两组三题且 ID 不重复", actual=str(sorted(refreshed_ids)))
+
     # ---- 6. 提交 √√× → 66.67 -------------------------------------------
     submission = {
         "idempotencyKey": "verify-liantiao2-001",
@@ -603,8 +618,14 @@ def main():
             "basicInfo": {"grade": "大二", "major": "计算机科学与技术"},
         },
     })
+    # ⚠️ 取值必须用 `(x or {})` 串起来，**不能用 `dict.get(k, {})`** ——
+    # `get` 的默认值只在**键缺失**时生效；这里 `matchedCandidate` 是**存在但值为 None**
+    # （联机模式下没有其他真实账号时就是这种情况），默认值 `{}` 根本不会生效，
+    # 接着对 None 调 `.get` 会抛 `AttributeError: 'NoneType' object has no attribute 'get'`
+    # —— 实测让整个联调脚本在这一步直接崩掉（2026-09-28）。
+    _matched = ((partner or {}).get("matchedCandidate") or {}).get("candidate") or {}
     record("POST /api/v1/agent/partner-match 可用（后端确定性算分）", status == 200,
-           f"HTTP {status} matched={partner.get('matchedCandidate', {}).get('candidate', {}).get('userId') if isinstance(partner, dict) else '?'}",
+           f"HTTP {status} matched={_matched.get('userId') or '（无候选，如实返回空）'}",
            expected=200, actual=str(status))
 
     # ---- 11. 聊天层（与工作流层同进程） ---------------------------------
@@ -637,7 +658,7 @@ def main():
     unique_phone = "138" + f"{int(time.time()) % 100000000:08d}"
     status, register, _ = http("POST", f"{base}/api/v1/auth/register",
                                {"nickname": "联调验证", "grade": "大二",
-                                "phone": unique_phone})
+                                "phone": unique_phone, "password": "secret88"})
     if isinstance(register, dict) and status in (200, 201):
         check_contract("auth register", "POST", "/api/v1/auth/register", register)
     record("注册返回会话（含 token / expiresAt）",
@@ -661,13 +682,19 @@ def main():
 
     # 按手机号登录（换设备场景的主入口）
     status_phone_login, phone_login, _ = http("POST", f"{base}/api/v1/auth/login",
-                                              {"phone": unique_phone})
+                                              {"phone": unique_phone, "password": "secret88"})
     same_user = (isinstance(register, dict) and isinstance(phone_login, dict)
                  and (register.get("user") or {}).get("userId")
                  == (phone_login.get("user") or {}).get("userId"))
     record("按手机号登录登回同一账号", status_phone_login == 200 and same_user,
            f"HTTP {status_phone_login} sameUser={same_user}",
            expected="200 且 userId 一致", actual=str(status_phone_login))
+
+    status_wrong_password, _, _ = http("POST", f"{base}/api/v1/auth/login",
+                                       {"phone": unique_phone, "password": "wrong000"})
+    record("密码登录确实由后端校验", status_wrong_password == 401,
+           f"错误密码 HTTP {status_wrong_password}", expected=401,
+           actual=str(status_wrong_password))
 
     # 华为账号一键登录（登录优先，注册兜底）
     hw_open_id = f"verify-hw-open-{int(time.time())}"
@@ -811,6 +838,15 @@ def main():
         check_contract("knowledge-bases create", "POST", "/api/v1/knowledge-bases", created)
 
     if kb:
+        duplicate_status, duplicate, _ = http(
+            "POST", f"{base}/api/v1/knowledge-bases",
+            {"courseName": " 数据结构 ", "name": "另一套资料"})
+        record("一门课程只能有一个知识库", duplicate_status == 409
+               and isinstance(duplicate, dict)
+               and (duplicate.get("details") or {}).get("kbId") == kb,
+               f"HTTP {duplicate_status} kbId={(duplicate.get('details') or {}).get('kbId') if isinstance(duplicate, dict) else '?'}",
+               expected="409 且返回已有 kbId", actual=str(duplicate_status))
+
         note = "# 二叉树遍历\n\n## 后序遍历\n\n后序遍历的顺序是左右根。\n"
         http("POST", f"{base}/api/v1/knowledge-bases/{kb}/documents",
              {"fileName": "笔记.md",
@@ -962,8 +998,9 @@ def main():
             print(f"      期望: {item['expected']}")
             print(f"      实际: {item['actual']}")
 
-    with open(args.out, "w", encoding="utf-8") as stream:
+    with open(args.out, "w", encoding="utf-8", newline="\n") as stream:
         json.dump(summary, stream, ensure_ascii=False, indent=2)
+        stream.write("\n")
     print(f"\n结果已写入 {args.out}")
     return 0 if not failed else 1
 

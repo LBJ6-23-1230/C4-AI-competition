@@ -48,6 +48,13 @@ export interface AgentHistoryItem {
   text: string;
 }
 
+/** 服务端持久化的一轮历史会话。退出再登录后仍可按账号读取。 */
+export interface ChatHistoryRecord {
+  userInput: string;
+  botResponse: string;
+  timestamp: string;
+}
+
 export interface AgentRequest {
   message: string;
   image?: string;

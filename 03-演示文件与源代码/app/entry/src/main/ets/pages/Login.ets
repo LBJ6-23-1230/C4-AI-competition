@@ -82,6 +82,23 @@ struct Login {
 
   aboutToAppear(): void {
     this.isActive = true;
+    const params: Record<string, Object> = router.getParams() as Record<string, Object>;
+    // ⚠️ `router.getParams()` 在**没有路由参数**时返回 undefined —— 而"冷启动直接进登录页"
+    // 正是这种情况（App 未登录时的必经路径）。
+    // `as Record<string, Object>` 只是**编译期断言**，不会让运行时值变成非空对象，
+    // 少了下面这道判断就会抛 TypeError。实测后果是 jscrash：
+    //   Reason: TypeError / Cannot load property of null or undefined
+    //   at aboutToAppear entry (entry/src/main/ets/pages/Login.ets:86:47)
+    // —— **未登录状态下 App 一启动就崩**，表现为"应用打不开"。
+    // 另外三处同类用法（`Index` / `ExercisePractice` / `CourseImport`）都有这道判空，这里原来漏了。
+    if (params === undefined || params === null) {
+      return;
+    }
+    const notice: Object | undefined = params['notice'];
+    if (typeof notice === 'string' && notice.length > 0) {
+      this.message = notice;
+      this.messageIsError = false;
+    }
   }
 
   aboutToDisappear(): void {
@@ -476,11 +493,6 @@ struct Login {
           // 用无参 Builder（直接读 this.mode），确保切换后高亮与主按钮文案必然刷新
           this.ModeSegment()
 
-          // ---------- 密码 / 验证码 分段（仅登录模式） ----------
-          if (this.mode === 'login') {
-            this.MethodSegment()
-          }
-
           // ---------- 表单 ----------
           Column({ space: 16 }) {
             // 昵称
@@ -612,9 +624,20 @@ struct Login {
 
                 Text(this.mode === 'register'
                   ? '至少 6 位；服务端仅保存加盐哈希，不保存明文。'
-                  : '密码会提交到后端校验；也可以切换到验证码登录。')
+                  : '密码会提交到后端校验；服务端只保存加盐哈希。')
                   .fontSize(11).fontColor('#94A3B8').lineHeight(17).width('100%')
             }.width('100%')
+            }
+
+            if (this.mode === 'login') {
+              Row() {
+                Blank()
+                Text('忘记密码？').fontSize(13).fontColor('#2563EB')
+                  .onClick(() => {
+                    this.message = '暂未接入短信找回。若原账号使用华为账号创建，请用下方「华为账号一键登录」；密码账号请联系管理员核验注册手机号后重置。请勿重复注册，以免生成新账号。';
+                    this.messageIsError = false;
+                  })
+              }.width('100%')
             }
 
             // 年级（仅注册模式）
