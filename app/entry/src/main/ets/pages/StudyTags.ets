@@ -25,6 +25,8 @@ struct StudyTags {
   @State history: MasteryHistory[] = [];
   @State evidence: Evidence[] = [];
   @State expandedHistoryTimestamp: string = '';
+  @State showAllMastery: boolean = false;
+  @State showAllHistory: boolean = false;
   @State chartDims: string[] = [];
   @State chartCurrent: number[] = [];
   @State chartTarget: number[] = [];
@@ -153,8 +155,9 @@ struct StudyTags {
   }
 
   private buildChartData(): void {
-    // 最多 6 个维度：雷达图再密就看不清标签了
-    const items: KnowledgeMastery[] = this.mastery.slice(0, 6);
+    // 最多 6 个维度：雷达图再密就看不清标签了；优先展示最薄弱的维度，
+    // 避免接口返回顺序把真正需要关注的知识点挤出图表。
+    const items: KnowledgeMastery[] = this.sortedMastery().slice(0, 6);
     this.chartDims = [];
     this.chartCurrent = [];
     this.chartTarget = [];
@@ -244,6 +247,66 @@ struct StudyTags {
       return `${Math.round(value * 100) / 100}`;
     }
     return JSON.stringify(evidence.value);
+  }
+
+  /** 掌握度由低到高排列；同分时，证据更多的项目优先，减少“全是 0”时的随机感。 */
+  private sortedMastery(): KnowledgeMastery[] {
+    const items: KnowledgeMastery[] = this.mastery.slice();
+    items.sort((left: KnowledgeMastery, right: KnowledgeMastery): number => {
+      const scoreDiff: number = left.masteryScore - right.masteryScore;
+      if (scoreDiff !== 0) return scoreDiff;
+      return this.evidenceCount(right.knowledgePointId) - this.evidenceCount(left.knowledgePointId);
+    });
+    return items;
+  }
+
+  private visibleMastery(): KnowledgeMastery[] {
+    const items: KnowledgeMastery[] = this.sortedMastery();
+    return this.showAllMastery ? items : items.slice(0, MASTERY_PREVIEW_COUNT);
+  }
+
+  private weakMasteryCount(): number {
+    return this.mastery.filter((item: KnowledgeMastery): boolean => item.masteryScore < 60).length;
+  }
+
+  private masteredCount(): number {
+    return this.mastery.filter((item: KnowledgeMastery): boolean => item.masteryScore >= 80).length;
+  }
+
+  private masteryLevel(score: number): string {
+    if (score >= 80) return '掌握良好';
+    if (score >= 60) return '继续巩固';
+    return '优先提升';
+  }
+
+  /** 0→0 不是变化，不应占满用户视线；这里只保留真正发生涨跌的记录并按时间倒序。 */
+  private meaningfulHistory(): MasteryHistory[] {
+    const items: MasteryHistory[] = this.history.filter((item: MasteryHistory): boolean =>
+      item.oldScore !== item.newScore);
+    items.sort((left: MasteryHistory, right: MasteryHistory): number =>
+      right.timestamp.localeCompare(left.timestamp));
+    return items;
+  }
+
+  private visibleHistory(): MasteryHistory[] {
+    const items: MasteryHistory[] = this.meaningfulHistory();
+    return this.showAllHistory ? items : items.slice(0, HISTORY_PREVIEW_COUNT);
+  }
+
+  /** 历史本身没带知识点 id，从关联证据反查名称；没有证据时如实显示“综合掌握度”。 */
+  private historyKnowledgePoint(item: MasteryHistory): string {
+    const linked: Evidence[] = this.evidenceForHistory(item);
+    if (linked.length === 0) return '综合掌握度';
+    const pointId: string = linked[0].knowledgePointId;
+    const mastery: KnowledgeMastery | undefined = this.mastery.find((value: KnowledgeMastery): boolean =>
+      value.knowledgePointId === pointId);
+    return mastery !== undefined && mastery.knowledgePointName.trim().length > 0
+      ? mastery.knowledgePointName : pointId;
+  }
+
+  private historyDelta(item: MasteryHistory): string {
+    const delta: number = item.newScore - item.oldScore;
+    return delta > 0 ? `+${delta}` : `${delta}`;
   }
 
   private isHistoryExpanded(item: MasteryHistory): boolean {
@@ -348,27 +411,47 @@ struct StudyTags {
                 }
 
                 Column({ space: 10 }) {
-                  Text('掌握度明细').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
-                  ForEach(this.mastery, (item: KnowledgeMastery) => {
-                    Column({ space: 8 }) {
+                  Row() {
+                    Text('优先关注').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#111827')
+                    Blank()
+                    Text(`共 ${this.mastery.length} 个知识点`).fontSize(12).fontColor('#667085')
+                  }.width('100%')
+                  Text(`按掌握度从低到高排列，默认只展示最需要提升的 ${Math.min(MASTERY_PREVIEW_COUNT, this.mastery.length)} 项。`)
+                    .fontSize(12).fontColor('#667085').lineHeight(18).width('100%')
+                  Row({ space: 8 }) {
+                    Text(`待提升 ${this.weakMasteryCount()}`)
+                      .fontSize(12).fontColor('#B42318').backgroundColor('#FEF3F2')
+                      .padding({ left: 10, right: 10, top: 6, bottom: 6 }).borderRadius(12)
+                    Text(`掌握良好 ${this.masteredCount()}`)
+                      .fontSize(12).fontColor('#0F766E').backgroundColor('#ECFDF5')
+                      .padding({ left: 10, right: 10, top: 6, bottom: 6 }).borderRadius(12)
+                  }.width('100%')
+                  ForEach(this.visibleMastery(), (item: KnowledgeMastery) => {
+                    Column({ space: 7 }) {
                       Row() {
-                        Column({ space: 4 }) {
-                          Text(item.knowledgePointName).fontSize(15).fontWeight(FontWeight.Medium).fontColor('#1F2937')
-                          Text(`置信度 ${item.confidence} · 最近更新 ${ApiDisplayFormatter.timestamp(item.lastUpdated)}`)
-                            .fontSize(11).fontColor('#9CA3AF').maxLines(1)
-                        }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-                        Text(`${item.masteryScore}`)
-                          .fontSize(24).fontWeight(FontWeight.Bold).fontColor('#2563EB')
-                        Text(' / 100').fontSize(12).fontColor('#64748B').margin({ top: 8 })
-                      }.width('100%').alignItems(VerticalAlign.Top)
+                        Text(item.knowledgePointName).fontSize(15).fontWeight(FontWeight.Medium)
+                          .fontColor('#1F2937').layoutWeight(1).maxLines(1)
+                        Text(this.masteryLevel(item.masteryScore)).fontSize(11)
+                          .fontColor(item.masteryScore < 60 ? '#B42318' : (item.masteryScore >= 80 ? '#0F766E' : '#B45309'))
+                          .margin({ right: 8 })
+                        Text(`${item.masteryScore}`).fontSize(22).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+                        Text('分').fontSize(11).fontColor('#64748B').margin({ top: 7 })
+                      }.width('100%').alignItems(VerticalAlign.Center)
                       Progress({ value: item.masteryScore, total: 100, type: ProgressType.Linear })
-                        .color('#2563EB').backgroundColor('#DBEAFE').height(8).borderRadius(8)
-                      Text(`关联练习记录 ${this.evidenceCount(item.knowledgePointId)} 条`)
-                        .fontSize(12).fontColor('#475467')
+                        .color(item.masteryScore < 60 ? '#F97316' : '#2563EB')
+                        .backgroundColor('#DBEAFE').height(6).borderRadius(8)
+                      Text(`练习证据 ${this.evidenceCount(item.knowledgePointId)} 条 · 更新于 ${ApiDisplayFormatter.timestamp(item.lastUpdated)}`)
+                        .fontSize(11).fontColor('#98A2B3').maxLines(1)
                     }
-                    .width('100%').padding(14).backgroundColor('#F8FAFC')
+                    .width('100%').padding(12).backgroundColor('#F8FAFC')
                     .border({ width: 1, color: '#E2E8F0' }).borderRadius(12)
                   }, (item: KnowledgeMastery) => item.knowledgePointId)
+                  if (this.mastery.length > MASTERY_PREVIEW_COUNT) {
+                    Button(this.showAllMastery ? '收起，只看优先项 ↑' : `查看全部 ${this.mastery.length} 项 ↓`)
+                      .width('100%').height(40).fontSize(13).fontColor('#2563EB')
+                      .backgroundColor('#EFF6FF').borderRadius(10)
+                      .onClick(() => { this.showAllMastery = !this.showAllMastery; })
+                  }
                 }
                 .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
                 .shadow({ radius: 8, color: '#10000000', offsetX: 0, offsetY: 4 })
@@ -380,13 +463,41 @@ struct StudyTags {
 
               if (this.history.length > 0) {
                 Column({ space: 10 }) {
-                  Text('掌握度变化').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#111827').width('100%')
-                  ForEach(this.history, (item: MasteryHistory) => {
+                  Row() {
+                    Text('掌握度变化').fontSize(17).fontWeight(FontWeight.Bold).fontColor('#111827')
+                    Blank()
+                    Text(`有效变化 ${this.meaningfulHistory().length} 次`).fontSize(12).fontColor('#667085')
+                  }.width('100%')
+                  Text('只展示分数真实发生变化的记录；0 → 0 的重复评估已隐藏。')
+                    .fontSize(12).fontColor('#667085').lineHeight(18).width('100%')
+                  if (this.meaningfulHistory().length === 0) {
+                    Column({ space: 5 }) {
+                      Text('暂无有效变化').fontSize(15).fontWeight(FontWeight.Medium).fontColor('#475467')
+                      Text('完成并提交一次专项练习后，这里会显示具体知识点、前后分数和增减幅度。')
+                        .fontSize(12).fontColor('#98A2B3').lineHeight(18).textAlign(TextAlign.Center)
+                    }.width('100%').padding(18).alignItems(HorizontalAlign.Center)
+                      .backgroundColor('#F8FAFC').borderRadius(10)
+                  }
+                  ForEach(this.visibleHistory(), (item: MasteryHistory) => {
                     Column({ space: 8 }) {
                       Row() {
-                        Text(`${item.oldScore} → ${item.newScore} · 来源：${ApiDisplayFormatter.evidenceSource(item.source)}`)
-                          .fontSize(14).fontColor('#1F2937').layoutWeight(1)
-                        Text(this.isHistoryExpanded(item) ? '收起 ↑' : '查看练习详情 ↓')
+                        Column({ space: 3 }) {
+                          Text(this.historyKnowledgePoint(item)).fontSize(14).fontWeight(FontWeight.Medium)
+                            .fontColor('#1F2937')
+                          Text(`${ApiDisplayFormatter.timestamp(item.timestamp)} · ${ApiDisplayFormatter.evidenceSource(item.source)}`)
+                            .fontSize(11).fontColor('#98A2B3').maxLines(1)
+                        }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+                        Text(this.historyDelta(item)).fontSize(18).fontWeight(FontWeight.Bold)
+                          .fontColor(item.newScore > item.oldScore ? '#0F766E' : '#B42318')
+                          .padding({ left: 9, right: 9, top: 4, bottom: 4 })
+                          .backgroundColor(item.newScore > item.oldScore ? '#ECFDF5' : '#FEF3F2').borderRadius(10)
+                      }.width('100%').onClick(() => this.toggleHistoryEvidence(item))
+                      Row({ space: 8 }) {
+                        Text(`${item.oldScore}`).fontSize(13).fontColor('#64748B')
+                        Text('→').fontSize(13).fontColor('#98A2B3')
+                        Text(`${item.newScore} 分`).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#2563EB')
+                        Blank()
+                        Text(this.isHistoryExpanded(item) ? '收起 ↑' : '练习详情 ↓')
                           .fontSize(12).fontWeight(FontWeight.Medium).fontColor('#2563EB')
                       }.width('100%').onClick(() => this.toggleHistoryEvidence(item))
                       if (this.isHistoryExpanded(item)) {
@@ -401,6 +512,12 @@ struct StudyTags {
                       }
                     }.width('100%').padding(12).backgroundColor('#EFF6FF').borderRadius(10)
                   }, (item: MasteryHistory) => item.timestamp)
+                  if (this.meaningfulHistory().length > HISTORY_PREVIEW_COUNT) {
+                    Button(this.showAllHistory ? '收起变化记录 ↑' : `查看全部 ${this.meaningfulHistory().length} 次变化 ↓`)
+                      .width('100%').height(40).fontSize(13).fontColor('#2563EB')
+                      .backgroundColor('#EFF6FF').borderRadius(10)
+                      .onClick(() => { this.showAllHistory = !this.showAllHistory; })
+                  }
                 }
                 .width('100%').padding(16).backgroundColor('#FFFFFF').borderRadius(16)
               }
@@ -453,3 +570,6 @@ struct StudyTags {
     }.width('100%').height('100%')
   }
 }
+
+const MASTERY_PREVIEW_COUNT: number = 4;
+const HISTORY_PREVIEW_COUNT: number = 3;

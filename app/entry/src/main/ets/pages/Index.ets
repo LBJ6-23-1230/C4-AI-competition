@@ -735,11 +735,6 @@ struct Index {
       (this.proactiveDecision!.cardData.taskName ?? '').trim().length > 0;
   }
 
-  /** 窄入口：只在用户主动想"全面看看"时才铺开，不再默认铺开。 */
-  private openApiEnvironment(): void {
-    router.pushUrl({ url: 'pages/ApiEnvironment' });
-  }
-
   private openAccount(): void {
     router.pushUrl({ url: 'pages/Account' });
   }
@@ -998,12 +993,6 @@ struct Index {
 
               this.PanelRow('◑', '搭子与协同', '查看匹配结果与协同学习计划', 'pages/PartnerMatch')
 
-              Row() {
-                Text('开发调试：数据源设置').fontSize(12).fontColor('#98A2B3')
-                Blank()
-                Text('配置 →').fontSize(12).fontWeight(FontWeight.Medium).fontColor('#98A2B3')
-              }.width('100%').padding(12).backgroundColor('#FFFFFF').borderRadius(12)
-              .border({ width: 1, color: '#EAECF0' }).onClick(() => this.openApiEnvironment())
             }
 
             Blank().height(12)

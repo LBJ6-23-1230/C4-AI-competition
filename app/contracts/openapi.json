@@ -4330,6 +4330,7 @@
           "correctAnswer",
           "correct",
           "explanation",
+          "explanationSource",
           "inWrongBook"
         ],
         "properties": {
@@ -4347,6 +4348,11 @@
           },
           "explanation": {
             "type": "string"
+          },
+          "explanationSource": {
+            "type": "string",
+            "enum": ["llm", "fallback"],
+            "description": "llm 表示解析由大模型依据题干与全部选项生成；fallback 表示模型未配置或暂不可用时的本地兜底。"
           },
           "inWrongBook": {
             "type": "boolean"

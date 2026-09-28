@@ -417,6 +417,7 @@ export interface ExerciseReview {
   correctAnswer: string;
   correct: boolean;
   explanation: string;
+  explanationSource?: string;
   inWrongBook: boolean;
 }
 

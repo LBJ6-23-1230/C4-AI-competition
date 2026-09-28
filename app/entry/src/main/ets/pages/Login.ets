@@ -493,11 +493,6 @@ struct Login {
           // 用无参 Builder（直接读 this.mode），确保切换后高亮与主按钮文案必然刷新
           this.ModeSegment()
 
-          // ---------- 密码 / 验证码 分段（仅登录模式） ----------
-          if (this.mode === 'login') {
-            this.MethodSegment()
-          }
-
           // ---------- 表单 ----------
           Column({ space: 16 }) {
             // 昵称
@@ -629,9 +624,20 @@ struct Login {
 
                 Text(this.mode === 'register'
                   ? '至少 6 位；服务端仅保存加盐哈希，不保存明文。'
-                  : '密码会提交到后端校验；也可以切换到验证码登录。')
+                  : '密码会提交到后端校验；服务端只保存加盐哈希。')
                   .fontSize(11).fontColor('#94A3B8').lineHeight(17).width('100%')
             }.width('100%')
+            }
+
+            if (this.mode === 'login') {
+              Row() {
+                Blank()
+                Text('忘记密码？').fontSize(13).fontColor('#2563EB')
+                  .onClick(() => {
+                    this.message = '暂未接入短信找回。若原账号使用华为账号创建，请用下方「华为账号一键登录」；密码账号请联系管理员核验注册手机号后重置。请勿重复注册，以免生成新账号。';
+                    this.messageIsError = false;
+                  })
+              }.width('100%')
             }
 
             // 年级（仅注册模式）

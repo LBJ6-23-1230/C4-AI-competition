@@ -402,10 +402,29 @@ struct ExercisePractice {
               .fontSize(12).fontColor(value.review[index].correct ? '#0F766E' : '#DC2626')
           }.width('100%')
           Text(item.stem).fontSize(16).fontWeight(FontWeight.Medium).fontColor('#1F2937').lineHeight(23)
+          Column({ space: 8 }) {
+            ForEach(item.options, (option: string) => {
+              Row({ space: 8 }) {
+                Text(option).fontSize(14).fontColor('#344054').layoutWeight(1).lineHeight(20)
+                if (option.substring(0, 1) === value.review[index].correctAnswer) {
+                  Text('正确答案').fontSize(11).fontColor('#0F766E')
+                    .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+                    .backgroundColor('#ECFDF5').borderRadius(6)
+                } else if (option.substring(0, 1) === value.review[index].selectedAnswer) {
+                  Text('你的选择').fontSize(11).fontColor('#B42318')
+                    .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+                    .backgroundColor('#FEF3F2').borderRadius(6)
+                }
+              }.width('100%').padding(10).backgroundColor('#F8FAFC').borderRadius(8)
+            }, (option: string) => option)
+          }.width('100%')
           Text(`你的答案：${value.review[index].selectedAnswer}　正确答案：${value.review[index].correctAnswer}`)
             .fontSize(13).fontColor('#475467').width('100%')
-          Text(value.review[index].explanation).fontSize(14).fontColor('#344054').lineHeight(21)
-            .width('100%').padding(12).backgroundColor('#F8FAFC').borderRadius(10)
+          Column({ space: 6 }) {
+            Text(value.review[index].explanationSource === 'llm' ? 'AI 详细解析' : '详细解析（离线兜底）')
+              .fontSize(13).fontWeight(FontWeight.Bold).fontColor('#2563EB').width('100%')
+            Text(value.review[index].explanation).fontSize(14).fontColor('#344054').lineHeight(22).width('100%')
+          }.width('100%').padding(12).backgroundColor('#EFF6FF').borderRadius(10)
           Button(this.wrongBookFlags[index] ? '移出错题本' : '加入错题本')
             .width('100%').height(40).fontSize(13)
             .fontColor(this.wrongBookFlags[index] ? '#B42318' : '#2563EB')

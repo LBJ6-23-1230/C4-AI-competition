@@ -325,7 +325,10 @@ export class FixtureApiTransport {
       }
       review.push({ exerciseId: row.exerciseId, selectedAnswer: selectedAnswer,
         correctAnswer: correctAnswer, correct: selectedAnswer === correctAnswer,
-        explanation: `正确答案是 ${correctAnswer}。请结合题干与遍历顺序重新核对。`,
+        explanation: `标准答案是 ${correctAnswer}。请先根据题干判断根节点应在左、右子树之前、之间还是之后访问，`
+          + `再逐项对照四个选项；${selectedAnswer === correctAnswer ? '你的选择符合该定义。' : `你选择了 ${selectedAnswer}，说明根节点访问时机仍有混淆。`}`
+          + '复习时可用“前序根左右、中序左根右、后序左右根”逐项检查。',
+        explanationSource: 'fallback',
         inWrongBook: FixtureApiTransport.wrongBookIds.indexOf(row.exerciseId) >= 0 });
     }
     return { userId: ApiDefaults.DEMO_USER_ID, submissionId: ApiDefaults.DEMO_USER_ID + ':set-demo-binary-tree-001:fixture-submission', assessment: { score: score, perKnowledgeAccuracy: perKnowledge, errorTypes: score < 100 ? ['后序遍历顺序混淆'] : [], oldMastery: 42, suggestedNewMastery: newMastery }, masteryUpdate: { knowledgePointId: 'binary-tree-postorder', oldScore: 42, newScore: newMastery }, needReplan: score < 80, plan: FixtureApiTransport.plan(), planDiff: FixtureApiTransport.planDiff(), review: review };
