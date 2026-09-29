@@ -107,9 +107,10 @@ def _purge_demo_owned(profile_user_id: str) -> dict[str, int]:
 			demo_plan_ids.add(plan_id)
 
 	removed: dict[str, int] = {}
+	pending_deletes: list[tuple[str, str]] = []
 
 	def _drop(collection: str, item_id: str) -> None:
-		repo.delete(collection, item_id)
+		pending_deletes.append((collection, item_id))
 		removed[collection] = removed.get(collection, 0) + 1
 
 	# ---- 第二步：按归属删除 ----
@@ -146,6 +147,7 @@ def _purge_demo_owned(profile_user_id: str) -> dict[str, int]:
 		if isinstance(source_id, str) and source_id.startswith(f"{profile_user_id}:"):
 			_drop("evidences", evidence_id)
 
+	repo.apply_batch(pending_deletes, [])
 	return removed
 
 
@@ -222,9 +224,11 @@ def reset_demo():
 	#
 	# ⚠️ `sessions` / `users` 从来不在此列（属于鉴权与账号数据）。
 	_purge_demo_owned(profile.user_id)
-	_repository.save("profiles", profile.user_id, profile.to_dict())
 	plan_data = plan.to_dict()
-	_repository.save("plans", plan.plan_id, plan_data)
-	_repository.save("traces", trace["traceId"], trace)
+	_repository.apply_batch([], [
+		("profiles", profile.user_id, profile.to_dict()),
+		("plans", plan.plan_id, plan_data),
+		("traces", str(trace["traceId"]), trace),
+	])
 	return jsonify({"status": "reset", "userId": profile.user_id, "profile": profile.to_dict(),
 					"plan": plan.to_dict(), "traceId": trace["traceId"]})

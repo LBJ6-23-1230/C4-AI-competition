@@ -125,6 +125,23 @@ class SQLiteRepository(Repository):
 				(collection, item_id))
 			self._connection.commit()
 
+	def apply_batch(self, deletes: list[tuple[str, str]],
+					saves: list[tuple[str, str, dict[str, Any]]]) -> None:
+		"""在同一个 SQLite 事务中完成批量删除与保存。"""
+		with self._lock:
+			try:
+				self._connection.executemany(
+					"DELETE FROM records WHERE collection = ? AND item_id = ?", deletes)
+				self._connection.executemany("""
+					INSERT INTO records(collection, item_id, value) VALUES (?, ?, ?)
+					ON CONFLICT(collection, item_id) DO UPDATE SET value = excluded.value
+				""", [(collection, item_id, json.dumps(value, ensure_ascii=False))
+					   for collection, item_id, value in saves])
+				self._connection.commit()
+			except BaseException:
+				self._connection.rollback()
+				raise
+
 	def clear(self, collection: str) -> None:
 		"""清空整个集合。
 

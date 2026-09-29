@@ -90,6 +90,21 @@ def test_delete_removes_only_target(repository):
     assert repository.get("profiles", "b") == {"v": 2}
 
 
+def test_apply_batch_deletes_and_saves_atomically(repository):
+    repository.save("chunks", "old-1", {"value": 1})
+    repository.save("chunks", "old-2", {"value": 2})
+
+    repository.apply_batch(
+        [("chunks", "old-1"), ("chunks", "old-2")],
+        [("documents", "doc-1", {"status": "ready"}),
+         ("knowledge_bases", "kb-1", {"documentCount": 1})],
+    )
+
+    assert repository.list("chunks") == []
+    assert repository.get("documents", "doc-1") == {"status": "ready"}
+    assert repository.get("knowledge_bases", "kb-1") == {"documentCount": 1}
+
+
 def test_clear_empties_collection_only(repository):
     repository.save("traces", "t1", {"v": 1})
     repository.save("profiles", "p1", {"v": 1})

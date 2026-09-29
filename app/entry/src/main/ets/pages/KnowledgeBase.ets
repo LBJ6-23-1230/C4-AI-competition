@@ -4,6 +4,7 @@ import { fileIo, picker } from '@kit.CoreFileKit';
 import { AgentApiClient } from '../api/AgentApiClient';
 import {
   KnowledgeBase,
+  KnowledgeBaseDetail,
   KnowledgeBaseListResponse,
   KnowledgeChunkHit,
   KnowledgeDocument,
@@ -25,7 +26,7 @@ import { appState } from '../data/AppState';
  *   3. 检索测试（命中片段 + 标题路径，即"引用来源"的雏形）
  *
  * 两个刻意的设计：
- * * **失败态必须可见**。PDF 第一期不支持、编码错误都会返回 `status=failed` +
+ * * **失败态必须可见**。损坏文件、扫描件或无法恢复字符映射的 PDF 会返回 `status=failed` +
  *   可读原因。界面上照实显示 —— 评委看到"能失败、能重试"比看到永远成功更可信。
  * * **不做假数据**。所有数字（切片数、知识点、命中分数）都来自后端响应，
  *   前端不编造"AI 从资料中学到了什么"。
@@ -48,9 +49,20 @@ struct KnowledgeBasePage {
 
   // 上传
   @State isUploading: boolean = false;
+  @State uploadProgressText: string = '正在上传文件…';
   @State sampleText: string = '';
   @State sampleFileName: string = '';
   @State uploadResultVisible: boolean = false;
+
+  // 删除确认与进度
+  @State deleteConfirmVisible: boolean = false;
+  @State deleteTargetType: string = '';
+  @State deleteTargetId: string = '';
+  @State deleteTargetKbId: string = '';
+  @State deleteTargetName: string = '';
+  @State deleteTargetSummary: string = '';
+  @State isDeleting: boolean = false;
+  @State deleteProgressText: string = '正在删除…';
 
   // 检索
   @State searchQuery: string = '';
@@ -77,13 +89,30 @@ struct KnowledgeBasePage {
   @State detailStatusMessage: string = '';
 
   private isActive: boolean = true;
+  private uploadHintTimer: number = -1;
+  private deleteHintTimer: number = -1;
 
   aboutToAppear(): void {
+    this.isActive = true;
+    this.isUploading = false;
+    this.isDeleting = false;
+    this.deleteConfirmVisible = false;
+    this.stopUploadHint();
+    this.stopDeleteHint();
     this.loadKnowledgeBases();
+  }
+
+  onPageShow(): void {
+    this.isActive = true;
+    if (!this.isLoading) {
+      this.loadKnowledgeBases();
+    }
   }
 
   aboutToDisappear(): void {
     this.isActive = false;
+    this.stopUploadHint();
+    this.stopDeleteHint();
   }
 
   private currentUserId(): string {
@@ -133,7 +162,25 @@ struct KnowledgeBasePage {
       this.showMessage((result as ApiFailure).error.message, true);
       return;
     }
-    this.documents = result.data.documents ?? [];
+    const detail = result.data;
+    this.documents = detail.documents ?? [];
+    const refreshed: KnowledgeBase[] = [];
+    for (let index: number = 0; index < this.knowledgeBases.length; index++) {
+      const item: KnowledgeBase = this.knowledgeBases[index];
+      refreshed.push(item.kbId === detail.kbId ? {
+        kbId: item.kbId,
+        userId: item.userId,
+        courseName: item.courseName,
+        name: item.name,
+        description: item.description,
+        documentCount: detail.documentCount,
+        chunkCount: detail.chunkCount,
+        knowledgePoints: detail.knowledgePoints,
+        createdAt: item.createdAt,
+        updatedAt: detail.updatedAt
+      } : item);
+    }
+    this.knowledgeBases = refreshed;
   }
 
   private async createKnowledgeBase(): Promise<void> {
@@ -165,21 +212,113 @@ struct KnowledgeBasePage {
     await this.loadKnowledgeBases();
   }
 
-  private async deleteKnowledgeBase(kbId: string): Promise<void> {
-    const result = await AgentApiClient.deleteKnowledgeBase(kbId);
+  private requestDeleteKnowledgeBase(kb: KnowledgeBase): void {
+    if (this.isDeleting) return;
+    this.deleteTargetType = 'knowledgeBase';
+    this.deleteTargetId = kb.kbId;
+    this.deleteTargetKbId = kb.kbId;
+    this.deleteTargetName = kb.courseName;
+    this.deleteTargetSummary = `将同时删除 ${kb.documentCount ?? 0} 份文档和 ` +
+      `${kb.chunkCount ?? 0} 个检索片段。此操作不可撤销。`;
+    this.deleteConfirmVisible = true;
+  }
+
+  private requestDeleteDocument(doc: KnowledgeDocument): void {
+    if (this.isDeleting) return;
+    this.deleteTargetType = 'document';
+    this.deleteTargetId = doc.documentId;
+    this.deleteTargetKbId = doc.kbId;
+    this.deleteTargetName = doc.fileName;
+    this.deleteTargetSummary = `将删除该文件及其 ${doc.chunkCount ?? 0} 个检索片段。此操作不可撤销。`;
+    this.deleteConfirmVisible = true;
+  }
+
+  private cancelDelete(): void {
+    if (this.isDeleting) return;
+    this.deleteConfirmVisible = false;
+  }
+
+  private async confirmDelete(): Promise<void> {
+    if (this.isDeleting || this.deleteTargetId.length === 0) return;
+    const targetType: string = this.deleteTargetType;
+    const targetId: string = this.deleteTargetId;
+    const targetKbId: string = this.deleteTargetKbId;
+    this.isDeleting = true;
+    this.startDeleteHint();
+    const result = targetType === 'knowledgeBase'
+      ? await AgentApiClient.deleteKnowledgeBase(targetId)
+      : await AgentApiClient.deleteKnowledgeDocument(targetId);
     if (!this.isActive) {
       return;
     }
-    if (!result.ok) {
-      this.showMessage((result as ApiFailure).error.message, true);
+    if (result.ok) {
+      await this.finishDelete(targetType, targetId, false);
       return;
     }
-    if (this.selectedKbId === kbId) {
+    this.deleteProgressText = '正在确认服务端删除结果…';
+    const deleted: boolean = await this.confirmDeleteResult(targetType, targetId, targetKbId);
+    if (!this.isActive) return;
+    if (deleted) {
+      await this.finishDelete(targetType, targetId, true);
+      return;
+    }
+    this.isDeleting = false;
+    this.stopDeleteHint();
+    this.deleteConfirmVisible = false;
+    this.showMessage(`删除未完成：${(result as ApiFailure).error.message}`, true);
+  }
+
+  private startDeleteHint(): void {
+    this.stopDeleteHint();
+    this.deleteProgressText = '正在删除…';
+    this.deleteHintTimer = setTimeout(() => {
+      this.deleteHintTimer = -1;
+      if (this.isDeleting && this.isActive) {
+        this.deleteProgressText = '内容较多，服务端正在批量删除，请稍候…';
+      }
+    }, 6000);
+  }
+
+  private stopDeleteHint(): void {
+    if (this.deleteHintTimer >= 0) {
+      clearTimeout(this.deleteHintTimer);
+      this.deleteHintTimer = -1;
+    }
+  }
+
+  private async confirmDeleteResult(targetType: string, targetId: string,
+    targetKbId: string): Promise<boolean> {
+    await this.waitFor(1200);
+    if (targetType === 'knowledgeBase') {
+      const listResult = await AgentApiClient.listKnowledgeBases(this.currentUserId());
+      if (!listResult.ok) return false;
+      const bases: KnowledgeBase[] = listResult.data.knowledgeBases;
+      for (let index: number = 0; index < bases.length; index++) {
+        if (bases[index].kbId === targetId) return false;
+      }
+      return true;
+    }
+    const detailResult = await AgentApiClient.getKnowledgeBase(targetKbId);
+    if (!detailResult.ok) return false;
+    const remaining: KnowledgeDocument[] = detailResult.data.documents ?? [];
+    for (let index: number = 0; index < remaining.length; index++) {
+      if (remaining[index].documentId === targetId) return false;
+    }
+    return true;
+  }
+
+  private async finishDelete(targetType: string, targetId: string,
+    recoveredAfterTimeout: boolean): Promise<void> {
+    this.isDeleting = false;
+    this.stopDeleteHint();
+    this.deleteConfirmVisible = false;
+    if (targetType === 'knowledgeBase' && this.selectedKbId === targetId) {
       this.selectedKbId = '';
       this.documents = [];
       this.hits = [];
     }
-    this.showMessage('知识库已删除。', false);
+    this.showMessage(`${recoveredAfterTimeout ? '后台处理已完成：' : ''}` +
+      `${targetType === 'knowledgeBase' ? '知识库' : '文档'}已删除。`, false);
     await this.loadKnowledgeBases();
   }
 
@@ -222,7 +361,13 @@ struct KnowledgeBasePage {
   private async uploadEncoded(fileName: string, encoded: string,
     sizeBytes: number, mimeType: string): Promise<void> {
     this.isUploading = true;
-    const result = await AgentApiClient.uploadKnowledgeDocument(this.selectedKbId, {
+    this.startUploadHint();
+    const uploadKbId: string = this.selectedKbId;
+    const documentIdsBeforeUpload: string[] = [];
+    for (let index: number = 0; index < this.documents.length; index++) {
+      documentIdsBeforeUpload.push(this.documents[index].documentId);
+    }
+    const result = await AgentApiClient.uploadKnowledgeDocument(uploadKbId, {
       fileName: fileName,
       contentBase64: encoded,
       mimeType: mimeType,
@@ -232,20 +377,108 @@ struct KnowledgeBasePage {
     if (!this.isActive) {
       return;
     }
-    this.isUploading = false;
     if (!result.ok) {
-      this.showMessage((result as ApiFailure).error.message, true);
+      const failure: ApiFailure = result as ApiFailure;
+      if (failure.error.code === 'NETWORK_ERROR' && failure.error.recoverable) {
+        this.uploadProgressText = '服务端仍在处理，正在自动确认…';
+        this.showMessage('上传请求已发送，正在确认后台解析结果，请稍候…', false);
+        const recovered: KnowledgeDocument | null = await this.confirmBackgroundUpload(
+          uploadKbId, fileName, documentIdsBeforeUpload);
+        if (!this.isActive) return;
+        if (recovered !== null) {
+          this.isUploading = false;
+          this.stopUploadHint();
+          this.showUploadSuccess(recovered, true);
+          return;
+        }
+      }
+      this.isUploading = false;
+      this.stopUploadHint();
+      this.showMessage(failure.error.message, true);
       // 失败也必须居中反馈；否则用户在长页面底部看不到顶部消息条。
       this.uploadResultVisible = true;
       return;
     }
-    const doc: KnowledgeDocument = result.data;
+    this.isUploading = false;
+    this.stopUploadHint();
+    this.showUploadSuccess(result.data, false);
+  }
+
+  private startUploadHint(): void {
+    this.stopUploadHint();
+    this.uploadProgressText = '正在上传文件…';
+    this.uploadHintTimer = setTimeout(() => {
+      this.uploadHintTimer = -1;
+      if (this.isUploading && this.isActive) {
+        this.uploadProgressText = '文件较大，正在解析…';
+        this.showMessage('文件较大，上传与解析需要一些时间，请勿重复操作。', false);
+      }
+    }, 6000);
+  }
+
+  private stopUploadHint(): void {
+    if (this.uploadHintTimer >= 0) {
+      clearTimeout(this.uploadHintTimer);
+      this.uploadHintTimer = -1;
+    }
+  }
+
+  private async waitFor(milliseconds: number): Promise<void> {
+    return new Promise<void>((resolve: () => void) => {
+      setTimeout(() => resolve(), milliseconds);
+    });
+  }
+
+  /**
+   * 客户端超时并不代表服务端失败。后端可能仍在解析并最终成功落库，因此按文档 id
+   * 对比上传前后的列表；只有出现一份本次新增的同名文档才认定为成功。
+   */
+  private async confirmBackgroundUpload(kbId: string, fileName: string,
+    documentIdsBeforeUpload: string[]): Promise<KnowledgeDocument | null> {
+    for (let attempt: number = 0; attempt < 10; attempt++) {
+      if (!this.isActive) return null;
+      if (attempt > 0) await this.waitFor(2000);
+      const detailResult = await AgentApiClient.getKnowledgeBase(kbId);
+      if (!detailResult.ok) continue;
+      const detail: KnowledgeBaseDetail = detailResult.data;
+      const latestDocuments: KnowledgeDocument[] = detail.documents ?? [];
+      for (let index: number = 0; index < latestDocuments.length; index++) {
+        const candidate: KnowledgeDocument = latestDocuments[index];
+        if (candidate.fileName === fileName &&
+          documentIdsBeforeUpload.indexOf(candidate.documentId) < 0) {
+          return candidate;
+        }
+      }
+    }
+    return null;
+  }
+
+  private async showUploadSuccess(doc: KnowledgeDocument, recoveredAfterTimeout: boolean): Promise<void> {
+    this.documents = [doc, ...this.documents];
+    const updatedBases: KnowledgeBase[] = [];
+    for (let index: number = 0; index < this.knowledgeBases.length; index++) {
+      const item: KnowledgeBase = this.knowledgeBases[index];
+      updatedBases.push(item.kbId === this.selectedKbId ? {
+        kbId: item.kbId,
+        userId: item.userId,
+        courseName: item.courseName,
+        name: item.name,
+        description: item.description,
+        documentCount: this.documents.length,
+        chunkCount: (item.chunkCount ?? 0) + (doc.chunkCount ?? 0),
+        knowledgePoints: item.knowledgePoints,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
+      } : item);
+    }
+    this.knowledgeBases = updatedBases;
     if (doc.status === 'failed') {
       // 失败态照实展示 —— 不假装成功
       this.showMessage(`「${doc.fileName}」解析失败：${doc.statusMessage ?? '未知原因'}`, true);
     } else {
       this.showMessage(
-        `「${doc.fileName}」已解析：${doc.chunkCount ?? 0} 个片段、` +
+        `${recoveredAfterTimeout ? '后台处理已完成：' : ''}「${doc.fileName}」已解析：` +
+        `${doc.chunkCount ?? 0} 个片段、` +
         `${(doc.knowledgePoints ?? []).length} 个知识点。`, false);
     }
     // 结果浮层位于屏幕中间，避免顶部状态条在长页面中不可见。
@@ -321,6 +554,7 @@ struct KnowledgeBasePage {
       }
     } catch (error) {
       this.isUploading = false;
+      this.stopUploadHint();
       this.showMessage('文件选择或读取失败，请重试。', true);
       this.uploadResultVisible = true;
     }
@@ -338,19 +572,6 @@ struct KnowledgeBasePage {
       '递归理解的核心是终止条件与调用栈。递归理解不到位会导致遍历写错。\n' +
       '递归理解的练习建议从简单树开始。\n';
     await this.upload('二叉树复习讲义.md', sample);
-  }
-
-  private async deleteDocument(documentId: string): Promise<void> {
-    const result = await AgentApiClient.deleteKnowledgeDocument(documentId);
-    if (!this.isActive) {
-      return;
-    }
-    if (!result.ok) {
-      this.showMessage((result as ApiFailure).error.message, true);
-      return;
-    }
-    this.showMessage('文档已删除。', false);
-    await this.loadKnowledgeBases();
   }
 
   // ---------------------------------------------------------------- 文档详情
@@ -558,6 +779,9 @@ struct KnowledgeBasePage {
       if (this.uploadResultVisible) {
         this.UploadResultOverlay()
       }
+      if (this.deleteConfirmVisible) {
+        this.DeleteConfirmOverlay()
+      }
     }
     .width('100%').height('100%')
   }
@@ -613,7 +837,7 @@ struct KnowledgeBasePage {
 
           Text('删除').fontSize(12).fontColor('#B91C1C')
             .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-            .onClick(() => { this.deleteKnowledgeBase(kb.kbId); })
+            .onClick(() => { this.requestDeleteKnowledgeBase(kb); })
         }
         .width('100%').padding(12).borderRadius(12).backgroundColor('#FFFFFF')
         .border({ width: 1, color: kb.kbId === this.selectedKbId ? '#2563EB' : '#E2E8F0' })
@@ -686,7 +910,7 @@ struct KnowledgeBasePage {
             Text('正文 ›').fontSize(12).fontColor('#2563EB')
               .padding({ left: 6, right: 6, top: 3, bottom: 3 })
             Text('删除').fontSize(12).fontColor('#B91C1C')
-              .onClick(() => { this.deleteDocument(doc.documentId); })
+              .onClick(() => { this.requestDeleteDocument(doc); })
           }
           .width('100%')
 
@@ -833,12 +1057,42 @@ struct KnowledgeBasePage {
   }
 
   @Builder
+  DeleteConfirmOverlay() {
+    Column() {
+      Column({ space: 14 }) {
+        Text(this.isDeleting ? '正在删除' : `确认删除“${this.deleteTargetName}”？`)
+          .fontSize(18).fontWeight(FontWeight.Bold)
+          .fontColor(this.isDeleting ? '#B45309' : '#B91C1C')
+        if (this.isDeleting) {
+          LoadingProgress().width(28).height(28).color('#2563EB')
+          Text(this.deleteProgressText).fontSize(13).lineHeight(20).fontColor('#475467').width('100%')
+          Text('请勿重复点击或退出页面。').fontSize(12).fontColor('#94A3B8').width('100%')
+        } else {
+          Text(this.deleteTargetSummary).fontSize(13).lineHeight(20).fontColor('#475467').width('100%')
+          Row({ space: 10 }) {
+            Button('取消').layoutWeight(1).height(42).fontColor('#475467')
+              .backgroundColor('#F1F5F9').borderRadius(10)
+              .onClick(() => { this.cancelDelete(); })
+            Button('确定删除').layoutWeight(1).height(42).fontColor('#FFFFFF')
+              .backgroundColor('#DC2626').borderRadius(10)
+              .onClick(() => { this.confirmDelete(); })
+          }.width('100%')
+        }
+      }
+      .width('86%').padding(18).backgroundColor('#FFFFFF').borderRadius(16)
+      .border({ width: 1, color: '#E2E8F0' })
+    }
+    .width('100%').height('100%').justifyContent(FlexAlign.Center)
+    .backgroundColor('#66000000')
+  }
+
+  @Builder
   UploadSection() {
     Column({ space: 12 }) {
       Text('支持 TXT / Markdown / CSV / JSON / Word（DOCX）/ PDF。扫描版 PDF 需先做 OCR。')
         .fontSize(12).fontColor('#64748B').width('100%').lineHeight(18)
 
-      Button(this.isUploading ? '正在上传…' : '选择 Word / PDF / 文本文件')
+      Button(this.isUploading ? this.uploadProgressText : '选择 Word / PDF / 文本文件')
         .width('100%').height(46).fontSize(14).fontColor('#2563EB')
         .backgroundColor('#EFF6FF').borderRadius(10)
         .border({ width: 1, color: '#BFDBFE' })
@@ -853,7 +1107,7 @@ struct KnowledgeBasePage {
         .height(44).fontSize(14)
         .onChange((value: string) => { this.sampleFileName = value; })
 
-      Button(this.isUploading ? '上传中…' : '上传并解析')
+      Button(this.isUploading ? this.uploadProgressText : '上传并解析')
         .width('100%').height(46).fontSize(15).fontColor('#FFFFFF')
         .backgroundColor('#2563EB').borderRadius(10)
         .enabled(!this.isUploading)

@@ -181,12 +181,14 @@ def delete_knowledge_base(kb_id: str):
         return jsonify({"errorCode": "NOT_FOUND", "message": "知识库不存在",
                         "details": {"kbId": kb_id}}), 404
     if _repository:
+        deletes: list[tuple[str, str]] = []
         for doc in [d for d in _list(DOCS, user_id) if d.get("kbId") == kb_id]:
             for chunk in [c for c in _list(CHUNKS, user_id)
                           if c.get("documentId") == doc.get("documentId")]:
-                _repository.delete(CHUNKS, chunk["chunkId"])
-            _repository.delete(DOCS, doc["documentId"])
-        _repository.delete(KB, kb_id)
+                deletes.append((CHUNKS, chunk["chunkId"]))
+            deletes.append((DOCS, doc["documentId"]))
+        deletes.append((KB, kb_id))
+        _repository.apply_batch(deletes, [])
     return jsonify({"status": "deleted", "kbId": kb_id})
 
 
@@ -251,9 +253,9 @@ def upload_document(kb_id: str):
     }
 
     if _repository:
-        _repository.save(DOCS, document_id, record)
+        saves: list[tuple[str, str, dict]] = [(DOCS, document_id, record)]
         for index, chunk in enumerate(parsed["chunks"], 1):
-            _repository.save(CHUNKS, chunk["chunkId"], {
+            saves.append((CHUNKS, chunk["chunkId"], {
                 "chunkId": chunk["chunkId"], "documentId": document_id, "kbId": kb_id,
                 "userId": user_id, "text": chunk["text"],
                 "headingPath": chunk["headingPath"],
@@ -263,21 +265,24 @@ def upload_document(kb_id: str):
                 # 仓库的写入顺序（隐式约定）。详情接口要按原文顺序回传正文，
                 # 所以把序号存成字段，让顺序可复核、不依赖存储实现。
                 "index": index,
-            })
+            }))
         # 刷新知识库汇总（文档数 / 切片数 / 知识点并集）
+        # 本次文档仍在待提交批次中，仓库查询还看不到它，必须显式并入汇总。
         all_docs = [d for d in _list(DOCS, user_id) if d.get("kbId") == kb_id]
+        all_docs.append(record)
         points: list[str] = []
         for doc in all_docs:
             for point in doc.get("knowledgePoints", []):
                 if point not in points:
                     points.append(point)
-        _repository.save(KB, kb_id, {
+        saves.append((KB, kb_id, {
             **kb,
             "documentCount": len(all_docs),
             "chunkCount": sum(int(d.get("chunkCount") or 0) for d in all_docs),
             "knowledgePoints": points,
             "updatedAt": timestamp,
-        })
+        }))
+        _repository.apply_batch([], saves)
 
     if _repository and parsed["status"] == knowledge.STATUS_READY:
         from app.tools.profile_merge import merge_points_into_profile
@@ -352,22 +357,26 @@ def delete_document(document_id: str):
         return jsonify({"errorCode": "NOT_FOUND", "message": "文档不存在",
                         "details": {"documentId": document_id}}), 404
     if _repository:
+        deletes: list[tuple[str, str]] = []
         for chunk in [c for c in _list(CHUNKS, user_id) if c.get("documentId") == document_id]:
-            _repository.delete(CHUNKS, chunk["chunkId"])
-        _repository.delete(DOCS, document_id)
+            deletes.append((CHUNKS, chunk["chunkId"]))
+        deletes.append((DOCS, document_id))
         kb = _get_owned(KB, record.get("kbId", ""), user_id)
+        saves: list[tuple[str, str, dict]] = []
         if kb is not None:
-            remaining = [d for d in _list(DOCS, user_id) if d.get("kbId") == kb["kbId"]]
+            remaining = [d for d in _list(DOCS, user_id)
+                         if d.get("kbId") == kb["kbId"] and d.get("documentId") != document_id]
             points: list[str] = []
             for doc in remaining:
                 for point in doc.get("knowledgePoints", []):
                     if point not in points:
                         points.append(point)
-            _repository.save(KB, kb["kbId"], {
+            saves.append((KB, kb["kbId"], {
                 **kb, "documentCount": len(remaining),
                 "chunkCount": sum(int(d.get("chunkCount") or 0) for d in remaining),
                 "knowledgePoints": points, "updatedAt": knowledge._now(),
-            })
+            }))
+        _repository.apply_batch(deletes, saves)
     return jsonify({"status": "deleted", "documentId": document_id})
 
 

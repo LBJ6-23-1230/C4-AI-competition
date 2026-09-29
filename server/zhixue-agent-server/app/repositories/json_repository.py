@@ -106,6 +106,21 @@ class JsonRepository(Repository):
 				del self._data[collection][item_id]
 				self._flush()
 
+	def apply_batch(self, deletes: list[tuple[str, str]],
+					saves: list[tuple[str, str, dict[str, Any]]]) -> None:
+		"""批量修改内存后只全量写盘一次，避免 N 条记录触发 N 次整库重写。"""
+		with self._write_lock:
+			changed = False
+			for collection, item_id in deletes:
+				if item_id in self._data.get(collection, {}):
+					del self._data[collection][item_id]
+					changed = True
+			for collection, item_id, value in saves:
+				self._data.setdefault(collection, {})[item_id] = dict(value)
+				changed = True
+			if changed:
+				self._flush()
+
 	def clear(self, collection: str) -> None:
 		with self._write_lock:
 			if collection in self._data:

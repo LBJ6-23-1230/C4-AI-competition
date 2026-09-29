@@ -234,13 +234,15 @@ export class AgentApiClient {
 
   static async deleteKnowledgeBase(kbId: string): Promise<ApiResult<KnowledgeBase>> {
     return AgentApiClient.request<KnowledgeBase>(http.RequestMethod.DELETE,
-      `/api/v1/knowledge-bases/${encodeURIComponent(kbId)}`);
+      `/api/v1/knowledge-bases/${encodeURIComponent(kbId)}`, undefined,
+      ApiDefaults.DELETE_PROCESSING_READ_TIMEOUT_MS);
   }
 
   static async uploadKnowledgeDocument(kbId: string,
     request: KnowledgeDocumentUploadRequest): Promise<ApiResult<KnowledgeDocument>> {
     return AgentApiClient.request<KnowledgeDocument>(http.RequestMethod.POST,
-      `/api/v1/knowledge-bases/${encodeURIComponent(kbId)}/documents`, request);
+      `/api/v1/knowledge-bases/${encodeURIComponent(kbId)}/documents`, request,
+      ApiDefaults.DOCUMENT_PROCESSING_READ_TIMEOUT_MS);
   }
 
   /**
@@ -258,7 +260,8 @@ export class AgentApiClient {
 
   static async deleteKnowledgeDocument(documentId: string): Promise<ApiResult<KnowledgeDocument>> {
     return AgentApiClient.request<KnowledgeDocument>(http.RequestMethod.DELETE,
-      `/api/v1/documents/${encodeURIComponent(documentId)}`);
+      `/api/v1/documents/${encodeURIComponent(documentId)}`, undefined,
+      ApiDefaults.DELETE_PROCESSING_READ_TIMEOUT_MS);
   }
 
   static async searchKnowledgeBase(kbId: string,

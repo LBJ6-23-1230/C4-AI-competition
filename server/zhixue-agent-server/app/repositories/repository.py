@@ -36,3 +36,9 @@ class Repository(ABC):
 	@abstractmethod
 	def delete(self, collection: str, item_id: str) -> None:
 		...
+
+	@abstractmethod
+	def apply_batch(self, deletes: list[tuple[str, str]],
+					saves: list[tuple[str, str, dict[str, Any]]]) -> None:
+		"""在一次持久化事务中完成多条删除与保存。"""
+		...

@@ -49,6 +49,18 @@ export class ApiDefaults {
   static readonly LLM_BOUND_READ_TIMEOUT_MS: number = 40000;
 
   /**
+   * 文档上传与解析的读超时下限（毫秒）。
+   *
+   * 文件需要先随 JSON/base64 上传，再由服务端同步完成 PDF / Word 解析与切片；
+   * 8MB 文件在真机 Wi-Fi 下很容易超过默认 8 秒。连接超时仍沿用默认值，只有
+   * 已连接后的上传与处理等待会放宽。
+   */
+  static readonly DOCUMENT_PROCESSING_READ_TIMEOUT_MS: number = 60000;
+
+  /** 大型知识库批量删除的读超时下限；连接超时仍保持默认值。 */
+  static readonly DELETE_PROCESSING_READ_TIMEOUT_MS: number = 30000;
+
+  /**
    * 默认是否走离线 Fixture。
    * 默认 false：直接打真实后端，演示"真 Agent 循环"。
    * 无网络/无后端时可在「接口环境」页一键切到 Fixture。

@@ -309,12 +309,12 @@ def revoke_session(repository: Repository, token: str) -> bool:
 
 def revoke_all_sessions(repository: Repository, user_id: str) -> int:
     """注销账号 / 安全事件时清空该用户所有会话。"""
-    removed = 0
+    deletes: list[tuple[str, str]] = []
     for session in repository.list(SESSIONS):
         if session.get("userId") == user_id:
-            repository.delete(SESSIONS, str(session.get("token", "")))
-            removed += 1
-    return removed
+            deletes.append((SESSIONS, str(session.get("token", ""))))
+    repository.apply_batch(deletes, [])
+    return len(deletes)
 
 
 # --------------------------------------------------------------------------- 注册 / 登录

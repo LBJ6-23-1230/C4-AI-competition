@@ -208,14 +208,21 @@ def test_docx_upload_extracts_text(tmp_path):
     assert hits and "左右根" in hits[0]["text"]
 
 
-def test_legacy_doc_extension_fails_with_conversion_hint(tmp_path):
+def test_invalid_legacy_doc_fails_as_invalid_document(tmp_path):
     client = create_app(tmp_path / "kb-doc.json").test_client()
     kb_id = _make_kb(client)
 
     body = _upload(client, kb_id, file_name="讲义.doc", text="内容").get_json()
 
     assert body["status"] == "failed"
-    assert "docx" in body["statusMessage"]
+    assert "DOC" in body["statusMessage"]
+
+
+def test_pdf_text_quality_rejects_garbled_glyph_mapping():
+    readable = "第8章 代数系统 离散数学 8.1 基本概念"
+    garbled = "ϖ ꜛ Ѡ९ ◌◌ ☐ ꙳ Ϡ Ѫ ꜛ ◌◌"
+
+    assert knowledge._pdf_text_quality(readable) > knowledge._pdf_text_quality(garbled)
 
 
 def test_invalid_base64_fails_honestly(tmp_path):

@@ -11,8 +11,8 @@
 ----------
 按 `docs/12-知识库设计方案.md` 的第一期：
 * 支持 TXT / Markdown / CSV / JSON 的**真实文本提取**
-* PDF 因涉及二进制解析，第一期先返回"需安装解析依赖"的明确状态，
-  **不假装成功**（诚实降级优先于虚假可用）
+* 支持 PDF、DOCX 与旧版 DOC 的真实文本提取；无法恢复字符映射时明确提示 OCR，
+  **不把乱码假装成成功结果**
 * 切片 + 知识点标签 + 易错点候选
 * 关键词 + 标签检索（2-gram，中文无需分词器）
 """
@@ -24,6 +24,7 @@ import binascii
 import hashlib
 import io
 import re
+import struct
 import zipfile
 from datetime import datetime, timezone
 from typing import Any
@@ -52,6 +53,7 @@ MAX_QUERY_CHARS = 200
 TEXT_EXTENSIONS = {".txt", ".md", ".markdown", ".csv", ".json"}
 PDF_EXTENSIONS = {".pdf"}
 DOCX_EXTENSIONS = {".docx"}
+DOC_EXTENSIONS = {".doc"}
 
 # 处理状态：必须真实反映后端进度，失败态要可见（评审看到"能失败、能重试"更可信）
 STATUS_READY = "ready"
@@ -85,7 +87,7 @@ def extension_of(file_name: str) -> str:
 
 
 def classify(file_name: str) -> tuple[str, str]:
-    """返回 (类别, 失败原因)。类别 ∈ {text, pdf, docx, unsupported}。"""
+    """返回 (类别, 失败原因)。类别 ∈ {text, pdf, doc, docx, unsupported}。"""
     ext = extension_of(file_name)
     if ext in TEXT_EXTENSIONS:
         return "text", ""
@@ -93,8 +95,8 @@ def classify(file_name: str) -> tuple[str, str]:
         return "pdf", ""
     if ext in DOCX_EXTENSIONS:
         return "docx", ""
-    if ext == ".doc":
-        return "unsupported", "旧版 .doc 暂不支持，请在 Word/WPS 中另存为 .docx 后上传"
+    if ext in DOC_EXTENSIONS:
+        return "doc", ""
     return "unsupported", f"暂不支持的文件类型：{ext or '（无扩展名）'}"
 
 
@@ -157,29 +159,146 @@ def decode_docx(content_base64: Any) -> tuple[str, str]:
     return "\n\n".join(lines), "" if lines else "DOCX 中没有可提取的文字"
 
 
-def decode_pdf(content_base64: Any) -> tuple[str, str]:
-    """用 pypdf 提取可复制文本；扫描版 PDF 会返回明确提示。"""
+def _clean_word_text(text: str) -> str:
+    text = text.replace("\r", "\n").replace("\x07", "\t")
+    text = "".join(char for char in text if char in "\n\t" or ord(char) >= 32)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def decode_doc(content_base64: Any) -> tuple[str, str]:
+    """从 Word 97-2003 OLE 文档的 piece table 提取正文。"""
     raw, error = decode_binary(content_base64)
     if error:
         return "", error
     try:
-        from pypdf import PdfReader
+        import olefile
     except ImportError:
-        return "", "服务端未安装 PDF 解析依赖 pypdf，请先安装 requirements.txt"
+        return "", "服务端未安装旧版 Word 解析依赖 olefile，请先安装 requirements.txt"
     try:
+        with olefile.OleFileIO(io.BytesIO(raw)) as compound:
+            if not compound.exists("WordDocument"):
+                return "", "DOC 文件结构无效：缺少 WordDocument 数据流"
+            word_stream = compound.openstream("WordDocument").read()
+            if len(word_stream) < 34:
+                return "", "DOC 文件结构无效：文件头不完整"
+            flags = struct.unpack_from("<H", word_stream, 10)[0]
+            table_name = "1Table" if flags & 0x0200 else "0Table"
+            if not compound.exists(table_name):
+                return "", f"DOC 文件结构无效：缺少 {table_name} 数据流"
+            table_stream = compound.openstream(table_name).read()
+
+            offset = 32
+            word_count = struct.unpack_from("<H", word_stream, offset)[0]
+            offset += 2 + word_count * 2
+            long_count = struct.unpack_from("<H", word_stream, offset)[0]
+            offset += 2 + long_count * 4
+            pair_count = struct.unpack_from("<H", word_stream, offset)[0]
+            offset += 2
+            if pair_count <= 33 or offset + (34 * 8) > len(word_stream):
+                return "", "DOC 文件结构无效：找不到正文索引"
+            clx_offset, clx_size = struct.unpack_from("<II", word_stream, offset + 33 * 8)
+            clx = table_stream[clx_offset:clx_offset + clx_size]
+
+            cursor = 0
+            while cursor < len(clx) and clx[cursor] == 0x01:
+                if cursor + 3 > len(clx):
+                    break
+                cursor += 3 + struct.unpack_from("<H", clx, cursor + 1)[0]
+            if cursor + 5 > len(clx) or clx[cursor] != 0x02:
+                return "", "DOC 文件结构无效：找不到正文片段表"
+            piece_table_size = struct.unpack_from("<I", clx, cursor + 1)[0]
+            piece_table = clx[cursor + 5:cursor + 5 + piece_table_size]
+            piece_count = (len(piece_table) - 4) // 12
+            if piece_count <= 0:
+                return "", "DOC 中没有可提取的文字"
+
+            cp_bytes = (piece_count + 1) * 4
+            pieces: list[str] = []
+            for index in range(piece_count):
+                start_cp = struct.unpack_from("<I", piece_table, index * 4)[0]
+                end_cp = struct.unpack_from("<I", piece_table, (index + 1) * 4)[0]
+                char_count = max(0, end_cp - start_cp)
+                pcd_offset = cp_bytes + index * 8
+                encoded_offset = struct.unpack_from("<I", piece_table, pcd_offset + 2)[0]
+                compressed = bool(encoded_offset & 0x40000000)
+                file_offset = encoded_offset & 0x3FFFFFFF
+                if compressed:
+                    file_offset //= 2
+                    payload = word_stream[file_offset:file_offset + char_count]
+                    decoded: list[str] = []
+                    for encoding in ("gb18030", "cp1252"):
+                        try:
+                            decoded.append(payload.decode(encoding))
+                        except UnicodeDecodeError:
+                            continue
+                    pieces.append(max(decoded, key=_pdf_text_quality)
+                                  if decoded else payload.decode("cp1252", errors="replace"))
+                else:
+                    payload = word_stream[file_offset:file_offset + char_count * 2]
+                    pieces.append(payload.decode("utf-16le", errors="replace"))
+    except (OSError, ValueError, IndexError, struct.error) as exc:
+        return "", f"DOC 解析失败：{exc}"
+
+    text = _clean_word_text("".join(pieces))
+    return (text, "") if text else ("", "DOC 中没有可提取的文字")
+
+
+def _pdf_text_quality(text: str) -> float:
+    visible = [char for char in text if not char.isspace()]
+    if not visible:
+        return 0.0
+    normal = sum(1 for char in visible
+                 if char.isascii() or "\u4e00" <= char <= "\u9fff"
+                 or char in "，。！？；：、（）《》【】“”‘’·—…")
+    replacement = text.count("�")
+    return (normal - replacement * 3) / len(visible)
+
+
+def decode_pdf(content_base64: Any) -> tuple[str, str]:
+    """优先用 PyMuPDF 提取中文文本，并用 pypdf 作为兼容回退。"""
+    raw, error = decode_binary(content_base64)
+    if error:
+        return "", error
+    candidates: list[str] = []
+    errors: list[str] = []
+    try:
+        import fitz
+        with fitz.open(stream=raw, filetype="pdf") as document:
+            if document.needs_pass:
+                return "", "PDF 已加密，暂时无法解析"
+            text = "\n\n".join(document[index].get_text("text", sort=True).strip()
+                                 for index in range(min(len(document), 300))).strip()
+            if text:
+                candidates.append(text)
+    except ImportError:
+        errors.append("PyMuPDF 未安装")
+    except Exception as exc:
+        errors.append(f"PyMuPDF: {exc}")
+
+    try:
+        from pypdf import PdfReader
         reader = PdfReader(io.BytesIO(raw))
         if reader.is_encrypted:
             return "", "PDF 已加密，暂时无法解析"
-        pages: list[str] = []
-        for page in reader.pages[:300]:
-            text = (page.extract_text() or "").strip()
-            if text:
-                pages.append(text)
-    except Exception as exc:  # pypdf 会抛多种格式异常，统一转成人话
-        return "", f"PDF 解析失败：{exc}"
-    if not pages:
+        text = "\n\n".join((page.extract_text() or "").strip()
+                             for page in reader.pages[:300]).strip()
+        if text:
+            candidates.append(text)
+    except ImportError:
+        errors.append("pypdf 未安装")
+    except Exception as exc:
+        errors.append(f"pypdf: {exc}")
+
+    if not candidates:
+        if errors and all("未安装" not in item for item in errors):
+            return "", f"PDF 解析失败：{'；'.join(errors)}"
         return "", "PDF 中没有可提取的文字；如果是扫描件，请先做 OCR"
-    return "\n\n".join(pages), ""
+    text = max(candidates, key=_pdf_text_quality)
+    if len(text) >= 40 and _pdf_text_quality(text) < 0.45:
+        return "", "PDF 字体缺少可用字符映射，直接提取会产生乱码；请先对文件执行 OCR 后再上传"
+    return text, ""
 
 
 # --------------------------------------------------------------------------- 切片
@@ -455,6 +574,8 @@ def process_document(file_name: str, content_base64: str,
 
     if category == "pdf":
         text, error = decode_pdf(content_base64)
+    elif category == "doc":
+        text, error = decode_doc(content_base64)
     elif category == "docx":
         text, error = decode_docx(content_base64)
     else:

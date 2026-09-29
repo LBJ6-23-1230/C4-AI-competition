@@ -16,11 +16,17 @@ import { ImageEncoder } from '../utils/ImageEncoder';
 @Component
 struct CourseImport {
   @StorageLink('knowledgeSyncMessage') knowledgeSyncMessage: string = '';
+  @StorageLink('learningDataRevision') @Watch('onLearningDataChanged') learningDataRevision: number = 0;
   @State activeTab: string = 'courses';
 
   aboutToAppear(): void {
     const params = router.getParams() as Record<string, string>;
     if (params && params['initialTab'] === 'import') this.activeTab = 'import';
+    this.refreshLearningData();
+  }
+
+  onPageShow(): void {
+    this.refreshLearningData();
   }
   @State jsonInputText: string = '';
   @State importType: string = 'course';
@@ -49,6 +55,17 @@ struct CourseImport {
    * 所有会改 `ddlList` 的地方都调一次 `syncUrgentCount()`，两边才一致。
    */
   @State urgentDdlCount: number = appState.getUrgentDDLs().length;
+
+  private onLearningDataChanged(): void {
+    this.refreshLearningData();
+  }
+
+  private refreshLearningData(): void {
+    this.courseList = appState.courses.slice();
+    this.ddlList = appState.homeworkDDLs.slice();
+    this.syncUrgentCount();
+    this.refreshKey++;
+  }
 
   /** 数据变了就同步刷新徽章数字（见 `urgentDdlCount` 的说明）。 */
   private syncUrgentCount(): void {
@@ -88,7 +105,7 @@ struct CourseImport {
       if (actual === 'course') {
         const courses: CourseInfo[] = FileParserService.autoParseCourses(content);
         appState.importCourses(courses);
-        this.courseList = appState.courses;
+        this.courseList = appState.courses.slice();
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
         this.importMessage = detected === 'course' && intended !== detected
@@ -98,7 +115,7 @@ struct CourseImport {
       } else {
         const ddls: HomeworkDDL[] = FileParserService.autoParseDDLs(content);
         appState.importDDLs(ddls);
-        this.ddlList = appState.homeworkDDLs;
+        this.ddlList = appState.homeworkDDLs.slice();
         this.syncUrgentCount();
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
@@ -129,7 +146,7 @@ struct CourseImport {
       if (actual === 'course') {
         const courses: CourseInfo[] = FileParserService.autoParseCourses(this.jsonInputText);
         appState.importCourses(courses);
-        this.courseList = appState.courses;
+        this.courseList = appState.courses.slice();
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
         this.importMessage = detected === 'course' && this.importType !== detected
@@ -139,7 +156,7 @@ struct CourseImport {
       } else {
         const ddls: HomeworkDDL[] = FileParserService.autoParseDDLs(this.jsonInputText);
         appState.importDDLs(ddls);
-        this.ddlList = appState.homeworkDDLs;
+        this.ddlList = appState.homeworkDDLs.slice();
         this.syncUrgentCount();
         appState.clearWeeklyPlan();
         this.importStatus = 'success';
@@ -171,8 +188,8 @@ struct CourseImport {
 
   private resetToMock(): void {
     appState.resetToMockData();
-    this.courseList = appState.courses;
-    this.ddlList = appState.homeworkDDLs;
+    this.courseList = appState.courses.slice();
+    this.ddlList = appState.homeworkDDLs.slice();
     this.importStatus = '';
     this.importMessage = '';
   }
@@ -233,7 +250,7 @@ struct CourseImport {
       return;
     }
     appState.importCourses(this.recognizedCourses);
-    this.courseList = appState.courses;
+    this.courseList = appState.courses.slice();
     appState.clearWeeklyPlan();
     this.activeTab = 'courses';
     this.showImageReview = false;
@@ -308,7 +325,7 @@ struct CourseImport {
       this.editCourseError = '课程已不存在，请刷新后重试';
       return;
     }
-    this.courseList = appState.courses;
+    this.courseList = appState.courses.slice();
     appState.clearWeeklyPlan();
     this.cancelCourseEdit();
     this.importStatus = 'success';
@@ -419,7 +436,7 @@ struct CourseImport {
             .onClick(() => {
               if (this.editingCourseId === course.courseId) this.cancelCourseEdit();
               appState.removeCourse(course.courseId);
-              this.courseList = appState.courses;
+              this.courseList = appState.courses.slice();
               appState.clearWeeklyPlan();
             })
         }
@@ -458,7 +475,7 @@ struct CourseImport {
           .padding({ left: 6, right: 6, top: 2, bottom: 2 })
           .onClick(() => {
             appState.removeDDL(ddl.id);
-            this.ddlList = appState.homeworkDDLs;
+            this.ddlList = appState.homeworkDDLs.slice();
             // 徽章数字也一起刷新 —— 少了这一句，删完列表变了、右上角还挂着旧数字（实测）。
             this.syncUrgentCount();
           })
