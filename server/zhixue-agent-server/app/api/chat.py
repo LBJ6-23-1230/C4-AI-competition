@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 
@@ -28,6 +29,41 @@ CONTRACT_VERSION = "api-contract-v0.3"
 _MAX_IMAGE_CHARS = 5_000_000
 
 _repository: JsonRepository | None = None
+
+
+def _history_with_sessions(history: list[dict]) -> list[dict]:
+    """为旧版逐轮历史补稳定的会话 id。
+
+    新记录直接使用客户端随每轮传来的 ``session_id``。旧记录没有该字段，只能
+    依据时间连续性迁移：相邻两轮间隔不超过 30 分钟视为同一场对话。这个补齐只
+    影响接口输出，不改写原文件，旧数据仍可被旧版本读取。
+    """
+    result: list[dict] = []
+    legacy_session_id = ""
+    previous_time: datetime | None = None
+    for index, item in enumerate(history):
+        row = dict(item)
+        existing = str(row.get("session_id") or "").strip()
+        timestamp = str(row.get("timestamp") or "")
+        parsed: datetime | None = None
+        try:
+            parsed = datetime.fromisoformat(timestamp.replace(" ", "T"))
+        except ValueError:
+            parsed = None
+
+        if existing:
+            row["session_id"] = existing
+            legacy_session_id = ""
+        else:
+            gap_seconds = ((parsed - previous_time).total_seconds()
+                           if parsed is not None and previous_time is not None else None)
+            if not legacy_session_id or gap_seconds is None or gap_seconds > 30 * 60:
+                stamp_key = "".join(char for char in timestamp if char.isdigit()) or str(index)
+                legacy_session_id = f"legacy-{stamp_key}"
+            row["session_id"] = legacy_session_id
+        result.append(row)
+        previous_time = parsed
+    return result
 
 
 def _apply_profile_updates(user_id: str | None, updates: dict) -> list[str]:
@@ -283,6 +319,7 @@ def agent_chat():
         frontend_data = None
 
     _identity: str = _chat_identity()
+    session_id = str(data.get("sessionId") or "").strip()[:128] or None
     result = chat_llm.chat(
         message=message,
         image_base64=image if isinstance(image, str) and image else None,
@@ -291,6 +328,7 @@ def agent_chat():
         # 把**当前身份的真实资料**传给对话层：没有它，模型只会照着
         # mock 的 u001/小明 回话（见 `_user_context_for` 的说明）。
         user_context=_user_context_for(_identity),
+        session_id=session_id,
     )
 
     # 响应结构：契约基线三字段 { reply, intent, card } + 可选 llmUsed。
@@ -329,8 +367,8 @@ def agent_chat():
             from app.tools.profile_merge import merge_points_into_profile
             merge_points_into_profile(_repository, _identity,
                 [{"name": point.strip(), "source": "diagnosis"}])
-    if data.get("sessionId"):
-        payload["sessionId"] = str(data["sessionId"])
+    if session_id:
+        payload["sessionId"] = session_id
     return jsonify(payload)
 
 
@@ -343,7 +381,7 @@ def chat_history():
     现按 `userId` 分桶（见 `chat_llm` 的"对话历史"小节），身份用项目统一的
     `resolve_user_id()` 解析：**已登录身份 > 显式 `?userId=` > 演示身份**。
     """
-    return jsonify({"history": chat_llm.get_history(_chat_identity()),
+    return jsonify({"history": _history_with_sessions(chat_llm.get_history(_chat_identity())),
                     "userId": _chat_identity()})
 
 

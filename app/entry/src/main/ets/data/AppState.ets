@@ -183,6 +183,8 @@ export class AppState {
   /* ========== 对话持久化 ========== */
   public chatMessages: string = '';  // JSON 序列化的消息列表
   public hasActiveChat: boolean = false;
+  /** 当前完整对话的 id；只有用户明确点击「新对话」才会更换。 */
+  public chatSessionId: string = '';
   public pendingChatPrompt: string = '';  // 从其他页面跳回对话时的预填 prompt
 
   /* ========== 输入层数据 ========== */
@@ -1164,6 +1166,7 @@ export class AppState {
     AppStorage.setOrCreate('knowledgeSyncMessage', '');
     this.chatMessages = '';
     this.hasActiveChat = false;
+    this.chatSessionId = '';
     this.pendingChatPrompt = '';
     // 登录提示语同理：它描述的是"上一个身份注册时发生了什么"，
     // 换身份后继续显示等于对新用户说别人的事。

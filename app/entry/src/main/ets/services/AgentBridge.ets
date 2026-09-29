@@ -88,8 +88,10 @@ export class AgentBridge {
         const userInput: string = AgentBridge.stringField(row, 'user_input');
         const botResponse: string = AgentBridge.stringField(row, 'bot_response');
         const timestamp: string = AgentBridge.stringField(row, 'timestamp');
+        const sessionId: string = AgentBridge.stringField(row, 'session_id');
         if (userInput.length > 0 && botResponse.length > 0) {
-          records.push({ userInput: userInput, botResponse: botResponse, timestamp: timestamp });
+          records.push({ userInput: userInput, botResponse: botResponse,
+            timestamp: timestamp, sessionId: sessionId });
         }
       }
       return records.reverse();
@@ -159,6 +161,9 @@ export class AgentBridge {
     // 「已登录身份 > 显式 userId > 演示身份」。不带的话，**账号登录后
     // 的对话仍会被当成 demo-user 处理并落盘**（历史、错题、画像更新全串味）。
     parts.push('"userId":' + JSON.stringify(appState.currentUser.userId));
+    // 同一场对话的每一轮都携带同一个 id；只有点「新对话」才更换。
+    // 后端据此把历史按完整会话归档，而不是把每一问一答拆成独立卡片。
+    parts.push('"sessionId":' + JSON.stringify(appState.chatSessionId));
     return '{' + parts.join(',') + '}';
   }
 

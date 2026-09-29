@@ -327,6 +327,30 @@ def test_session_id_is_only_echoed_when_client_supplies_one(client):
     assert with_id["sessionId"] == "chat-abc"
 
 
+def test_history_keeps_complete_conversation_session_id(client):
+    client.delete("/api/agent/history")
+    client.post("/api/agent/chat", json={"message": "第一轮", "sessionId": "chat-one"})
+    client.post("/api/agent/chat", json={"message": "继续追问", "sessionId": "chat-one"})
+    client.post("/api/agent/chat", json={"message": "另一场对话", "sessionId": "chat-two"})
+
+    history = client.get("/api/agent/history").get_json()["history"]
+
+    assert [row["session_id"] for row in history] == ["chat-one", "chat-one", "chat-two"]
+
+
+def test_history_endpoint_groups_legacy_turns_by_time_gap():
+    from app.api.chat import _history_with_sessions
+
+    history = _history_with_sessions([
+        {"user_input": "第一问", "bot_response": "第一答", "timestamp": "2026-09-29 07:00:00"},
+        {"user_input": "连续追问", "bot_response": "继续回答", "timestamp": "2026-09-29 07:10:00"},
+        {"user_input": "稍后新聊", "bot_response": "新的回答", "timestamp": "2026-09-29 08:00:00"},
+    ])
+
+    assert history[0]["session_id"] == history[1]["session_id"]
+    assert history[1]["session_id"] != history[2]["session_id"]
+
+
 def test_history_endpoint_records_and_clears_conversation(client):
     client.delete("/api/agent/history")
     client.post("/api/agent/chat", json={"message": "帮我看看错题"})

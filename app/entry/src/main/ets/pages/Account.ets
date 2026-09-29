@@ -2,6 +2,7 @@ import router from '@ohos.router';
 import { common } from '@kit.AbilityKit';
 import { AgentApiClient } from '../api/AgentApiClient';
 import { ApiDefaults } from '../api/ApiDefaults';
+import { PartnerContact } from '../api/ApiModels';
 import { AuthClient } from '../api/AuthClient';
 import { AuthUser, ChangePasswordResult } from '../api/AuthModels';
 import { AuthResult } from '../api/AuthResult';
@@ -66,6 +67,17 @@ struct Account {
   @State showSignOutConfirm: boolean = false;
   @State showDeleteConfirm: boolean = false;
   @State proactiveEnabled: boolean = ProactiveSettingsStore.isEnabled();
+  /**
+   * 服务端已经确认建立的学习搭子关系。
+   *
+   * `appState.latestPartner` 只是当前设备最近一次匹配/邀请的临时结果；被邀请方
+   * 接受后，真正的双向关系保存在 `/partner-contacts`。因此「我的」页必须读取
+   * 这份权威数据，不能只看本机内存，否则换设备或作为被邀请方时会误报“还没有”。
+   */
+  @State partnerContactNames: string[] = [];
+  @State partnerContactsLoading: boolean = false;
+  @State partnerContactsLoaded: boolean = false;
+  @State partnerContactsError: string = '';
   // ---- 修改密码（见页面下方「修改密码」区）----
   @State pwdOld: string = '';
   @State pwdNew: string = '';
@@ -80,6 +92,12 @@ struct Account {
   aboutToAppear(): void {
     this.refresh();
     this.loadAccountDetail();
+  }
+
+  onPageShow(): void {
+    // 从「搭子与协同」页返回时关系可能刚刚被接受，必须重新与服务端对账。
+    this.refresh();
+    this.loadPartnerContacts();
   }
 
   private refresh(): void {
@@ -107,6 +125,27 @@ struct Account {
       if (user.nickname.length > 0) { this.nickname = user.nickname; }
       if (user.grade.length > 0) { this.grade = user.grade; }
     }
+  }
+
+  /** 拉取接受邀请后由服务端双向登记的搭子名单。 */
+  private async loadPartnerContacts(): Promise<void> {
+    if (AgentApiClient.getConfig().useFixture || !this.signedIn) {
+      this.partnerContactNames = [];
+      this.partnerContactsError = '';
+      this.partnerContactsLoaded = true;
+      return;
+    }
+    this.partnerContactsLoading = true;
+    this.partnerContactsError = '';
+    const result = await AgentApiClient.listPartnerContacts();
+    if (result.ok) {
+      this.partnerContactNames = result.data.contacts.map((item: PartnerContact) => item.partnerName);
+    } else {
+      // 请求失败不等于没有搭子：保留已有数据，并明确提示同步失败。
+      this.partnerContactsError = '暂时无法同步已建立的学习搭子，请稍后重试。';
+    }
+    this.partnerContactsLoaded = true;
+    this.partnerContactsLoading = false;
   }
 
   /** 头像占位字符：取昵称首字符；昵称为空则用「学」。 */
@@ -434,7 +473,17 @@ struct Account {
             }.width('100%')
               .onClick(() => router.pushUrl({ url: 'pages/PartnerMatch' }))
 
-            if (appState.latestPartner !== null) {
+            if (this.partnerContactNames.length > 0) {
+              Row({ space: 10 }) {
+                Text('🤝').fontSize(20)
+                Column({ space: 3 }) {
+                  Text(this.partnerContactNames.join('、'))
+                    .fontSize(14).fontWeight(FontWeight.Medium).fontColor('#1F2937').width('100%')
+                  Text('已建立学习搭子关系')
+                    .fontSize(11.5).fontColor('#16836F').width('100%')
+                }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+              }.width('100%').padding(12).backgroundColor('#ECFDF5').borderRadius(12)
+            } else if (appState.latestPartner !== null) {
               Row({ space: 10 }) {
                 Text('🤝').fontSize(20)
                 Column({ space: 3 }) {
@@ -446,6 +495,12 @@ struct Account {
                     .fontSize(11.5).fontColor('#667085').width('100%')
                 }.alignItems(HorizontalAlign.Start).layoutWeight(1)
               }.width('100%').padding(12).backgroundColor('#F8FAFC').borderRadius(12)
+            } else if (this.partnerContactsLoading || !this.partnerContactsLoaded) {
+              Text('正在同步学习搭子关系…')
+                .fontSize(12).fontColor('#667085').lineHeight(19).width('100%')
+            } else if (this.partnerContactsError.length > 0) {
+              Text(this.partnerContactsError)
+                .fontSize(12).fontColor('#B45309').lineHeight(19).width('100%')
             } else {
               Text('还没有匹配到搭子。按课程、目标、知识互补与空闲时间四因子匹配一位学习伙伴。')
                 .fontSize(12).fontColor('#667085').lineHeight(19).width('100%')

@@ -371,17 +371,24 @@ def clear_history(user_id: str | None = None) -> None:
 
 
 def append_history(user_input: str, bot_response: str,
-                   user_id: str | None = None) -> None:
+                   user_id: str | None = None,
+                   session_id: str | None = None) -> None:
     key = (user_id or DEFAULT_HISTORY_USER).strip() or DEFAULT_HISTORY_USER
     # 读—改—写必须在**同一把锁**内完成，否则并发 append 会互相覆盖（丢历史）。
     with _HISTORY_LOCK:
         store = _load_history_store()
         bucket = store.get(key, [])
-        bucket.append({
+        entry = {
             "user_input": user_input,
             "bot_response": bot_response,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-        })
+        }
+        # 新客户端为一场完整对话的所有轮次传同一个 id。旧客户端不传时保持
+        # 兼容，由历史接口按连续时间为旧记录补一个稳定分组 id。
+        clean_session_id = (session_id or "").strip()
+        if clean_session_id:
+            entry["session_id"] = clean_session_id[:128]
+        bucket.append(entry)
         store[key] = bucket[-HISTORY_MAX_ENTRIES:]
         _write_history_store(store)
 
@@ -1144,7 +1151,8 @@ def _build_profile_update_card(profile_updates: dict[str, Any]) -> dict[str, Any
 def chat(message: str, image_base64: str | None = None,
          frontend_data: dict[str, Any] | None = None,
          user_id: str | None = None,
-         user_context: dict[str, Any] | None = None) -> dict[str, Any]:
+         user_context: dict[str, Any] | None = None,
+         session_id: str | None = None) -> dict[str, Any]:
     """统一对话入口：返回 {reply, intent, card, llmUsed}。
 
     `llmUsed=False` 表示本次回复由本地确定性规则兜底（未配置 Key 或调用失败），
@@ -1229,7 +1237,7 @@ def chat(message: str, image_base64: str | None = None,
 
     if message:
         try:
-            append_history(message, reply, user_id)
+            append_history(message, reply, user_id, session_id)
         except OSError:
             pass
 

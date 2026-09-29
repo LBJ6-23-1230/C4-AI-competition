@@ -2,7 +2,7 @@ import router from '@ohos.router';
 import { abilityAccessCtrl, common, Permissions } from '@kit.AbilityKit';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { appState } from '../data/AppState';
-import { ChatAction, ChatCard, ChatHandoff, ChatHistoryRecord, ChatMessage, IntentChip } from '../models/ChatModels';
+import { ChatAction, ChatCard, ChatHandoff, ChatHistoryRecord, ChatHistorySession, ChatMessage, IntentChip } from '../models/ChatModels';
 import { AgentBridge } from '../services/AgentBridge';
 import { ImageEncoder } from '../utils/ImageEncoder';
 import { ClientCache } from '../cache/ClientCache';
@@ -63,7 +63,7 @@ struct ChatMain {
   @State voiceMessage: string = '';
   @State showHistory: boolean = false;
   @State historyLoading: boolean = false;
-  @State historyRecords: ChatHistoryRecord[] = [];
+  @State historySessions: ChatHistorySession[] = [];
   /**
    * 注册 / 建号成功后要如实告知用户的那句话（没有则为空串）。
    *
@@ -189,17 +189,55 @@ struct ChatMain {
   private async openHistory(): Promise<void> {
     this.showHistory = true;
     this.historyLoading = true;
-    this.historyRecords = await AgentBridge.loadHistory();
+    const records: ChatHistoryRecord[] = await AgentBridge.loadHistory();
+    this.historySessions = this.groupHistorySessions(records);
     this.historyLoading = false;
   }
 
-  private restoreHistory(record: ChatHistoryRecord): void {
-    const time: string = record.timestamp.length >= 16
-      ? record.timestamp.substring(11, 16) : this.formatTime();
-    this.messages = [
-      { id: `history-user-${Date.now()}`, role: 'user', text: record.userInput, time: time, status: 'done' },
-      { id: `history-agent-${Date.now()}`, role: 'agent', text: record.botResponse, time: time, status: 'done' }
-    ];
+  /** 服务端按新到旧返回轮次；这里把相同 sessionId 合为一场完整对话。 */
+  private groupHistorySessions(records: ChatHistoryRecord[]): ChatHistorySession[] {
+    const sessions: ChatHistorySession[] = [];
+    for (let index: number = 0; index < records.length; index++) {
+      const record: ChatHistoryRecord = records[index];
+      let found: ChatHistorySession | null = null;
+      for (let sessionIndex: number = 0; sessionIndex < sessions.length; sessionIndex++) {
+        if (sessions[sessionIndex].sessionId === record.sessionId) {
+          found = sessions[sessionIndex];
+          break;
+        }
+      }
+      if (found === null) {
+        sessions.push({
+          sessionId: record.sessionId,
+          title: record.userInput,
+          startedAt: record.timestamp,
+          updatedAt: record.timestamp,
+          turns: [record]
+        });
+      } else {
+        // records 是新到旧，向头部插入后 turns 恢复为正常阅读顺序（旧到新）。
+        found.turns.unshift(record);
+        found.title = record.userInput;
+        found.startedAt = record.timestamp;
+      }
+    }
+    return sessions;
+  }
+
+  /** 点击历史卡片时恢复整场对话，不再只恢复被点击的单轮问答。 */
+  private restoreHistory(session: ChatHistorySession): void {
+    const restored: ChatMessage[] = [];
+    for (let index: number = 0; index < session.turns.length; index++) {
+      const record: ChatHistoryRecord = session.turns[index];
+      const time: string = record.timestamp.length >= 16
+        ? record.timestamp.substring(11, 16) : this.formatTime();
+      restored.push({ id: `history-user-${index}-${record.timestamp}`, role: 'user',
+        text: record.userInput, time: time, status: 'done' });
+      restored.push({ id: `history-agent-${index}-${record.timestamp}`, role: 'agent',
+        text: record.botResponse, time: time, status: 'done' });
+    }
+    this.messages = restored;
+    appState.chatSessionId = session.sessionId;
     this.saveMessages();
     this.showHistory = false;
     this.scrollToLatestMessage();
@@ -215,25 +253,31 @@ struct ChatMain {
       }.width('100%').padding({ left: 18, right: 18, top: 20, bottom: 14 })
       if (this.historyLoading) {
         LoadingProgress().width(34).height(34).margin({ top: 48 })
-      } else if (this.historyRecords.length === 0) {
+      } else if (this.historySessions.length === 0) {
         Text('暂无历史会话').fontSize(14).fontColor('#667085').margin({ top: 48 })
       } else {
         List({ space: 8 }) {
-          ForEach(this.historyRecords, (record: ChatHistoryRecord, index: number) => {
+          ForEach(this.historySessions, (session: ChatHistorySession) => {
             ListItem() {
               Column({ space: 5 }) {
-                Text(record.userInput).fontSize(15).fontWeight(FontWeight.Medium)
+                Text(session.title).fontSize(15).fontWeight(FontWeight.Medium)
                   .fontColor('#1F2937').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
                   .width('100%')
-                Text(record.botResponse).fontSize(12).fontColor('#667085').maxLines(2)
+                Text(session.turns[session.turns.length - 1].botResponse)
+                  .fontSize(12).fontColor('#667085').maxLines(2)
                   .textOverflow({ overflow: TextOverflow.Ellipsis }).width('100%')
-                Text(record.timestamp.length >= 16 ? record.timestamp.substring(0, 16).replace('T', ' ') : '')
-                  .fontSize(11).fontColor('#98A2B3').width('100%')
+                Row() {
+                  Text(`${session.turns.length} 轮对话`).fontSize(12).fontColor('#2563EB')
+                  Blank()
+                  Text(session.updatedAt.length >= 16
+                    ? session.updatedAt.substring(0, 16).replace('T', ' ') : '')
+                    .fontSize(11).fontColor('#98A2B3')
+                }.width('100%')
               }.width('100%').alignItems(HorizontalAlign.Start).padding(13)
                 .backgroundColor('#F8FAFC').borderRadius(10)
-                .onClick(() => this.restoreHistory(record))
+                .onClick(() => this.restoreHistory(session))
             }
-          }, (record: ChatHistoryRecord, index: number) => `${record.timestamp}-${index}`)
+          }, (session: ChatHistorySession) => session.sessionId)
         }.layoutWeight(1).width('100%').padding({ left: 14, right: 14, bottom: 20 })
       }
     }.width('82%').height('100%').backgroundColor('#FFFFFF')
@@ -822,6 +866,7 @@ struct ChatMain {
     this.isSending = false;
     appState.hasActiveChat = false;
     appState.chatMessages = '';
+    appState.chatSessionId = '';
   }
 
   private async toggleVoiceInput(): Promise<void> {
@@ -898,6 +943,12 @@ struct ChatMain {
     }
     // 先占位：下面读图是 await，期间用户再点一次会重入
     this.isSending = true;
+
+    // 一场对话只生成一次 id。页面跳转、返回和连续追问都沿用；
+    // 只有 resetChat（用户明确点「新对话」）才会清空并在下一次发送时换新 id。
+    if (appState.chatSessionId.length === 0) {
+      appState.chatSessionId = `chat-${Date.now()}`;
+    }
 
     const text: string = this.inputText.trim().length > 0 ? this.inputText.trim() : '请分析这张图片';
     // 气泡里显示的是**相册 URI**（`Image` 组件要 URI）。

@@ -55,6 +55,17 @@ export interface ChatHistoryRecord {
   userInput: string;
   botResponse: string;
   timestamp: string;
+  /** 同一次完整对话的稳定标识；旧记录由服务端按时间连续性补齐。 */
+  sessionId: string;
+}
+
+/** 历史抽屉中的一场完整对话，而不是被拆散的一轮问答。 */
+export interface ChatHistorySession {
+  sessionId: string;
+  title: string;
+  startedAt: string;
+  updatedAt: string;
+  turns: ChatHistoryRecord[];
 }
 
 export interface AgentRequest {
