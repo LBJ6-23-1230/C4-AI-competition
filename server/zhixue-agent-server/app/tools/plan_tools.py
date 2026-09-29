@@ -122,6 +122,17 @@ def replan_learning_path(old_plan: dict[str, Any], state: dict[str, Any]) -> dic
 	target_id = state.get("knowledgePointId")
 	score = state.get("assessmentScore")
 
+	# 本次评估的知识点可能不在当前计划中。例如用户当前计划只有“线性表”，
+	# 却临时练了“二叉树后序遍历”。这种情况下没有可加时的目标任务，不能继续
+	# 进入下面的兼容兜底逻辑；否则每个 pending 的非目标任务都会被减 15 分钟，
+	# 最终出现“做二叉树题，线性表时间却减少”的错误结果。
+	#
+	# 当前边界拿不到可靠的任务名称、优先级等新增任务所需信息，因此保持计划
+	# 不变比凭空创建一个不完整任务更安全。后续完整规划流程仍可依据新画像生成
+	# 对应知识点任务。
+	if not any(task.get("knowledgePointId") == target_id for task in tasks):
+		return {"plan": dict(old_plan), "changedTasks": [], "decision": decision}
+
 	# 优先走「按得分重新分配总时长」。条件不满足时回退到固定 ±15 的老逻辑。
 	distribution = _distribute_durations(tasks, target_id, score)
 	changed: list[dict[str, Any]] = []

@@ -1,4 +1,4 @@
-import { AgentHistoryItem, AgentRequest, AgentResponse, ChatAction, ChatCard, ChatCardType, ChatHistoryRecord, ChatIntent, ChatMessage, WrongAnalysis } from '../models/ChatModels';
+import { AgentHistoryItem, AgentRequest, AgentResponse, ChatAction, ChatBasicInfoUpdate, ChatCard, ChatCardType, ChatCourseUpdate, ChatExamUpdate, ChatHistoryRecord, ChatIntent, ChatKnowledgeUpdate, ChatLearningGoalUpdate, ChatMessage, ChatProfileUpdates, ChatRecentStatusUpdate, ChatTaskUpdate, ChatTimeUpdate, ChatUserUpdate, WrongAnalysis } from '../models/ChatModels';
 import { http } from '@kit.NetworkKit';
 import { appState } from '../data/AppState';
 import { AgentApiClient, ApiClientConfig } from '../api/AgentApiClient';
@@ -317,8 +317,134 @@ export class AgentBridge {
       }
     }
 
+    const profileUpdates: ChatProfileUpdates | undefined = AgentBridge.parseProfileUpdates(data);
+
     return { reply: reply, intent: intent, card: card, llmUsed: llmUsed,
-      wrongAnalysis: wrongAnalysis };
+      profileUpdates: profileUpdates, wrongAnalysis: wrongAnalysis };
+  }
+
+  /** 只接收后端确认后的白名单字段；畸形可选字段被忽略，不拖垮整条聊天回复。 */
+  private static parseProfileUpdates(data: Record<string, Object>): ChatProfileUpdates | undefined {
+    const raw: Object | undefined = data['profileUpdates'] as Object | undefined;
+    if (raw === undefined || raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+      return undefined;
+    }
+    const record: Record<string, Object> = raw as Record<string, Object>;
+    const result: ChatProfileUpdates = {};
+
+    const rawCourses: Object | undefined = record['course'] as Object | undefined;
+    if (Array.isArray(rawCourses)) {
+      const courses: ChatCourseUpdate[] = [];
+      for (let index: number = 0; index < rawCourses.length; index++) {
+        const rawCourse: Object = rawCourses[index] as Object;
+        if (rawCourse === null || typeof rawCourse !== 'object' || Array.isArray(rawCourse)) continue;
+        const courseRecord: Record<string, Object> = rawCourse as Record<string, Object>;
+        const course: ChatCourseUpdate = {};
+        course.courseId = AgentBridge.optionalString(courseRecord, 'courseId');
+        course.courseName = AgentBridge.optionalString(courseRecord, 'courseName');
+        course.priority = AgentBridge.optionalString(courseRecord, 'priority');
+
+        const rawExam: Object | undefined = courseRecord['exam'] as Object | undefined;
+        if (rawExam !== undefined && rawExam !== null && typeof rawExam === 'object' && !Array.isArray(rawExam)) {
+          const exam: ChatExamUpdate = { date: AgentBridge.optionalString(rawExam as Record<string, Object>, 'date') };
+          course.exam = exam;
+        }
+        const rawRecent: Object | undefined = courseRecord['recentStatus'] as Object | undefined;
+        if (rawRecent !== undefined && rawRecent !== null && typeof rawRecent === 'object' && !Array.isArray(rawRecent)) {
+          const recentRecord: Record<string, Object> = rawRecent as Record<string, Object>;
+          const recent: ChatRecentStatusUpdate = {
+            studyHours: AgentBridge.optionalNumber(recentRecord, 'studyHours'),
+            status: AgentBridge.optionalString(recentRecord, 'status')
+          };
+          course.recentStatus = recent;
+        }
+        const rawTasks: Object | undefined = courseRecord['tasks'] as Object | undefined;
+        if (Array.isArray(rawTasks)) {
+          const tasks: ChatTaskUpdate[] = [];
+          for (let taskIndex: number = 0; taskIndex < rawTasks.length; taskIndex++) {
+            const rawTask: Object = rawTasks[taskIndex] as Object;
+            if (rawTask === null || typeof rawTask !== 'object' || Array.isArray(rawTask)) continue;
+            const taskRecord: Record<string, Object> = rawTask as Record<string, Object>;
+            const task: ChatTaskUpdate = {
+              taskname: AgentBridge.optionalString(taskRecord, 'taskname'),
+              taskType: AgentBridge.optionalString(taskRecord, 'taskType'),
+              deadline: AgentBridge.optionalString(taskRecord, 'deadline'),
+              taskStatus: AgentBridge.optionalString(taskRecord, 'taskStatus'),
+              estimatedMinutes: AgentBridge.optionalNumber(taskRecord, 'estimatedMinutes')
+            };
+            if ((task.taskname ?? '').length > 0) tasks.push(task);
+          }
+          course.tasks = tasks;
+        }
+        if ((course.courseId ?? '').length > 0 || (course.courseName ?? '').length > 0) courses.push(course);
+      }
+      result.course = courses;
+    }
+
+    const rawUser: Object | undefined = record['user'] as Object | undefined;
+    if (rawUser !== undefined && rawUser !== null && typeof rawUser === 'object' && !Array.isArray(rawUser)) {
+      const userRecord: Record<string, Object> = rawUser as Record<string, Object>;
+      const user: ChatUserUpdate = {};
+      const rawBasic: Object | undefined = userRecord['basicInfo'] as Object | undefined;
+      if (rawBasic !== undefined && rawBasic !== null && typeof rawBasic === 'object' && !Array.isArray(rawBasic)) {
+        const basicRecord: Record<string, Object> = rawBasic as Record<string, Object>;
+        const basic: ChatBasicInfoUpdate = {
+          name: AgentBridge.optionalString(basicRecord, 'name'),
+          grade: AgentBridge.optionalString(basicRecord, 'grade'),
+          major: AgentBridge.optionalString(basicRecord, 'major')
+        };
+        user.basicInfo = basic;
+      }
+      const rawGoal: Object | undefined = userRecord['learningGoal'] as Object | undefined;
+      if (rawGoal !== undefined && rawGoal !== null && typeof rawGoal === 'object' && !Array.isArray(rawGoal)) {
+        const goalRecord: Record<string, Object> = rawGoal as Record<string, Object>;
+        const goal: ChatLearningGoalUpdate = {
+          course: AgentBridge.optionalString(goalRecord, 'course'),
+          goal: AgentBridge.optionalString(goalRecord, 'goal')
+        };
+        user.learningGoal = goal;
+      }
+      const rawTime: Object | undefined = userRecord['time'] as Object | undefined;
+      if (rawTime !== undefined && rawTime !== null && typeof rawTime === 'object' && !Array.isArray(rawTime)) {
+        const timeRecord: Record<string, Object> = rawTime as Record<string, Object>;
+        const time: ChatTimeUpdate = { freeTime: AgentBridge.optionalStringArray(timeRecord, 'freeTime') };
+        user.time = time;
+      }
+      const rawKnowledge: Object | undefined = userRecord['knowledge'] as Object | undefined;
+      if (rawKnowledge !== undefined && rawKnowledge !== null && typeof rawKnowledge === 'object'
+        && !Array.isArray(rawKnowledge)) {
+        const knowledgeRecord: Record<string, Object> = rawKnowledge as Record<string, Object>;
+        const knowledge: ChatKnowledgeUpdate = {
+          weakness: AgentBridge.optionalStringArray(knowledgeRecord, 'weakness'),
+          strength: AgentBridge.optionalStringArray(knowledgeRecord, 'strength')
+        };
+        user.knowledge = knowledge;
+      }
+      result.user = user;
+    }
+    return result.course !== undefined || result.user !== undefined ? result : undefined;
+  }
+
+  private static optionalString(data: Record<string, Object>, key: string): string | undefined {
+    const value: Object | undefined = data[key] as Object | undefined;
+    return typeof value === 'string' ? value as string : undefined;
+  }
+
+  private static optionalNumber(data: Record<string, Object>, key: string): number | undefined {
+    const value: Object | undefined = data[key] as Object | undefined;
+    return typeof value === 'number' && Number.isFinite(value as number) ? value as number : undefined;
+  }
+
+  private static optionalStringArray(data: Record<string, Object>, key: string): string[] | undefined {
+    const value: Object | undefined = data[key] as Object | undefined;
+    if (!Array.isArray(value)) return undefined;
+    const result: string[] = [];
+    for (let index: number = 0; index < value.length; index++) {
+      if (typeof value[index] === 'string' && (value[index] as string).trim().length > 0) {
+        result.push((value[index] as string).trim());
+      }
+    }
+    return result;
   }
 
   static parseCard(cardObj: Record<string, Object>): ChatCard {

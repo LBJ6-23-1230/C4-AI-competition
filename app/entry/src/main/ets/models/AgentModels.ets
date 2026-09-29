@@ -60,6 +60,8 @@ export interface HomeworkDDL {
   daysLeft: number;
   priority: string;
   estimatedMinutes: number;
+  /** 数据来源；旧数据缺失时按 id 前缀兼容判断。 */
+  origin?: 'chat' | 'import';
 }
 
 /* ==================== 错题记录模型（兼容旧版） ==================== */

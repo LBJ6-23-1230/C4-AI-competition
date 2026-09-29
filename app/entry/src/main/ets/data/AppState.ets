@@ -20,7 +20,7 @@ import {
   WeeklyLearningPlan,
   PlanTaskStatus
 } from '../models/AgentModels';
-import { ChatHandoff } from '../models/ChatModels';
+import { ChatCourseUpdate, ChatHandoff, ChatProfileUpdates, ChatTaskUpdate } from '../models/ChatModels';
 import { AgentApiClient } from '../api/AgentApiClient';
 import { ApiDefaults } from '../api/ApiDefaults';
 import { AuthSource, AuthUser } from '../api/AuthModels';
@@ -436,6 +436,154 @@ export class AppState {
     this.notifyLearningDataChanged();
     if (courseNameChanged) this.syncImportedKnowledge();
     return true;
+  }
+
+  /**
+   * 应用对话中已经由用户“确认更新”的结构化改动。
+   *
+   * 课程与 DDL 的权威副本就在 AppState；因此确认后应直接写入这里并按账号持久化，
+   * 不需要再把用户赶到“课程与作业”页重复导入。`tasks` 按后端 prompt 的约定是
+   * 该课程更新后的完整任务列表，所以会替换该课程原有 DDL，其他课程完全保留。
+   */
+  public applyChatProfileUpdates(updates: ChatProfileUpdates): string[] {
+    const changed: string[] = [];
+    if (updates.user !== undefined) {
+      if (updates.user.basicInfo !== undefined) {
+        this.currentUser.basicInfo = {
+          name: updates.user.basicInfo.name ?? this.currentUser.basicInfo.name,
+          grade: updates.user.basicInfo.grade ?? this.currentUser.basicInfo.grade,
+          major: updates.user.basicInfo.major ?? this.currentUser.basicInfo.major
+        };
+        changed.push('个人信息');
+      }
+      if (updates.user.learningGoal !== undefined) {
+        this.currentUser.learningGoal = {
+          course: updates.user.learningGoal.course ?? this.currentUser.learningGoal.course,
+          goal: updates.user.learningGoal.goal ?? this.currentUser.learningGoal.goal
+        };
+        changed.push('学习目标');
+      }
+      if (updates.user.time?.freeTime !== undefined) {
+        this.currentUser.time = { freeTime: updates.user.time.freeTime };
+        changed.push('空闲时间');
+      }
+      if (updates.user.knowledge !== undefined) {
+        this.currentUser.knowledge = {
+          weakness: updates.user.knowledge.weakness ?? this.currentUser.knowledge.weakness,
+          strength: updates.user.knowledge.strength ?? this.currentUser.knowledge.strength
+        };
+        changed.push('知识情况');
+      }
+    }
+
+    const courseUpdates: ChatCourseUpdate[] = updates.course ?? [];
+    if (courseUpdates.length === 0) return changed;
+    let nextCourses: CourseInfo[] = this.courses.slice();
+    let nextDDLs: HomeworkDDL[] = this.homeworkDDLs.slice();
+    let changedCourseCount: number = 0;
+    let changedTaskCount: number = 0;
+    const stamp: number = Date.now();
+
+    for (let index: number = 0; index < courseUpdates.length; index++) {
+      const update: ChatCourseUpdate = courseUpdates[index];
+      const requestedId: string = (update.courseId ?? '').trim();
+      const requestedName: string = (update.courseName ?? '').trim();
+      let foundIndex: number = -1;
+      for (let courseIndex: number = 0; courseIndex < nextCourses.length; courseIndex++) {
+        const current: CourseInfo = nextCourses[courseIndex];
+        if ((requestedId.length > 0 && current.courseId === requestedId) ||
+          (requestedName.length > 0 && current.courseName === requestedName)) {
+          foundIndex = courseIndex;
+          break;
+        }
+      }
+
+      const existing: CourseInfo | undefined = foundIndex >= 0 ? nextCourses[foundIndex] : undefined;
+      const oldName: string = existing?.courseName ?? requestedName;
+      const finalName: string = requestedName.length > 0 ? requestedName : oldName;
+      if (finalName.length === 0) continue;
+      const examDate: string = update.exam?.date ?? existing?.exam.date ?? '未设置';
+      const computedDays: number = examDate === '未设置' ? 30 : DateHelper.calculateDaysLeft(examDate);
+      const finalCourse: CourseInfo = {
+        courseId: existing?.courseId ?? (requestedId.length > 0 ? requestedId : `chat-course-${stamp}-${index}`),
+        courseName: finalName,
+        exam: {
+          date: examDate,
+          daysLeft: isNaN(computedDays) ? (existing?.exam.daysLeft ?? 30) : computedDays
+        },
+        priority: update.priority ?? existing?.priority ?? '中',
+        recentStatus: {
+          studyHours: update.recentStatus?.studyHours ?? existing?.recentStatus.studyHours ?? 0,
+          status: update.recentStatus?.status ?? existing?.recentStatus.status ?? '尚未评估'
+        }
+      };
+      if (foundIndex >= 0) nextCourses[foundIndex] = finalCourse;
+      else nextCourses.push(finalCourse);
+      changedCourseCount++;
+
+      // 改课程名时，未被本次 tasks 覆盖的 DDL 也要跟着迁移到新名称。
+      if (oldName.length > 0 && oldName !== finalName) {
+        nextDDLs = nextDDLs.map((item: HomeworkDDL): HomeworkDDL => item.courseName === oldName
+          ? {
+            id: item.id,
+            courseName: finalName,
+            title: item.title,
+            dueDate: item.dueDate,
+            daysLeft: item.daysLeft,
+            priority: item.priority,
+            estimatedMinutes: item.estimatedMinutes,
+            origin: item.origin
+          } : item);
+      }
+
+      if (update.tasks !== undefined) {
+        const previousForCourse: HomeworkDDL[] = nextDDLs.filter(
+          (item: HomeworkDDL): boolean => item.courseName === finalName);
+        nextDDLs = nextDDLs.filter((item: HomeworkDDL): boolean => item.courseName !== finalName);
+        for (let taskIndex: number = 0; taskIndex < update.tasks.length; taskIndex++) {
+          const task: ChatTaskUpdate = update.tasks[taskIndex];
+          const title: string = (task.taskname ?? '').trim();
+          if (title.length === 0) continue;
+          const previous: HomeworkDDL | undefined = previousForCourse.find(
+            (item: HomeworkDDL): boolean => item.title === title);
+          const dueDate: string = (task.deadline ?? previous?.dueDate ?? '').trim();
+          const daysLeft: number = dueDate.length > 0 ? DateHelper.calculateDaysLeft(dueDate) : 30;
+          nextDDLs.push({
+            id: previous?.id ?? `chat-ddl-${stamp}-${index}-${taskIndex}`,
+            courseName: finalName,
+            title: title,
+            dueDate: dueDate,
+            daysLeft: isNaN(daysLeft) ? 30 : daysLeft,
+            priority: finalCourse.priority,
+            estimatedMinutes: task.estimatedMinutes ?? previous?.estimatedMinutes ?? 60,
+            // 模型按约定返回的是“更新后的完整任务列表”，其中会同时包含原有
+            // 导入 DDL 与本轮新增任务。已存在任务必须保留原来源，否则普通 DDL
+            // 会被错误搬进“对话新增任务”；只有真正新增的任务才标记为 chat。
+            // id 是创建入口留下的稳定证据：旧版本曾把 ddl-csv-* 的导入任务
+            // 错写成 origin=chat，这里顺便把已经持久化的脏标记修回来。
+            origin: previous !== undefined
+              ? (previous.id.startsWith('chat-ddl-') ? 'chat' : 'import')
+              : 'chat'
+          });
+          changedTaskCount++;
+        }
+      }
+    }
+
+    this.courses = nextCourses;
+    this.homeworkDDLs = nextDDLs;
+    this.importedCourseCount = nextCourses.length;
+    this.importedDDLCount = nextDDLs.length;
+    this.isDataImported = nextCourses.length > 0 || nextDDLs.length > 0;
+    this.persistLearningData();
+    this.clearWeeklyPlan();
+    this.notifyLearningDataChanged();
+    this.syncImportedKnowledge();
+    if (changedCourseCount > 0) changed.push(`${changedCourseCount} 门课程`);
+    if (changedTaskCount > 0 || courseUpdates.some((item: ChatCourseUpdate): boolean => item.tasks !== undefined)) {
+      changed.push(`${changedTaskCount} 项任务`);
+    }
+    return changed;
   }
 
   /** 删除指定DDL */

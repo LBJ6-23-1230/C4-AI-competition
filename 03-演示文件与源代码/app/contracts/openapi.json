@@ -2420,6 +2420,24 @@
             "type": "boolean",
             "description": "true=大模型生成；false=本地确定性规则兜底（未配置 Key 或调用失败）。前端 ChatMain 据此显示来源标签。"
           },
+          "profileUpdates": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "user": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "course": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "description": "仅 update_profile 意图在用户明确确认后返回。前端必须把课程与任务改动应用到当前账号的 AppState 并持久化。"
+          },
           "wrongAnalysis": {
             "type": "object",
             "nullable": true,

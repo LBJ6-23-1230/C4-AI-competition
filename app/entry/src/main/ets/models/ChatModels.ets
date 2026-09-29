@@ -39,6 +39,8 @@ export interface ChatMessage {
   card?: ChatCard;
   /** true = 大模型生成，false = 本地确定性规则兜底。 */
   llmUsed?: boolean;
+  /** 确定性业务操作的来源标签；有值时优先于通用的模型/兜底标签。 */
+  sourceLabel?: string;
   time: string;
   status: ChatStatus;
 }
@@ -66,6 +68,8 @@ export interface AgentResponse {
   intent: string;
   card?: ChatCard;
   llmUsed?: boolean;
+  /** “确认更新”后由后端返回、需要直接应用到当前账号本地数据的结构化改动。 */
+  profileUpdates?: ChatProfileUpdates;
   /**
    * 仅 `analyze_wrong` 意图下可能非空：错题分析识别出的**结构化**知识点。
    *
@@ -74,6 +78,65 @@ export interface AgentResponse {
    * 识别不出时为空，**不要自己编一个知识点**。
    */
   wrongAnalysis?: WrongAnalysis;
+}
+
+export interface ChatTaskUpdate {
+  taskname?: string;
+  taskType?: string;
+  deadline?: string;
+  taskStatus?: string;
+  /** 用户明确要求的学习时长；例如 19:30-21:30 应保存为 120。 */
+  estimatedMinutes?: number;
+}
+
+export interface ChatExamUpdate {
+  date?: string;
+}
+
+export interface ChatRecentStatusUpdate {
+  studyHours?: number;
+  status?: string;
+}
+
+export interface ChatCourseUpdate {
+  courseId?: string;
+  courseName?: string;
+  tasks?: ChatTaskUpdate[];
+  exam?: ChatExamUpdate;
+  priority?: string;
+  recentStatus?: ChatRecentStatusUpdate;
+}
+
+export interface ChatBasicInfoUpdate {
+  name?: string;
+  grade?: string;
+  major?: string;
+}
+
+export interface ChatLearningGoalUpdate {
+  course?: string;
+  goal?: string;
+}
+
+export interface ChatTimeUpdate {
+  freeTime?: string[];
+}
+
+export interface ChatKnowledgeUpdate {
+  weakness?: string[];
+  strength?: string[];
+}
+
+export interface ChatUserUpdate {
+  basicInfo?: ChatBasicInfoUpdate;
+  learningGoal?: ChatLearningGoalUpdate;
+  time?: ChatTimeUpdate;
+  knowledge?: ChatKnowledgeUpdate;
+}
+
+export interface ChatProfileUpdates {
+  user?: ChatUserUpdate;
+  course?: ChatCourseUpdate[];
 }
 
 /** 错题分析的结构化结果（后端 `wrongAnalysis`）。 */

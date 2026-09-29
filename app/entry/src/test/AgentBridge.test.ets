@@ -150,6 +150,46 @@ export default function agentBridgeTest() {
       expect(response.llmUsed === undefined).assertTrue();
     });
 
+    it('keeps confirmed course and task updates for ChatMain to apply', 0, () => {
+      const payload: Record<string, Object> = JSON.parse(
+        '{"reply":"已确认课程与任务更新","intent":"update_profile",'
+        + '"profileUpdates":{"course":[{"courseId":"c001","courseName":"数据结构",'
+        + '"tasks":[{"taskname":"今天到期的实验报告","taskType":"实验报告",'
+        + '"deadline":"2026-09-29","taskStatus":"未完成"},'
+        + '{"taskname":"递归与图算法共同学习","taskType":"共同学习",'
+        + '"deadline":"2026-09-29","taskStatus":"未完成","estimatedMinutes":120}]}]}}') as Record<string, Object>;
+      const response = AgentBridge.parseResponse(payload);
+      expect(response.profileUpdates?.course?.length).assertEqual(1);
+      expect(response.profileUpdates?.course?.[0].tasks?.[1].taskname)
+        .assertEqual('递归与图算法共同学习');
+      expect(response.profileUpdates?.course?.[0].tasks?.[1].estimatedMinutes).assertEqual(120);
+      if (response.profileUpdates !== undefined) {
+        const previousCourses = appState.courses;
+        const previousDDLs = appState.homeworkDDLs;
+        appState.courses = [{
+          courseId: 'c001', courseName: '数据结构',
+          exam: { date: '2026-12-20', daysLeft: 82 }, priority: '高',
+          recentStatus: { studyHours: 2, status: '近期复习不足' }
+        }];
+        appState.homeworkDDLs = [{
+          id: 'import-ddl-1', courseName: '数据结构', title: '今天到期的实验报告',
+          dueDate: '2026-09-29', daysLeft: 0, priority: '高', estimatedMinutes: 90,
+          // 模拟旧版本已经错误持久化的来源标记；新逻辑应依据导入 id 修复为 import。
+          origin: 'chat'
+        }];
+        const applied: string[] = appState.applyChatProfileUpdates(response.profileUpdates);
+        expect(applied.length > 0).assertTrue();
+        expect(appState.homeworkDDLs.length).assertEqual(2);
+        expect(appState.homeworkDDLs[0].origin).assertEqual('import');
+        expect(appState.homeworkDDLs[0].estimatedMinutes).assertEqual(90);
+        expect(appState.homeworkDDLs[1].title).assertEqual('递归与图算法共同学习');
+        expect(appState.homeworkDDLs[1].origin).assertEqual('chat');
+        expect(appState.homeworkDDLs[1].estimatedMinutes).assertEqual(120);
+        appState.courses = previousCourses;
+        appState.homeworkDDLs = previousDDLs;
+      }
+    });
+
     it('uses the chat home as the fixed return destination', 0, () => {
       expect(ChatNavigation.chatHome()).assertEqual('pages/ChatMain');
     });

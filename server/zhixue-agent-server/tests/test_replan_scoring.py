@@ -96,6 +96,31 @@ def test_distribution_returns_none_when_not_applicable():
 	assert _distribute_durations(PLAN["tasks"], "binary-tree-postorder", None) is None
 
 
+def test_missing_target_does_not_reduce_unrelated_pending_tasks():
+	"""练习知识点不在当前计划时，不得误减其它待办任务的时长。"""
+	linear_only = {
+		"planId": "plan-linear-only",
+		"version": 9,
+		"tasks": [{
+			"taskId": "task-linear-list",
+			"knowledgePointId": "linear-list",
+			"knowledgePointName": "线性表",
+			"status": "pending",
+			"durationMinutes": 35,
+		}],
+	}
+	result = replan_learning_path(linear_only, {
+		"masteryScore": 45,
+		"knowledgePointId": "binary-tree-postorder",
+		"repeatedError": True,
+		"assessmentScore": 66.67,
+	})
+
+	assert result["changedTasks"] == []
+	assert result["plan"]["version"] == 9
+	assert result["plan"]["tasks"][0]["durationMinutes"] == 35
+
+
 def test_reason_records_score():
 	"""reason 里要留下得分，便于排查与展示依据。"""
 	result = replan_learning_path(dict(PLAN), {

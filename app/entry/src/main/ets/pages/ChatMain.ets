@@ -543,12 +543,13 @@ struct ChatMain {
             .borderRadius(8)
         }
 
-        if (message.role === 'agent' && message.status === 'done' && message.llmUsed !== undefined) {
-          Text(message.llmUsed ? '大模型生成' : '本地规则兜底')
+        if (message.role === 'agent' && message.status === 'done' &&
+          (message.sourceLabel !== undefined || message.llmUsed !== undefined)) {
+          Text(message.sourceLabel ?? (message.llmUsed ? '大模型生成' : '本地规则兜底'))
             .fontSize(11)
-            .fontColor(message.llmUsed ? '#2563EB' : '#B45309')
+            .fontColor(message.sourceLabel !== undefined || message.llmUsed ? '#2563EB' : '#B45309')
             .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-            .backgroundColor(message.llmUsed ? '#EAF2FF' : '#FFF7ED')
+            .backgroundColor(message.sourceLabel !== undefined || message.llmUsed ? '#EAF2FF' : '#FFF7ED')
             .borderRadius(10)
         }
 
@@ -666,7 +667,7 @@ struct ChatMain {
       return '选择合适的学习搭子';
     }
     if (targetPage === 'pages/StudyPlan') {
-      return '确认本周复习计划';
+      return '查看课程任务与专项计划';
     }
     if (targetPage === 'pages/FocusSetup') {
       return '开始本次专注';
@@ -952,12 +953,20 @@ struct ChatMain {
     try {
       const response = await AgentBridge.callAgent(text, imageForAgent, historyBeforeSend);
       this.messages = this.messages.filter((item: ChatMessage) => item.id !== loadingMessage.id);
+      let replyText: string = response.reply;
+      if (response.profileUpdates !== undefined) {
+        const applied: string[] = appState.applyChatProfileUpdates(response.profileUpdates);
+        if (applied.length > 0) {
+          replyText += `\n\n已在对话中完成：${applied.join('、')}。`;
+        }
+      }
       const agentMessage: ChatMessage = {
         id: `agent-${Date.now()}`,
         role: 'agent',
-        text: response.reply,
+        text: replyText,
         card: response.card,
         llmUsed: response.llmUsed,
+        sourceLabel: response.profileUpdates !== undefined ? '系统已执行' : undefined,
         time: this.formatTime(),
         status: 'done'
       };

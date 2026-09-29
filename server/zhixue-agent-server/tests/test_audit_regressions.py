@@ -304,6 +304,44 @@ def test_mastery_update_creates_missing_knowledge_point(tmp_path):
         "练习过的知识点没有在画像里建档（画像里查无此点）"
 
 
+def test_submit_does_not_reduce_unrelated_plan_when_target_is_absent(tmp_path):
+    """二叉树练习不得在计划缺少二叉树任务时误减“线性表”时长。"""
+    client = create_app(tmp_path / "missing-plan-target.json").test_client()
+    client.post("/api/v1/demo/reset")
+
+    import app.api.exercises as exercises_module
+
+    plan = exercises_module._repository.get("plans", "plan-demo-001")
+    plan["version"] = 9
+    plan["tasks"] = [{
+        "taskId": "task-linear-list",
+        "knowledgePointId": "linear-list",
+        "knowledgePointName": "线性表",
+        "durationMinutes": 35,
+        "status": "pending",
+        "priority": "high",
+    }]
+    exercises_module._repository.save("plans", "plan-demo-001", plan)
+
+    response = client.post("/api/v1/exercises/set-demo-binary-tree-001/submit", json={
+        "userId": "demo-user",
+        "idempotencyKey": "missing-plan-target-001",
+        "answers": [
+            {"exerciseId": "exercise-preorder-001", "answer": "A"},
+            {"exerciseId": "exercise-inorder-001", "answer": "B"},
+            {"exerciseId": "exercise-postorder-001", "answer": "A"},
+        ],
+    })
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["needReplan"] is True
+    assert "planDiff" not in body, "零变更不应显示‘学习计划已更新’"
+    saved = exercises_module._repository.get("plans", "plan-demo-001")
+    assert saved["version"] == 9
+    assert saved["tasks"][0]["durationMinutes"] == 35
+
+
 def test_empty_answers_do_not_penalize_mastery(tmp_path):
     """空答案不得被当成"全错"扣掌握度并触发重规划。
 
@@ -505,12 +543,71 @@ def test_update_profile_handler_requires_confirmation_before_writing(tmp_path):
     assert confirmed.get("user"), "确认后 updates.user 丢失"
     assert confirmed.get("course"), "确认后 updates.course 丢失"
     assert "已更新学习档案" in confirmed_reply
-    assert "本次未自动覆盖" in confirmed_reply, "课程改动不能伪装成已落盘"
+    assert "正在同步到当前设备" in confirmed_reply
+    assert "课程与作业" not in confirmed_reply, "对话确认后不应再强制跳转导入页"
 
     import app.api.chat as chat_module
 
     profile = chat_module._repository.get("profiles", owner)
     assert profile["goal"] == "数据结构 90+", "确认后学习目标没有落盘"
+
+
+def test_update_profile_deduplicates_confirmation_and_uses_explicit_duration(tmp_path):
+    """19:30-21:30 必须落成 120 分钟，且系统确认提示只能出现一次。"""
+    from app.agent import chat_llm
+
+    create_app(tmp_path / "profile-duration.json")
+    owner = "duration-user"
+    original = chat_llm._call_llm
+    try:
+        chat_llm._call_llm = lambda *a, **k: (
+            '{"intent":"update_profile",'
+            '"reply":"已安排共同学习任务。\\n\\n为避免误改，我还没有保存。请回复“确认更新”继续，'
+            '或回复“取消更新”放弃。",'
+            '"updates":{"course":[{"courseName":"数据结构","tasks":['
+            '{"taskname":"今天到期的实验报告","deadline":"2026-09-29","estimatedMinutes":90},'
+            '{"taskname":"递归与图算法共同学习","deadline":"2026-09-29","estimatedMinutes":60}'
+            ']}]}}'
+        )
+        reply, updates = chat_llm._handle_update_profile(
+            "安排今晚19:30到21:30的数据结构共同学习任务",
+            {"courses": [{"courseName": "数据结构", "tasks": [{
+                "taskname": "今天到期的实验报告", "deadline": "2026-09-29",
+                "estimatedMinutes": 90,
+            }]}]}, owner)
+    finally:
+        chat_llm._call_llm = original
+
+    assert updates == {}
+    assert reply.count("确认更新") == 1
+    assert reply.count("取消更新") == 1
+    _, confirmed = chat_llm._handle_update_profile("确认更新", {}, owner)
+    tasks = confirmed["course"][0]["tasks"]
+    assert tasks[0]["estimatedMinutes"] == 90
+    assert tasks[1]["estimatedMinutes"] == 120
+
+
+def test_profile_confirmation_bypasses_intent_model_and_returns_course_updates(tmp_path):
+    """短句“确认更新”应直接提交待确认事务，并把课程任务改动返回前端。"""
+    from app.agent import chat_llm
+
+    create_app(tmp_path / "chat-confirm-command.json")
+    owner = "demo-user"
+    with chat_llm._PENDING_PROFILE_LOCK:
+        chat_llm._PENDING_PROFILE_UPDATES[owner] = {
+            "course": [{"courseName": "数据结构", "tasks": [{
+                "taskname": "递归与图算法共同学习",
+                "deadline": "2026-09-29",
+                "taskStatus": "未完成",
+            }]}]
+        }
+
+    result = chat_llm.chat("确认更新", frontend_data={"courses": []}, user_id=owner)
+
+    assert result["intent"] == "update_profile"
+    assert result["profileUpdates"]["course"][0]["tasks"][0]["taskname"] == \
+        "递归与图算法共同学习"
+    assert "课程与作业" not in result["reply"]
 
 
 def test_mastery_self_report_is_verified_not_trusted():

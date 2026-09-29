@@ -1,6 +1,6 @@
 import router from '@ohos.router';
 import { appState } from '../data/AppState';
-import { FocusTask } from '../models/AgentModels';
+import { FocusTask, HomeworkDDL } from '../models/AgentModels';
 import { AIFloatButton } from '../components/AIFloatButton';
 import { LearningPlan, PlanTask } from '../api/ApiModels';
 import { PlanViewModel } from '../viewmodels/PlanViewModel';
@@ -12,12 +12,16 @@ struct StudyPlan {
   @State isApiPlanLoading: boolean = true;
   @State apiPlan: LearningPlan | null = null;
   @State apiPlanMessage: string = '';
+  @State conversationTasks: HomeworkDDL[] = [];
   private planViewModel: PlanViewModel = new PlanViewModel();
   private planRequestVersion: number = 0;
   private isPageActive: boolean = false;
 
   aboutToAppear(): void {
     this.isPageActive = true;
+    this.conversationTasks = appState.homeworkDDLs.filter((task: HomeworkDDL): boolean =>
+      task.id.startsWith('chat-ddl-') ||
+      (task.origin === 'chat' && !task.id.startsWith('ddl-csv-') && !task.id.startsWith('ddl-json-')));
     this.loadCurrentPlan();
   }
 
@@ -41,6 +45,14 @@ struct StudyPlan {
     appState.setFocusTask({
       course: '专项学习', task: task.knowledgePointName, plannedMinutes: task.durationMinutes,
       source: 'agent', mode: 'normal', timerType: 'countdown', planTaskId: task.taskId
+    } as FocusTask);
+    router.pushUrl({ url: 'pages/FocusSetup' });
+  }
+
+  private startCourseTask(task: HomeworkDDL): void {
+    appState.setFocusTask({
+      course: task.courseName, task: task.title, plannedMinutes: task.estimatedMinutes,
+      source: 'course', mode: 'normal', timerType: 'countdown', planTaskId: task.id
     } as FocusTask);
     router.pushUrl({ url: 'pages/FocusSetup' });
   }
@@ -97,6 +109,26 @@ struct StudyPlan {
     }.width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(18).border({ width: 1, color: '#EAECF0' })
   }
 
+  @Builder
+  CourseTaskCard(task: HomeworkDDL) {
+    Column({ space: 10 }) {
+      Row() {
+        Column({ space: 4 }) {
+          Text(task.title).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#1F2937').maxLines(2)
+          Text(`${task.courseName} · ${task.estimatedMinutes} 分钟`).fontSize(12).fontColor('#667085')
+        }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+        Text(task.priority).fontSize(11).fontColor('#2563EB').backgroundColor('#EFF6FF')
+          .borderRadius(10).padding({ left: 8, right: 8, top: 4, bottom: 4 })
+      }.width('100%')
+      Text(task.dueDate.length > 0 ? `截止：${task.dueDate}` : '暂未设置截止时间')
+        .fontSize(12).fontColor('#475467').width('100%')
+      Button('开始任务').width('100%').height(42).fontSize(13).fontWeight(FontWeight.Bold)
+        .fontColor('#FFFFFF').backgroundColor('#2563EB').borderRadius(12)
+        .onClick(() => this.startCourseTask(task))
+    }.width('100%').padding(18).backgroundColor('#FFFFFF').borderRadius(18)
+      .border({ width: 1, color: '#EAECF0' })
+  }
+
   build() {
     Stack() {
       Column() {
@@ -115,10 +147,30 @@ struct StudyPlan {
                   .backgroundColor('#EFF6FF').borderRadius(9).padding({ left: 8, right: 8, top: 4, bottom: 4 })
               }
             }.width('100%')
-            Text('任务、优先级和时长均以当前工作流接口返回为准；本地课程与 DDL 日程不会覆盖此计划。')
+            Text('Agent 专项计划与课程截止任务分开管理；对话中确认的任务会显示在下方课程任务区。')
               .fontSize(13).fontColor('#667085').lineHeight(20).width('100%')
             Text(appState.getChatTaskContext()).fontSize(12).fontColor('#2563EB')
               .width('100%').padding(10).backgroundColor('#EFF6FF').borderRadius(10)
+            // 这里只展示对话中明确确认的任务。课程表导入的普通 DDL 仍由
+            // “课程与作业”管理，不能因为共用 HomeworkDDL 存储就混到计划首屏。
+            if (this.conversationTasks.length > 0) {
+              Column({ space: 6 }) {
+                Row() {
+                  Text('对话新增任务').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#1F2937')
+                  Blank()
+                  Text(`${this.conversationTasks.length} 项 · 已同步`).fontSize(11).fontWeight(FontWeight.Medium)
+                    .fontColor('#047857').backgroundColor('#ECFDF3').borderRadius(10)
+                    .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                }.width('100%')
+                Text('仅显示你在对话中确认创建的任务，不包含课程表 DDL。')
+                  .fontSize(12).fontColor('#667085').width('100%')
+              }.width('100%').padding({ top: 4 })
+              ForEach(this.conversationTasks, (task: HomeworkDDL) => {
+                this.CourseTaskCard(task)
+              }, (task: HomeworkDDL) => task.id)
+              Text('Agent 专项任务').fontSize(18).fontWeight(FontWeight.Bold).fontColor('#1F2937')
+                .width('100%').margin({ top: 8 })
+            }
             if (this.isApiPlanLoading) {
               Column({ space: 10 }) {
                 LoadingProgress().width(30).height(30).color('#2563EB')

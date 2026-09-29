@@ -410,11 +410,17 @@ def submit_exercises(set_id: str):
 						if plan_belongs_to(item, user_id)]
 					plan = next((item for item in plans if item.get("planId") == "plan-demo-001"), None)
 					plan = plan or (plans[0] if plans else None)
+					replan_result = None
 					if plan is not None:
 						replan_result = replan_learning_path(plan, {"masteryScore": report_new,
 							"knowledgePointId": report_point, "repeatedError": score < 80,
 							# 传得分才能按错误程度分级加时；不传则回退到固定 ±15
 							"assessmentScore": score})
+						# 目标知识点不在当前计划时，重规划器会安全地返回零变更。
+						# 此时不能伪造一个新版本或“计划已更新”卡片。
+						if not replan_result["changedTasks"]:
+							replan_result = None
+					if replan_result is not None:
 						updated_plan = replan_result["plan"]
 						updated_tasks = updated_plan["tasks"]
 						new_plan = LearningPlan(plan["planId"], updated_plan["version"], updated_tasks,

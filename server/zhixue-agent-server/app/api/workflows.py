@@ -294,16 +294,18 @@ def _persist_workflow_assessment(state: dict, assessment_data: dict) -> dict:
 				# 传得分才能按错误程度分级加时；不传则回退到固定 ±15
 				"assessmentScore": assessment.score,
 			})
-			updated_plan = replan_result["plan"]
-			updated_plan["planId"] = plan["planId"]
-			updated_plan["generatedFromProfileVersion"] = profile["profileVersion"]
-			_repository.save("plans", plan["planId"], updated_plan)
-			history = create_plan_history(plan, updated_plan, "掌握度低于阈值", [evidence_id])
-			history["planId"] = plan["planId"]
-			_repository.save("plan_histories",
-				f"{plan['planId']}:v{history['newVersion']}", history)
-			submission_response.update({"plan": updated_plan, "planDiff": history})
-			updates.update({"plan": updated_plan, "planDiff": history})
+			# 没有对应知识点任务时保持计划原样，也不生成空的版本变更记录。
+			if replan_result["changedTasks"]:
+				updated_plan = replan_result["plan"]
+				updated_plan["planId"] = plan["planId"]
+				updated_plan["generatedFromProfileVersion"] = profile["profileVersion"]
+				_repository.save("plans", plan["planId"], updated_plan)
+				history = create_plan_history(plan, updated_plan, "掌握度低于阈值", [evidence_id])
+				history["planId"] = plan["planId"]
+				_repository.save("plan_histories",
+					f"{plan['planId']}:v{history['newVersion']}", history)
+				submission_response.update({"plan": updated_plan, "planDiff": history})
+				updates.update({"plan": updated_plan, "planDiff": history})
 	_repository.save("submissions", result_id, {"response": submission_response})
 	updates["submissionId"] = result_id
 	return updates

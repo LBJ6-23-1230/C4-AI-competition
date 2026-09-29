@@ -291,6 +291,25 @@ def test_chat_result_marks_successful_llm_as_used(monkeypatch):
     assert result["reply"] == "这是大模型生成的学习建议"
 
 
+def test_confirmed_course_tasks_link_to_task_page(monkeypatch):
+    """课程任务确认后不能继续跳到只含雷达图的知识画像页。"""
+    owner = "confirmed-course-card-user"
+    updates = {"course": [{
+        "courseName": "数据结构",
+        "tasks": [{"taskname": "递归与图算法共同学习", "deadline": "2026-09-30"}],
+    }]}
+    with chat_llm._PENDING_PROFILE_LOCK:
+        chat_llm._PENDING_PROFILE_UPDATES[owner] = updates
+
+    result = chat_llm.chat("确认更新", user_id=owner)
+
+    assert result["llmUsed"] is False
+    assert result["profileUpdates"] == updates
+    assert result["card"]["title"] == "课程任务已更新"
+    assert result["card"]["targetPage"] == "pages/StudyPlan"
+    assert "1 项任务" in result["card"]["summary"]
+
+
 # --------------------------------------------------------------------------- 协议与边界
 def test_empty_payload_keeps_legacy_response_shape(client):
     body = client.post("/api/agent/chat", json={}).get_json()

@@ -397,6 +397,13 @@ def _format_history(num_entries: int = 10, user_id: str | None = None) -> str:
 # --------------------------------------------------------------------------- 用户上下文
 def _format_frontend_courses(courses: list[Any], ddls: list[Any]) -> list[dict[str, Any]]:
     """把前端注入的 CourseInfo[] + HomeworkDDL[] 转成 Prompt 可读的结构。"""
+    def task_row(item: dict[str, Any]) -> dict[str, Any]:
+        row = {"taskname": item.get("title", ""), "deadline": item.get("dueDate", "")}
+        minutes = item.get("estimatedMinutes")
+        if isinstance(minutes, (int, float)) and minutes > 0:
+            row["estimatedMinutes"] = minutes
+        return row
+
     result: list[dict[str, Any]] = []
     seen_course_names: set[str] = set()
     for course in courses:
@@ -407,7 +414,7 @@ def _format_frontend_courses(courses: list[Any], ddls: list[Any]) -> list[dict[s
         exam = course.get("exam") if isinstance(course.get("exam"), dict) else {}
         recent = course.get("recentStatus") if isinstance(course.get("recentStatus"), dict) else {}
         tasks = [
-            {"taskname": item.get("title", ""), "deadline": item.get("dueDate", "")}
+            task_row(item)
             for item in (ddls or [])
             if isinstance(item, dict) and item.get("courseName", "") == course_name
         ]
@@ -437,7 +444,7 @@ def _format_frontend_courses(courses: list[Any], ddls: list[Any]) -> list[dict[s
             "priority": "中",
             "recentStatus": {"studyHours": 0, "status": ""},
             "tasks": [
-                {"taskname": item.get("title", ""), "deadline": item.get("dueDate", "")}
+                task_row(item)
                 for item in (ddls or [])
                 if isinstance(item, dict) and item.get("courseName", "") == course_name
             ],
@@ -889,6 +896,64 @@ def _mastery_claim_gate(message: str, data: dict[str, Any]) -> str | None:
             f"真的达到水平就会自动进优势知识点。")
 
 
+def _explicit_time_range_minutes(message: str) -> int | None:
+    """读取用户明确写出的一个时间段，并返回持续分钟数。
+
+    大模型只负责理解“要新增什么任务”，19:30-21:30 等算术由确定性代码完成，
+    避免模型套用示例默认值 60 分钟。
+    """
+    match = re.search(
+        r"(?<!\d)([01]?\d|2[0-3])\s*(?:[:：]\s*([0-5]\d)|[点时]\s*([0-5]?\d)?分?)"
+        r"\s*(?:-|–|—|~|～|至|到)\s*"
+        r"([01]?\d|2[0-3])\s*(?:[:：]\s*([0-5]\d)|[点时]\s*([0-5]?\d)?分?)",
+        message,
+    )
+    if match is None:
+        return None
+    start = int(match.group(1)) * 60 + int(match.group(2) or match.group(3) or 0)
+    end = int(match.group(4)) * 60 + int(match.group(5) or match.group(6) or 0)
+    if end <= start:
+        end += 24 * 60
+    duration = end - start
+    return duration if 0 < duration <= 12 * 60 else None
+
+
+def _apply_explicit_task_duration(message: str, data: dict[str, Any],
+                                  updates: dict[str, Any]) -> None:
+    """把明确时间段只写给本轮新增任务，不改动原有 DDL。"""
+    duration = _explicit_time_range_minutes(message)
+    course_updates = updates.get("course")
+    if duration is None or not isinstance(course_updates, list):
+        return
+    existing_names = {
+        str(task.get("taskname") or "").strip()
+        for course in data.get("courses", []) if isinstance(course, dict)
+        for task in course.get("tasks", []) if isinstance(task, dict)
+        if str(task.get("taskname") or "").strip()
+    }
+    for course in course_updates:
+        if not isinstance(course, dict) or not isinstance(course.get("tasks"), list):
+            continue
+        for task in course["tasks"]:
+            if not isinstance(task, dict):
+                continue
+            name = str(task.get("taskname") or "").strip()
+            if name and name not in existing_names:
+                task["estimatedMinutes"] = duration
+
+
+def _clean_profile_update_reply(reply: str) -> str:
+    """移除模型擅自生成的确认操作提示，并去掉重复段落。"""
+    paragraphs = [part.strip() for part in re.split(r"\n\s*\n", reply or "") if part.strip()]
+    unique: list[str] = []
+    for paragraph in paragraphs:
+        if "确认更新" in paragraph and ("取消更新" in paragraph or "还没有保存" in paragraph):
+            continue
+        if paragraph not in unique:
+            unique.append(paragraph)
+    return "\n\n".join(unique)
+
+
 def _handle_update_profile(message: str, data: dict[str, Any],
              user_id: str | None = None) -> tuple[str, dict[str, Any]]:
     """解析画像更新意图，**真正落盘**后端拥有的字段，并如实区分"已改/未改"。
@@ -904,13 +969,12 @@ def _handle_update_profile(message: str, data: dict[str, Any],
     ## 修复思路（为什么不是"把 updates 全写进去"）
 
     数据结构上，后端 `profiles` 集合只拥有 `goal` / `examDate` /
-    `freeTimeSlots` / `mastery` 四个字段；**课程与任务列表是前端本地数据**
-    （`repository.json` 里根本没有 `courses` 集合，前端通过 `user_data` 传进来）。
-    所以"课程/任务类更新"后端接不住，硬写只会写到一个没人读的地方。
+    `freeTimeSlots` / `mastery` 四个字段；课程与任务列表由前端 AppState 按账号持久化。
 
     因此这里先把模型解析出的更新放进按用户隔离的待确认队列；只有用户明确
-    回复“确认更新”后，才把**后端确实拥有**的画像字段落盘。课程/任务由前端
-    本地管理，本接口不会假装已经覆盖，而是明确引导用户去相应页面确认导入。
+    回复“确认更新”后，后端先写自己拥有的画像字段，再把已确认的完整 updates
+    返回前端；前端据此直接更新 AppState。这样对话页本身就是可用的编辑入口，
+    不必强制用户再去“课程与作业”页重复确认。
     """
     owner = (user_id or "").strip() or "demo-user"
     command = (message or "").strip()
@@ -937,7 +1001,7 @@ def _handle_update_profile(message: str, data: dict[str, Any],
         if applied:
             parts.append(f"已更新学习档案：{'、'.join(applied)}。")
         if has_course_updates:
-            parts.append("课程与任务修改需要在“课程与作业”页确认导入，本次未自动覆盖。")
+            parts.append("已确认课程与任务更新，正在同步到当前设备。")
         if not parts:
             parts.append("已确认，但这次没有识别到可写入的档案字段，因此没有修改。")
         return "\n".join(parts), confirmed
@@ -949,6 +1013,7 @@ def _handle_update_profile(message: str, data: dict[str, Any],
     updates = parsed.get("updates")
     if not isinstance(updates, dict):
         updates = {}
+    _apply_explicit_task_duration(message, data, updates)
 
     # ★ 掌握度自述闸：用户说"我掌握了 X"**不能直接采信** —— 先拿真实掌握度对一遍。
     # 刻意**不在这里提前返回**：同一句话里其它可写字段（学习目标 / 空闲时间 / 考试日期）
@@ -962,7 +1027,7 @@ def _handle_update_profile(message: str, data: dict[str, Any],
     if updates:
         with _PENDING_PROFILE_LOCK:
             _PENDING_PROFILE_UPDATES[owner] = updates
-        summary = reply or "我已理解你想修改学习档案。"
+        summary = _clean_profile_update_reply(reply) or "我已理解你想修改学习档案。"
         return (summary + "\n\n为避免误改，我还没有保存。请回复“确认更新”继续，"
                 "或回复“取消更新”放弃。"), {}
 
@@ -1050,6 +1115,32 @@ def build_card(intent: str) -> dict[str, Any] | None:
     }
 
 
+def _build_profile_update_card(profile_updates: dict[str, Any]) -> dict[str, Any] | None:
+    """为已确认的课程/任务更新返回真正能看到结果的入口。
+
+    ``update_profile`` 的默认卡片是知识画像；但课程和 DDL 并不展示在那里。
+    确认事务返回了课程更新时，应把用户带到同时展示 Agent 计划与课程任务的
+    StudyPlan 页面，避免出现“提示完成两项任务，点进去却只有雷达图”的断链。
+    """
+    courses = profile_updates.get("course")
+    if not isinstance(courses, list) or not courses:
+        return None
+    task_count = sum(
+        len(course.get("tasks") or [])
+        for course in courses if isinstance(course, dict)
+    )
+    summary = f"已保存 {len(courses)} 门课程"
+    if task_count:
+        summary += f"、{task_count} 项任务，可在计划页直接查看"
+    return {
+        "type": "query_tasks",
+        "title": "课程任务已更新",
+        "summary": summary,
+        "actionLabel": "查看课程任务",
+        "targetPage": "pages/StudyPlan",
+    }
+
+
 def chat(message: str, image_base64: str | None = None,
          frontend_data: dict[str, Any] | None = None,
          user_id: str | None = None,
@@ -1077,7 +1168,19 @@ def chat(message: str, image_base64: str | None = None,
     profile_updates: dict[str, Any] = {}
     wrong_analysis: dict[str, Any] = {}
     llm_attempted = llm_used  # 模型的意图判定是否真的成功（后续据此决定能否说"调用失败"）
-    if llm_used:
+    owner = (user_id or "").strip() or "demo-user"
+    with _PENDING_PROFILE_LOCK:
+        has_pending_profile_update = owner in _PENDING_PROFILE_UPDATES
+    is_profile_confirmation = (has_pending_profile_update and
+                               message in (_PROFILE_CONFIRM_WORDS | _PROFILE_CANCEL_WORDS))
+    if is_profile_confirmation:
+        # “确认更新/取消更新”是确定性事务命令，不能再次依赖模型分类。
+        # 否则模型未配置或把短句判成 unknown 时，待确认更新永远无法提交。
+        intent = "update_profile"
+        llm_used = False
+        llm_attempted = False
+        reply, profile_updates = _handle_update_profile(message, data, user_id)
+    elif llm_used:
         try:
             if intent == "analyze_wrong":
                 reply, wrong_analysis = _handle_analyze_wrong(message, data, image_base64, user_id)
@@ -1115,10 +1218,10 @@ def chat(message: str, image_base64: str | None = None,
         # "本次大模型调用失败" —— 而模型其实刚刚成功响应过，属于**对成功结果的误报**。
         llm_used = llm_attempted
 
-    if not llm_used and llm_ready():
+    if not is_profile_confirmation and not llm_used and llm_ready():
         # LLM 已配置但本次调用失败：诚实说明，不伪装成模型输出
         reply += "\n\n（提示：本次大模型调用失败，已降级为本地确定性规则回复。）"
-    elif not llm_ready():
+    elif not is_profile_confirmation and not llm_ready():
         reply += _LOCAL_NOTICE
 
     # 历史上下文或模型惯性仍可能带出旧称呼；在落盘和下发前统一为产品名“小知”。
@@ -1130,10 +1233,11 @@ def chat(message: str, image_base64: str | None = None,
         except OSError:
             pass
 
+    result_card = _build_profile_update_card(profile_updates) or build_card(intent)
     return {
         "reply": reply,
         "intent": intent,
-        "card": build_card(intent),
+        "card": result_card,
         "llmUsed": llm_used,
         # 仅 `update_profile` 意图下非空。前端据此把**课程/任务**类改动应用到
         # 本地 AppState（后端不持有 courses 集合），使画像更新真正闭环。
