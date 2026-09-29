@@ -1,4 +1,5 @@
 import { audio } from '@kit.AudioKit';
+import { BusinessError } from '@kit.BasicServicesKit';
 import { speechRecognizer } from '@kit.CoreSpeechKit';
 
 export class VoiceInputCallbacks {
@@ -110,15 +111,20 @@ export class VoiceInputService {
 
   private async ensureEngine(): Promise<speechRecognizer.SpeechRecognitionEngine> {
     if (this.engine !== null) return this.engine;
-    const engine: speechRecognizer.SpeechRecognitionEngine = await speechRecognizer.createEngine({
-      language: 'zh-CN',
-      // SDK 依据（@hms.ai.speechRecognizer.d.ts）：
-      //   "The value 0 indicates online, value 1 indicates offline."
-      // 语义与字段名相反，极易写错。这里要的是**在线识别**：
-      //   * 离线模式依赖设备本地语言包，模拟器/部分真机未预置会直接失败；
-      //   * 在线识别准确率更高，且无需用户额外下载语言包。
-      online: 0
-    });
+    let engine: speechRecognizer.SpeechRecognitionEngine;
+    let onlineFailure: string = '';
+    try {
+      engine = await this.createEngine(0);
+    } catch (error) {
+      // Core Speech 的在线资源并非所有真机/系统版本都可用。
+      // 在线引擎初始化失败时自动回退到端侧离线引擎，避免把“真机”误判成不支持。
+      onlineFailure = this.errorDetail(error);
+      try {
+        engine = await this.createEngine(1);
+      } catch (offlineError) {
+        throw new Error(`在线语音引擎启动失败（${onlineFailure}）；离线语音引擎也启动失败（${this.errorDetail(offlineError)}）`);
+      }
+    }
     engine.setListener({
       onStart: (sessionId: string, eventMessage: string): void => {
         if (sessionId !== this.sessionId) return;
@@ -147,6 +153,14 @@ export class VoiceInputService {
     });
     this.engine = engine;
     return engine;
+  }
+
+  /** online: 0 = 在线识别，1 = 离线识别（字段命名与取值语义相反）。 */
+  private async createEngine(online: number): Promise<speechRecognizer.SpeechRecognitionEngine> {
+    return speechRecognizer.createEngine({
+      language: 'zh-CN',
+      online: online
+    });
   }
 
   private writePcm(buffer: ArrayBuffer): void {
@@ -195,10 +209,24 @@ export class VoiceInputService {
   }
 
   private readableError(error: Object): string {
-    const raw: string = JSON.stringify(error);
-    if (raw.includes('201') || raw.includes('1002200012')) {
+    const detail: string = this.errorDetail(error);
+    if (detail.includes('201') || detail.includes('1002200012')) {
       return '没有麦克风权限，请在系统设置中允许后重试。';
     }
-    return '当前设备无法启动语音识别，请在真机上重试或直接输入文字。';
+    return `语音识别启动失败：${detail}`;
+  }
+
+  /** BusinessError 的 code/message 默认不可枚举，JSON.stringify 会把它变成空对象。 */
+  private errorDetail(error: Object): string {
+    const typed: BusinessError = error as BusinessError;
+    const code: number = typed.code;
+    const message: string = typed.message;
+    if (code !== undefined && message !== undefined && message.length > 0) {
+      return `${code}: ${message}`;
+    }
+    if (message !== undefined && message.length > 0) {
+      return message;
+    }
+    return String(error);
   }
 }
